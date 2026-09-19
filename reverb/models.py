@@ -45,6 +45,8 @@ class ReasonCode(str, Enum):
     INVALID_CONTRACT = "invalid_contract"
     API_NOT_ENTITLED = "api_not_entitled"
     DATA_UNAVAILABLE = "data_unavailable"
+    PAIR_BID_ASK_UNAVAILABLE = "paired_straddle_bid_ask_unavailable"
+    CALENDAR_UNAVAILABLE = "earnings_calendar_unavailable"
 
 
 class Thesis(StrictModel):
@@ -132,3 +134,16 @@ class ReactionDecision(StrictModel):
     reason_codes: tuple[ReasonCode, ...]
     observed_at: datetime
     arithmetic: dict[str, str]
+
+
+class ToolDecision(StrictModel):
+    """Stable consumer-facing envelope; it never contains a raw API response."""
+
+    tool: str
+    status: DecisionStatus
+    symbol: str | None
+    reason_codes: tuple[ReasonCode, ...]
+    decision: dict[str, Any] | None
+    arithmetic: dict[str, str]
+    explanation: str
+    created_at: datetime

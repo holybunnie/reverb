@@ -40,6 +40,24 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(decision.status.value, "refuse")
         self.assertEqual(decision.reason_codes, (ReasonCode.OPTION_BID_ASK_UNAVAILABLE,))
 
+    def test_source_timestamp_not_receipt_time_controls_freshness(self):
+        received = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+        stale = datetime(2026, 9, 19, 9, 59, 50, tzinfo=timezone.utc)
+        thesis = Thesis(symbol="NVDA", view=View.BEAT, expected_move_pct=Decimal("0.08"),
+                        max_loss=Decimal("1000"), event_at=datetime(2026, 9, 20, 20, 5, tzinfo=timezone.utc),
+                        user_timezone="Africa/Lagos")
+        underlying = UnderlyingQuote(symbol="NVDA.US", price=Decimal("100"), observed_at=received,
+                                     source_timestamp=stale)
+        option = OptionQuote(symbol="NVDA260925C100000.US", underlying_symbol="NVDA.US",
+                             direction=Direction.CALL, strike=Decimal("100"), expiry=date(2026, 9, 25),
+                             contract_multiplier=Decimal("100"), bid=Decimal("2"), ask=Decimal("2.5"),
+                             observed_at=received, source_timestamp=received)
+        decision = evaluate_option(thesis=thesis, underlying=underlying, option=option,
+                                   paired_straddle_move_pct=None, risk_free_rate=Decimal("0.03"),
+                                   dividend_yield=Decimal("0"), post_event_volatility=Decimal("0.25"),
+                                   per_contract_fees=Decimal("1"), max_quote_age_ms=5000, now=received)
+        self.assertEqual(decision.reason_codes, (ReasonCode.STALE_UNDERLYING,))
+
     def test_ledger_requires_registration_before_outcome(self):
         with TemporaryDirectory() as temp:
             ledger = Ledger(Path(temp) / "ledger.jsonl")

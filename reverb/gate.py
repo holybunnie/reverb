@@ -33,8 +33,11 @@ def evaluate_option(*, thesis: Thesis, underlying: UnderlyingQuote, option: Opti
     if thesis.view.direction is not option.direction:
         return _refusal(thesis, ReasonCode.INVALID_CONTRACT, {"view_direction": thesis.view.direction.value, "option_direction": option.direction.value}, inputs, option)
     try:
-        underlying_age = _age_ms(underlying.observed_at, now)
-        option_age = _age_ms(option.observed_at, now)
+        # Freshness is measured against the exchange's source timestamp. The
+        # local receipt time only proves that our process woke up; it cannot
+        # prove that the quote itself was current.
+        underlying_age = _age_ms(underlying.source_timestamp, now)
+        option_age = _age_ms(option.source_timestamp, now)
         if underlying_age < 0 or underlying_age > max_quote_age_ms:
             raise FreshnessError(f"underlying age {underlying_age}ms exceeds {max_quote_age_ms}ms")
         if option_age < 0 or option_age > max_quote_age_ms:

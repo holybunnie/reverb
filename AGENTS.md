@@ -8,7 +8,7 @@ Read docs/m0.md and docs/corrections.md before implementation. The feasibility
 gate is unresolved. Deterministic math, parsing, freshness, reaction, and ledger
 code may be built, but no live trading path is enabled until the gate has a
 verified account response. Do not fabricate an options chain, market quote,
-recorded earnings demo, fill, or eligibility result to advance the gate.
+recorded earnings event, fill, or eligibility result to advance the gate.
 
 Use Python 3.11+, httpx, pydantic, numpy, scipy, pandas. Product rules require
 first-party sources or live API responses. Keep parameters in config/ and record

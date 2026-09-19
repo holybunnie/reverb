@@ -9,8 +9,8 @@ willing to lose. Then you go to bed.
 
 The intended flow is to buy a position before the US market closes, watch how the
 price reacts after the results arrive, and tell you in the morning what happened
-and why. **The build is at its feasibility gate; trading and the demo are not yet
-available.**
+and why. The public `/preview` is a live evidence preview; live trading remains
+behind the feasibility gate.
 
 ## The problem
 
@@ -39,16 +39,18 @@ view. Refusals and their arithmetic will be displayed as prominently as entries.
 The budget must include fees and both positions; buying an additional stock
 token does not inherit the option's risk limit.
 
-The hosted demonstration will need no account. The real agent will run on your
+The hosted preview will need no account. The real agent will run on your
 device with permission to read and trade only. The secret and passphrase stay
 local; authentication is sent directly to Bitget. Reverb will never request
 withdrawal or transfer permission.
 
-## Demo, trade, and refusal evidence
+## Live preview, trade, and refusal evidence
 
-OBSERVED build status: no hosted `/demo`, real trade, or strategy refusal has
-been produced. They will appear here when supported by recorded data. A data
-access failure is not an economic refusal, and a replay is not a real order.
+The credential-free `/preview` route presents a real, hash-checked public-data
+capture. It shows live data reachability, book freshness, the blocked gate, and
+the access failures. It deliberately does not call this an earnings event, a
+real order, or a profitable strategy. A data access failure is not an economic
+refusal, and a replay is not a real order.
 
 ## How it will work
 
@@ -101,7 +103,35 @@ It saves public responses, timestamps, configuration, and checksums under
 new evidence; archived data is never silently replaced. The report command
 verifies the ledger and regenerates the published measurement table offline.
 
-Python dependencies for the later engine are declared in `pyproject.toml`.
-Connection onboarding and the one-command agent launcher will be added after
-the gate is resolved. Playbook is not used because the planned workflow is
-driven by individual earnings events rather than grid or recurring trades.
+To verify a real account, export the three local variables from `.env.example`
+in your own shell and run `./.venv/bin/python scripts/account_check.py`. This
+performs a read-only call and never prints the values. The account check does
+not request withdrawal or transfer permission. A successful check still does
+not enable order placement; a pre-registration and a guarded limit-order path
+are required.
+
+Start the public preview locally with `./.venv/bin/python scripts/preview_server.py`
+and open `http://127.0.0.1:8000/preview`. The JSON conclusion is at
+`http://127.0.0.1:8000/api/preview`; it does not expose raw market data.
+
+Python dependencies for the engine are declared in `pyproject.toml`.
+The MCP decision surface is available after installation:
+
+```sh
+export BITGET_API_KEY='local value'
+export BITGET_SECRET_KEY='local value'
+export BITGET_PASSPHRASE='local value'
+export REVERB_OPTION_FEES_PER_CONTRACT='verified value'
+./.venv/bin/python scripts/mcp_server.py
+```
+
+It exposes `earnings_this_week`, `position_for`, `whats_priced_in`, `react`,
+and `my_positions`. It does not expose raw option chains, candles, or order
+books. The optional Qwen language layer uses `BITGET_QWEN_API_KEY` only for
+plain-language interpretation and narration; it never supplies quantitative
+inputs or a trading decision. Keep all values in the local shell or ignored
+`.env`, not in global Mac settings.
+
+Full live order execution remains gated by `docs/m0.md`. Playbook is not used
+because the planned workflow is driven by individual earnings events rather
+than grid or recurring trades.
