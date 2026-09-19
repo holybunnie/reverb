@@ -5,15 +5,18 @@ from decimal import Decimal
 from .bitget import BitgetClient
 from .errors import ConfigurationError, LedgerError
 from .ledger import Ledger
-from .models import DecisionStatus, ReactionDecision
+from .models import DecisionStatus, LivenessDecision, ReactionDecision
 from .sessions import Session, validate_order_type
 
 
 def place_reaction_limit(*, client: BitgetClient, ledger: Ledger, decision: ReactionDecision,
                          symbol: str, side: str, quantity: Decimal, price: Decimal,
-                         client_oid: str) -> dict:
+                         client_oid: str, liveness: LivenessDecision | None = None) -> dict:
     if decision.status is not DecisionStatus.ACT:
         raise ConfigurationError("cannot submit an order for a non-ACT reaction decision")
+    if (liveness is None or not liveness.read_verified or not liveness.trade_permission
+            or liveness.withdrawal_permission or not liveness.account_settings_verified):
+        raise ConfigurationError("a verified read-and-trade liveness decision without withdrawal permission is required")
     if decision.symbol != symbol:
         raise ConfigurationError("order symbol does not match reaction decision")
     try:
@@ -26,6 +29,8 @@ def place_reaction_limit(*, client: BitgetClient, ledger: Ledger, decision: Reac
     registrations = [row for row in ledger.verify() if row["kind"] == "pre_registration" and row["payload"].get("decision_id") == decision.decision_id]
     if not registrations:
         raise LedgerError("pre-registration is required before a reaction order")
+    if registrations[-1]["payload"].get("status") != DecisionStatus.ACT.value:
+        raise LedgerError("reaction order requires an ACT pre-registration")
     try:
         response = client.place_reality_limit(symbol=symbol, side=side, quantity=quantity, price=price, client_oid=client_oid)
     except Exception as exc:
