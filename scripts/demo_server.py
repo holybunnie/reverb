@@ -11,6 +11,7 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from reverb.app import render_app_html  # noqa: E402
 from reverb.demo import load_demo_snapshot, render_demo_html  # noqa: E402
 
 
@@ -31,6 +32,9 @@ class Handler(BaseHTTPRequestHandler):
             snapshot = load_demo_snapshot(ROOT)
             if route in {"/", "/preview", "/demo"}:
                 self._send(200, "text/html; charset=utf-8", render_demo_html(snapshot).encode())
+                return
+            if route == "/app":
+                self._send(200, "text/html; charset=utf-8", render_app_html(snapshot).encode())
                 return
             if route in {"/api/preview", "/api/demo"}:
                 self._send(200, "application/json; charset=utf-8", json.dumps(snapshot.as_dict(), sort_keys=True).encode())

@@ -139,6 +139,7 @@ class ReactionDecision(StrictModel):
 class ToolDecision(StrictModel):
     """Stable consumer-facing envelope; it never contains a raw API response."""
 
+    decision_id: str
     tool: str
     status: DecisionStatus
     symbol: str | None
@@ -147,3 +148,14 @@ class ToolDecision(StrictModel):
     arithmetic: dict[str, str]
     explanation: str
     created_at: datetime
+
+
+class LivenessDecision(StrictModel):
+    checked_at: datetime
+    read_verified: bool
+    trade_permission: bool
+    withdrawal_permission: bool
+    ip_binding_present: bool
+    account_permission_type: str
+    account_settings_verified: bool
+    arithmetic: dict[str, str]

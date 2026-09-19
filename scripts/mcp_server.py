@@ -19,7 +19,14 @@ from reverb.service import DecisionService  # noqa: E402
 
 
 def _service(*, require_credentials: bool = True) -> DecisionService:
-    credentials = Credentials.from_env() if require_credentials else None
+    credentials = None
+    try:
+        credentials = Credentials.from_env()
+    except ConfigurationError:
+        # The service converts missing credentials into a structured refusal;
+        # an MCP caller should receive a decision object, not a raw exception.
+        if require_credentials:
+            credentials = None
     loaded = load_config(ROOT / "config" / "engine.json", EngineConfig)
     ledger_path = Path(os.getenv("REVERB_LEDGER_PATH", str(ROOT / "data" / "private" / "ledger.jsonl")))
     fee_text = os.getenv("REVERB_OPTION_FEES_PER_CONTRACT")

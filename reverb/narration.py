@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -31,10 +32,10 @@ def _deterministic_text(decision: dict[str, Any]) -> str:
 def narrate_and_record(*, decision: dict[str, Any], ledger: Ledger,
                        qwen: QwenClient | None = None) -> Narration:
     serialized = json.dumps(decision, sort_keys=True, separators=(",", ":"), allow_nan=False)
-    input_hash = __import__("hashlib").sha256(serialized.encode()).hexdigest()
+    input_hash = hashlib.sha256(serialized.encode()).hexdigest()
     qwen_result: QwenNarration | None = qwen.narrate(decision) if qwen is not None else None
     text = qwen_result.text if qwen_result is not None else _deterministic_text(decision)
-    output_hash = __import__("hashlib").sha256(text.encode()).hexdigest()
+    output_hash = hashlib.sha256(text.encode()).hexdigest()
     result = Narration(
         text=text, provider=qwen_result.provider if qwen_result else "deterministic-template",
         model=qwen_result.model if qwen_result else None, input_sha256=input_hash,
@@ -46,4 +47,3 @@ def narrate_and_record(*, decision: dict[str, Any], ledger: Ledger,
         "input_sha256": result.input_sha256, "output_sha256": result.output_sha256,
     })
     return result
-

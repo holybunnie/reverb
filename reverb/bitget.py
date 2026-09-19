@@ -134,6 +134,9 @@ class BitgetClient:
     def account_settings(self) -> dict[str, Any]:
         return self._request("GET", "/api/v3/account/settings", private=True)["data"]
 
+    def account_info(self) -> dict[str, Any]:
+        return self._request("GET", "/api/v3/account/info", private=True)["data"]
+
     def account_assets(self) -> list[dict[str, Any]]:
         data = self._request("GET", "/api/v3/account/assets", private=True)["data"]
         if not isinstance(data, list):

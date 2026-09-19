@@ -111,7 +111,8 @@ not enable order placement; a pre-registration and a guarded limit-order path
 are required.
 
 Start the public preview locally with `./.venv/bin/python scripts/preview_server.py`
-and open `http://127.0.0.1:8000/preview`. The JSON conclusion is at
+and open `http://127.0.0.1:8000/app` for the phone-first product surface or
+`http://127.0.0.1:8000/preview` for the evidence view. The JSON conclusion is at
 `http://127.0.0.1:8000/api/preview`; it does not expose raw market data.
 
 Python dependencies for the engine are declared in `pyproject.toml`.
@@ -131,6 +132,15 @@ books. The optional Qwen language layer uses `BITGET_QWEN_API_KEY` only for
 plain-language interpretation and narration; it never supplies quantitative
 inputs or a trading decision. Keep all values in the local shell or ignored
 `.env`, not in global Mac settings.
+
+The UTC scheduler can be exercised for one wake with:
+
+```sh
+./.venv/bin/python scripts/scheduler_once.py EVENT_ID EVENT_TIMESTAMP
+```
+
+It checks key liveness, writes a heartbeat, records a gap or missed-window
+marker, and emits the due action. It never submits an order by itself.
 
 Full live order execution remains gated by `docs/m0.md`. Playbook is not used
 because the planned workflow is driven by individual earnings events rather

@@ -17,7 +17,7 @@ from .gate import evaluate_option
 from .ledger import Ledger
 from .models import DecisionStatus, ReasonCode, Thesis, ToolDecision, View
 from .reaction import baseline_price, evaluate_reaction
-from .sessions import session_at
+from .sessions import Session, session_at
 from .universe import reality_instruments, rtoken_for_underlying
 
 
@@ -26,6 +26,12 @@ def _underlying(symbol: str) -> str:
     if not value:
         raise ConfigurationError("symbol is required")
     return value if value.endswith(".US") else f"{value}.US"
+
+
+def _aware(value: datetime, name: str) -> datetime:
+    if value.tzinfo is None:
+        raise ConfigurationError(f"{name} must include a timezone")
+    return value.astimezone(timezone.utc)
 
 
 def _failure_reason(error: Exception) -> ReasonCode:
@@ -87,11 +93,17 @@ class DecisionService:
         try:
             if self.per_contract_fees is None or self.per_contract_fees < 0:
                 raise ConfigurationError("verified per-contract fees are required; no fee default is permitted")
+            event_at = _aware(event_at, "event_at")
             underlying_symbol = _underlying(symbol)
             thesis = Thesis(symbol=underlying_symbol.removesuffix(".US"), view=view,
                             expected_move_pct=expected_move_pct, max_loss=max_loss,
                             event_at=event_at, user_timezone=user_timezone)
             now = datetime.now(timezone.utc)
+            session = session_at(now).session
+            if session is not Session.REGULAR:
+                return self._refusal(tool, thesis.symbol, ReasonCode.SESSION_UNAVAILABLE,
+                                     {"session": session.value, "required_session": Session.REGULAR.value},
+                                     "Reverb refused because options can only be positioned during the verified regular session.")
             underlying = parse_stock_quote(self.client.stock_quote(underlying_symbol), observed_at=now)
             expiry_value, expiry = select_expiry(self.client.option_expiry_dates(underlying_symbol), event_at.date())
             chain = parse_chain(self.client.option_chain(underlying_symbol, expiry_value), expiry)
@@ -103,6 +115,13 @@ class DecisionService:
             paired = observed_quotes.get(paired_symbol)
             if option is None or paired is None:
                 raise DataUnavailable("selected or paired option quote is missing")
+            for label, quote in (("selected", option), ("paired", paired)):
+                age_ms = int((now - quote.source_timestamp).total_seconds() * 1000)
+                if age_ms < 0 or age_ms > self.engine.max_quote_age_ms:
+                    return self._refusal(tool, thesis.symbol, ReasonCode.STALE_OPTION,
+                                         {"quote": label, "quote_age_ms": str(age_ms),
+                                          "max_quote_age_ms": str(self.engine.max_quote_age_ms)},
+                                         "Reverb refused because an option quote was outside the freshness gate.")
             if option.strike != paired.strike or option.expiry != paired.expiry:
                 raise DataUnavailable("selected and paired option quotes do not describe the same contract")
             if not option.executable or not paired.executable or option.ask is None or paired.ask is None:
@@ -138,6 +157,7 @@ class DecisionService:
                         historical_move_pct: Decimal | None = None) -> ToolDecision:
         tool = "whats_priced_in"
         try:
+            event_at = _aware(event_at, "event_at")
             underlying_symbol = _underlying(symbol)
             now = datetime.now(timezone.utc)
             underlying = parse_stock_quote(self.client.stock_quote(underlying_symbol), observed_at=now)
@@ -148,6 +168,14 @@ class DecisionService:
             quotes = {str(row.get("symbol")): parse_option_quote(row, observed_at=now) for row in rows}
             call = quotes.get(contract.call_symbol)
             put = quotes.get(contract.put_symbol)
+            for label, quote in (("call", call), ("put", put)):
+                if quote is not None:
+                    age_ms = int((now - quote.source_timestamp).total_seconds() * 1000)
+                    if age_ms < 0 or age_ms > self.engine.max_quote_age_ms:
+                        return self._refusal(tool, symbol, ReasonCode.STALE_OPTION,
+                                             {"quote": label, "quote_age_ms": str(age_ms),
+                                              "max_quote_age_ms": str(self.engine.max_quote_age_ms)},
+                                             "Reverb refused because a paired option quote was outside the freshness gate.")
             if call is None or put is None or not call.executable or not put.executable or call.ask is None or put.ask is None:
                 return self._refusal(tool, symbol, ReasonCode.PAIR_BID_ASK_UNAVAILABLE,
                                      {"call_symbol": contract.call_symbol, "put_symbol": contract.put_symbol},
@@ -174,6 +202,7 @@ class DecisionService:
               order_type: str = "limit") -> ToolDecision:
         tool = "react"
         try:
+            event_at = _aware(event_at, "event_at")
             underlying_symbol = _underlying(symbol)
             token = self._r_token(underlying_symbol)
             now = datetime.now(timezone.utc)
@@ -181,7 +210,9 @@ class DecisionService:
             baseline, baseline_arithmetic = baseline_price(rows, event_at, self.engine.baseline_window_minutes,
                                                             self.engine.baseline_min_points)
             quote = parse_rtoken_ticker(self.client.ticker(token), observed_at=now)
-            session = session_at(quote.source_timestamp, user_timezone).session
+            # Order sessions are Bitget's New York session; the user's zone is
+            # only for narration and display.
+            session = session_at(quote.source_timestamp, "America/New_York").session
             decision = evaluate_reaction(
                 symbol=token, baseline=baseline, observed_price=quote.price,
                 observed_at=quote.source_timestamp, baseline_observed_at=event_at,

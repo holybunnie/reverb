@@ -38,6 +38,15 @@ class QwenNarration:
     output_sha256: str
 
 
+@dataclass(frozen=True)
+class QwenViewInterpretation:
+    view: str
+    provider: str
+    model: str
+    input_sha256: str
+    output_sha256: str
+
+
 class QwenClient:
     def __init__(self, credentials: QwenCredentials, timeout: float = 30.0,
                  client: httpx.Client | None = None):
@@ -92,3 +101,41 @@ class QwenClient:
         return QwenNarration(text=text.strip(), provider="bitget-qwen", model=self.credentials.model,
                              input_sha256=input_hash, output_sha256=output_hash)
 
+    def interpret_view(self, plain_language: str) -> QwenViewInterpretation:
+        """Classify direction only; magnitude, size, instrument, and approval stay outside the model."""
+        if not isinstance(plain_language, str) or not plain_language.strip():
+            raise ConfigurationError("plain-language view is required")
+        serialized = json.dumps({"view": plain_language}, sort_keys=True, separators=(",", ":"))
+        prompt = (
+            "Classify the user's view using exactly one lowercase token: beat, miss, or no_view. "
+            "Do not calculate a move, choose an instrument, size a trade, or give advice.\n\n"
+            + serialized
+        )
+        body = {
+            "model": self.credentials.model,
+            "messages": [
+                {"role": "system", "content": "You classify a user's direction without making a trading decision."},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0,
+        }
+        try:
+            response = self._client.post(
+                self.credentials.base_url + "/chat/completions",
+                headers={"Authorization": "Bearer " + self.credentials.api_key, "Content-Type": "application/json"},
+                json=body,
+            )
+            response.raise_for_status()
+            document = response.json()
+            value = document["choices"][0]["message"]["content"]
+        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+            raise DataUnavailable(f"Qwen view interpretation failed: {type(exc).__name__}") from exc
+        if not isinstance(value, str):
+            raise DataUnavailable("Qwen view interpretation is not text")
+        parsed = value.strip().lower()
+        if parsed not in {"beat", "miss", "no_view"}:
+            raise DataUnavailable("Qwen returned an unrecognised view classification")
+        output_hash = hashlib.sha256(parsed.encode()).hexdigest()
+        return QwenViewInterpretation(view=parsed, provider="bitget-qwen", model=self.credentials.model,
+                                      input_sha256=hashlib.sha256(serialized.encode()).hexdigest(),
+                                      output_sha256=output_hash)

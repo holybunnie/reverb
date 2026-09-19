@@ -5,14 +5,19 @@ import sys
 
 from reverb.bitget import BitgetClient, Credentials
 from reverb.errors import BitgetAPIError, ConfigurationError, DataUnavailable
+from reverb.liveness import check_account_liveness
 
 
 def main() -> int:
     try:
         credentials = Credentials.from_env()
         with BitgetClient(credentials=credentials) as client:
-            settings = client.account_settings()
-            print({"status": "verified", "read_only": True, "settings_fields": sorted(settings.keys())})
+            liveness = check_account_liveness(client)
+            print({"status": "verified", "read_only": liveness.read_verified,
+                   "trade_permission": liveness.trade_permission,
+                   "withdrawal_permission": liveness.withdrawal_permission,
+                   "ip_binding_present": liveness.ip_binding_present,
+                   "settings_verified": liveness.account_settings_verified})
         return 0
     except ConfigurationError as exc:
         print(f"REVERB HALTED: {exc}. Load local environment variables; no credentials are accepted as command arguments.", file=sys.stderr)
