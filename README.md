@@ -116,7 +116,8 @@ are required.
 Start the public preview locally with `./.venv/bin/python scripts/preview_server.py`
 and open `http://127.0.0.1:8000/app` for the phone-first product surface or
 `http://127.0.0.1:8000/preview` for the evidence view. The JSON conclusion is at
-`http://127.0.0.1:8000/api/preview`; it does not expose raw market data.
+`http://127.0.0.1:8000/api/preview`; `/connect` contains the local-only account
+permission steps. The server does not expose raw market data or accept keys.
 
 Python dependencies for the engine are declared in `pyproject.toml`.
 The MCP decision surface is available after installation:

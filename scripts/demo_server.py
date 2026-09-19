@@ -6,12 +6,12 @@ import json
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from reverb.app import render_app_html  # noqa: E402
+from reverb.app import render_app_html, render_connection_html  # noqa: E402
 from reverb.demo import load_demo_snapshot, render_demo_html  # noqa: E402
 
 
@@ -34,7 +34,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, "text/html; charset=utf-8", render_demo_html(snapshot).encode())
                 return
             if route == "/app":
-                self._send(200, "text/html; charset=utf-8", render_app_html(snapshot).encode())
+                query = parse_qs(urlsplit(self.path).query)
+                risk_budget = query.get("risk", [None])[0]
+                timezone_name = query.get("timezone", [None])[0]
+                self._send(200, "text/html; charset=utf-8",
+                           render_app_html(snapshot, risk_budget=risk_budget, timezone_name=timezone_name).encode())
+                return
+            if route == "/connect":
+                self._send(200, "text/html; charset=utf-8", render_connection_html().encode())
                 return
             if route in {"/api/preview", "/api/demo"}:
                 self._send(200, "application/json; charset=utf-8", json.dumps(snapshot.as_dict(), sort_keys=True).encode())
