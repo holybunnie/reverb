@@ -87,20 +87,53 @@ class EarningsCalendar:
         if not isinstance(symbol, str) or not symbol.strip() or not isinstance(event_value, str):
             raise DataUnavailable("earnings calendar row is missing symbol or event time")
         try:
-            if len(event_value) == 10:
-                configured_time = default_event_time_et
-                if not configured_time:
-                    raise DataUnavailable("calendar supplied a date without a time; set calendar.default_event_time_et explicitly")
-                hour, minute = (int(part) for part in configured_time.split(":", 1))
-                event_date = date.fromisoformat(event_value)
-                event_at = datetime.combine(event_date, time(hour, minute), tzinfo=ZoneInfo("America/New_York")).astimezone(timezone.utc)
-            else:
+            if ("T" in event_value or event_value.endswith("Z")
+                    or (" " in event_value and ":" in event_value)):
                 event_at = datetime.fromisoformat(event_value.replace("Z", "+00:00"))
                 if event_at.tzinfo is None:
                     raise ValueError("event time has no timezone")
                 event_at = event_at.astimezone(timezone.utc)
+            else:
+                event_date = _parse_event_date(event_value)
+                explicit_time = _explicit_event_time(row)
+                event_time = _parse_clock_time(explicit_time) if explicit_time is not None else None
+                if event_time is None:
+                    configured_time = default_event_time_et
+                    if not configured_time:
+                        raise DataUnavailable("calendar supplied a date without a time; set calendar.default_event_time_et explicitly")
+                    event_time = _parse_clock_time(configured_time)
+                event_at = datetime.combine(event_date, event_time, tzinfo=ZoneInfo("America/New_York")).astimezone(timezone.utc)
         except (ValueError, ZoneInfoNotFoundError) as exc:
             raise DataUnavailable(f"earnings calendar event time is invalid: {event_value}") from exc
         if not isinstance(source_id, (str, int)):
             raise DataUnavailable("earnings calendar event id is invalid")
         return EarningsEvent(symbol=symbol.upper(), event_at=event_at, source="configured-earnings-calendar", source_id=str(source_id))
+
+
+def _parse_event_date(value: str) -> date:
+    for pattern in ("%Y-%m-%d", "%m/%d/%Y", "%b %d, %Y", "%B %d, %Y"):
+        try:
+            return datetime.strptime(value.strip(), pattern).date()
+        except ValueError:
+            continue
+    raise ValueError(f"unsupported earnings date: {value}")
+
+
+def _explicit_event_time(row: dict[str, Any]) -> str | None:
+    value = row.get("time") or row.get("reportTime") or row.get("report_time")
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    if not normalized or normalized.lower() in {"time-not-supplied", "not-supplied", "unknown", "n/a", "tbd"}:
+        return None
+    return normalized
+
+
+def _parse_clock_time(value: str) -> time:
+    normalized = value.strip().upper().replace(" EASTERN", "").replace(" ET", "")
+    for pattern in ("%H:%M", "%H:%M:%S", "%I:%M %p", "%I:%M:%S %p"):
+        try:
+            return datetime.strptime(normalized, pattern).time()
+        except ValueError:
+            continue
+    raise ValueError(f"unsupported earnings clock time: {value}")

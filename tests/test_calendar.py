@@ -15,3 +15,11 @@ class CalendarTests(unittest.TestCase):
         self.assertEqual(event.symbol, "NVDA")
         self.assertEqual(event.event_at.hour, 20)
         self.assertEqual(event.event_at.tzinfo, timezone.utc)
+
+    def test_source_reporting_time_is_used_when_it_is_explicit(self):
+        event = EarningsCalendar._parse_row({"symbol": "NVDA", "date": "09/24/2026", "time": "4:05 PM ET"})
+        self.assertEqual(event.event_at.isoformat(), "2026-09-24T20:05:00+00:00")
+
+    def test_unresolved_source_time_still_requires_a_configured_fallback(self):
+        with self.assertRaises(DataUnavailable):
+            EarningsCalendar._parse_row({"symbol": "NVDA", "date": "2026-09-24", "time": "time-not-supplied"})
