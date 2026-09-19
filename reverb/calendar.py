@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
 from .errors import ConfigurationError, DataUnavailable
+from .config import CalendarConfig, load_config
 
 
 @dataclass(frozen=True)
@@ -22,10 +23,15 @@ class EarningsEvent:
 class EarningsCalendar:
     """Strict adapter for a configured calendar; it never invents events."""
 
-    def __init__(self, url: str | None = None, timeout: float = 15.0, client: httpx.Client | None = None):
-        self.url = url or os.getenv("REVERB_EARNINGS_CALENDAR_URL")
-        self.timeout = timeout
-        self._client = client or httpx.Client(timeout=timeout)
+    def __init__(self, url: str | None = None, timeout: float | None = None, client: httpx.Client | None = None,
+                 config_path: str | None = None):
+        path = Path(config_path) if config_path else Path(__file__).resolve().parents[1] / "config" / "calendar.json"
+        loaded = load_config(path, CalendarConfig)
+        self.config_sha256 = loaded.sha256
+        self.url = url or loaded.value.url
+        self.timeout = timeout if timeout is not None else loaded.value.timeout_seconds
+        self.default_event_time_et = loaded.value.default_event_time_et
+        self._client = client or httpx.Client(timeout=self.timeout)
 
     def close(self) -> None:
         self._client.close()
@@ -38,45 +44,53 @@ class EarningsCalendar:
 
     def this_week(self, now: datetime | None = None) -> tuple[EarningsEvent, ...]:
         if not self.url:
-            raise ConfigurationError("REVERB_EARNINGS_CALENDAR_URL is required; no earnings feed is hardcoded")
+            raise ConfigurationError("calendar.url is required; no earnings feed is hardcoded")
         now = now or datetime.now(timezone.utc)
         start = (now.date() - timedelta(days=now.weekday()))
-        end = start + timedelta(days=6)
-        try:
-            response = self._client.get(self.url, params={"fromdate": start.isoformat(), "todate": end.isoformat()})
-            response.raise_for_status()
-            document = response.json()
-        except (httpx.HTTPError, ValueError) as exc:
-            raise DataUnavailable(f"earnings calendar request failed: {type(exc).__name__}") from exc
-        rows = self._rows(document)
-        events = tuple(self._parse_row(row) for row in rows)
+        events: list[EarningsEvent] = []
+        for offset in range(7):
+            event_date = start + timedelta(days=offset)
+            try:
+                response = self._client.get(self.url, params={"date": event_date.isoformat()},
+                                            headers={"User-Agent": "Reverb-calendar/0.1", "Accept": "application/json"})
+                response.raise_for_status()
+                document = response.json()
+            except (httpx.HTTPError, ValueError) as exc:
+                raise DataUnavailable(f"earnings calendar request failed for {event_date}: {type(exc).__name__}") from exc
+            for row in self._rows(document, allow_empty=True):
+                events.append(self._parse_row({**row, "_event_date": event_date.isoformat()}, self.default_event_time_et))
         if not events:
             raise DataUnavailable("earnings calendar returned no validated events")
-        return events
+        return tuple(events)
 
     @staticmethod
-    def _rows(document: Any) -> list[dict[str, Any]]:
+    def _rows(document: Any, allow_empty: bool = False) -> list[dict[str, Any]]:
         candidates: Any = document
         if isinstance(document, dict):
+            status = document.get("status")
+            if isinstance(status, dict) and status.get("rCode") not in (None, 200):
+                raise DataUnavailable("earnings calendar returned a non-success status")
             candidates = document.get("data", document)
             if isinstance(candidates, dict):
                 candidates = candidates.get("rows", candidates.get("results"))
-        if not isinstance(candidates, list) or not candidates or any(not isinstance(row, dict) for row in candidates):
+        if candidates is None and allow_empty:
+            return []
+        if not isinstance(candidates, list) or (not candidates and not allow_empty) or any(not isinstance(row, dict) for row in candidates):
             raise DataUnavailable("earnings calendar response has no validated rows")
         return candidates
 
     @staticmethod
-    def _parse_row(row: dict[str, Any]) -> EarningsEvent:
+    def _parse_row(row: dict[str, Any], default_event_time_et: str | None = None) -> EarningsEvent:
         symbol = row.get("symbol") or row.get("ticker")
-        event_value = row.get("event_at") or row.get("eventAt") or row.get("date")
+        event_value = row.get("event_at") or row.get("eventAt") or row.get("event_time") or row.get("date") or row.get("_event_date")
         source_id = row.get("id") or row.get("eventId") or f"{symbol}:{event_value}"
         if not isinstance(symbol, str) or not symbol.strip() or not isinstance(event_value, str):
             raise DataUnavailable("earnings calendar row is missing symbol or event time")
         try:
             if len(event_value) == 10:
-                configured_time = os.getenv("REVERB_DEFAULT_EARNINGS_TIME_ET")
+                configured_time = default_event_time_et
                 if not configured_time:
-                    raise DataUnavailable("calendar supplied a date without a time; set REVERB_DEFAULT_EARNINGS_TIME_ET explicitly")
+                    raise DataUnavailable("calendar supplied a date without a time; set calendar.default_event_time_et explicitly")
                 hour, minute = (int(part) for part in configured_time.split(":", 1))
                 event_date = date.fromisoformat(event_value)
                 event_at = datetime.combine(event_date, time(hour, minute), tzinfo=ZoneInfo("America/New_York")).astimezone(timezone.utc)
@@ -89,4 +103,4 @@ class EarningsCalendar:
             raise DataUnavailable(f"earnings calendar event time is invalid: {event_value}") from exc
         if not isinstance(source_id, (str, int)):
             raise DataUnavailable("earnings calendar event id is invalid")
-        return EarningsEvent(symbol=symbol.upper(), event_at=event_at, source=self.__class__.__name__, source_id=str(source_id))
+        return EarningsEvent(symbol=symbol.upper(), event_at=event_at, source="configured-earnings-calendar", source_id=str(source_id))

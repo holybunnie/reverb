@@ -23,6 +23,14 @@ class EngineConfig(BaseModel):
     baseline_min_points: int = Field(gt=0)
 
 
+class CalendarConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    url: str = Field(min_length=1)
+    timeout_seconds: float = Field(gt=0)
+    default_event_time_et: str | None = None
+
+
 T = TypeVar("T", bound=BaseModel)
 
 

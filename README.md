@@ -78,6 +78,9 @@ Current snapshots must never be described as earnings-time measurements.
 - NOT MEASURED: earnings-time spreads and depth versus regular-hours medians;
   earnings event replay; fills, slippage, and profitability.
 - ASSUMED/UNVERIFIED: API-key inactivity expiry and whether IP binding affects it.
+- OBSERVED: the configured public Nasdaq calendar returns earnings dates but can
+  omit the reporting time; `config/calendar.json` must set
+  `default_event_time_et` explicitly before a date-only event can schedule a trade.
 - ASSUMED modeling choices: volatility after earnings, risk-free rate, dividend
   treatment, early-exercise effects, and stock-token basis relative to the option
   underlying. None is currently used to approve a trade.

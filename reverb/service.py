@@ -267,7 +267,8 @@ class DecisionService:
                 })
             result = ToolDecision(decision_id=str(uuid4()), tool=tool, status=DecisionStatus.HOLD,
                                   symbol=None, reason_codes=(), decision={"events": items},
-                                  arithmetic={"event_count": str(len(items))},
+                                  arithmetic={"event_count": str(len(items)),
+                                              "calendar_config_sha256": calendar.config_sha256 if calendar is not None else "unavailable"},
                                   explanation="Reverb found calendar events and reports each leg's verified or unverified availability.",
                                   created_at=datetime.now(timezone.utc))
             return self._record(result)
