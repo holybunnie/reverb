@@ -5,7 +5,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from .demo import DemoSnapshot
+from .preview import PreviewSnapshot
 
 
 def _risk_label(value: str | None) -> str:
@@ -30,7 +30,7 @@ def _timezone_label(value: str | None) -> str:
     return value
 
 
-def render_app_html(snapshot: DemoSnapshot, *, risk_budget: str | None = None,
+def render_app_html(snapshot: PreviewSnapshot, *, risk_budget: str | None = None,
                     timezone_name: str | None = None) -> str:
     risk = html.escape(_risk_label(risk_budget))
     timezone_display = html.escape(_timezone_label(timezone_name))

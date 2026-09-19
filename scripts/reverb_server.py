@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from reverb.app import render_app_html, render_connection_html  # noqa: E402
-from reverb.demo import load_demo_snapshot, render_demo_html  # noqa: E402
+from reverb.preview import load_preview_snapshot, render_preview_html  # noqa: E402
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -29,9 +29,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         route = urlsplit(self.path).path
         try:
-            snapshot = load_demo_snapshot(ROOT)
-            if route in {"/", "/preview", "/demo"}:
-                self._send(200, "text/html; charset=utf-8", render_demo_html(snapshot).encode())
+            snapshot = load_preview_snapshot(ROOT)
+            if route in {"/", "/preview"}:
+                self._send(200, "text/html; charset=utf-8", render_preview_html(snapshot).encode())
                 return
             if route == "/app":
                 query = parse_qs(urlsplit(self.path).query)
@@ -43,7 +43,7 @@ class Handler(BaseHTTPRequestHandler):
             if route == "/connect":
                 self._send(200, "text/html; charset=utf-8", render_connection_html().encode())
                 return
-            if route in {"/api/preview", "/api/demo"}:
+            if route == "/api/preview":
                 self._send(200, "application/json; charset=utf-8", json.dumps(snapshot.as_dict(), sort_keys=True).encode())
                 return
             if route == "/health":

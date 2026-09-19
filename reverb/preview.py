@@ -15,7 +15,7 @@ GENESIS = "0" * 64
 
 
 @dataclass(frozen=True)
-class DemoSnapshot:
+class PreviewSnapshot:
     run_id: str
     captured_at: str
     ledger_head: str
@@ -112,7 +112,7 @@ def _book_summary(data: dict[str, Any], record: dict[str, Any], symbol: str) -> 
     }
 
 
-def load_demo_snapshot(root: Path) -> DemoSnapshot:
+def load_preview_snapshot(root: Path) -> PreviewSnapshot:
     runs_root = root / "evidence" / "runs"
     if not runs_root.exists():
         raise DataUnavailable("no evidence capture exists; run scripts/probe.py capture first")
@@ -137,7 +137,7 @@ def load_demo_snapshot(root: Path) -> DemoSnapshot:
     captured_at = complete.get("at")
     if not isinstance(captured_at, str):
         raise DataUnavailable("evidence completion timestamp is missing")
-    return DemoSnapshot(
+    return PreviewSnapshot(
         run_id=directory.name,
         captured_at=captured_at,
         ledger_head=complete["hash"],
@@ -153,7 +153,7 @@ def _number(value: str, places: int = 4) -> str:
     return f"{Decimal(value):.{places}f}"
 
 
-def render_demo_html(snapshot: DemoSnapshot) -> str:
+def render_preview_html(snapshot: PreviewSnapshot) -> str:
     rows = "".join(
         "<tr>"
         f"<td>{html.escape(row['symbol'])}</td>"
