@@ -27,3 +27,7 @@ class BitgetAPIError(DataUnavailable):
         self.status = status
         self.code = code
         super().__init__(f"Bitget API failure status={status} code={code}: {message}")
+
+
+class AgentHubError(DataUnavailable):
+    """The local Agent Hub execution surface could not complete a command."""

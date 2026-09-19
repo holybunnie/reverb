@@ -10,7 +10,7 @@ from reverb.ledger import Ledger
 from reverb.models import DecisionStatus, LivenessDecision, ReactionDecision
 
 
-class FakeClient:
+class FakeExecutor:
     def __init__(self):
         self.calls = []
 
@@ -45,7 +45,7 @@ class ExecutionTests(unittest.TestCase):
             ledger.register({"decision_id": "reaction-1", "status": "act"})
             with self.assertRaises(ConfigurationError):
                 place_reaction_limit(
-                    client=FakeClient(), ledger=ledger, decision=_decision(), symbol="RNVDAUSDT",
+                    executor=FakeExecutor(), ledger=ledger, decision=_decision(), symbol="RNVDAUSDT",
                     side="buy", quantity=Decimal("1"), price=Decimal("105"), client_oid="oid-1",
                 )
 
@@ -53,15 +53,15 @@ class ExecutionTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             ledger = Ledger(Path(temp) / "ledger.jsonl")
             ledger.register({"decision_id": "reaction-1", "status": "act"})
-            client = FakeClient()
+            executor = FakeExecutor()
             response = place_reaction_limit(
-                client=client, ledger=ledger, decision=_decision(), symbol="RNVDAUSDT",
+                executor=executor, ledger=ledger, decision=_decision(), symbol="RNVDAUSDT",
                 side="buy", quantity=Decimal("1"), price=Decimal("105"), client_oid="oid-1",
                 liveness=_liveness(),
             )
             self.assertEqual(response["orderId"], "order-1")
             self.assertEqual(ledger.verify()[-1]["kind"], "order_submitted")
-            self.assertEqual(client.calls[0]["client_oid"], "oid-1")
+            self.assertEqual(executor.calls[0]["client_oid"], "oid-1")
 
     def test_refused_registration_cannot_be_used_for_an_order(self):
         with TemporaryDirectory() as temp:
@@ -69,7 +69,7 @@ class ExecutionTests(unittest.TestCase):
             ledger.register({"decision_id": "reaction-1", "status": "refuse"})
             with self.assertRaises(LedgerError):
                 place_reaction_limit(
-                    client=FakeClient(), ledger=ledger, decision=_decision(), symbol="RNVDAUSDT",
+                    executor=FakeExecutor(), ledger=ledger, decision=_decision(), symbol="RNVDAUSDT",
                     side="buy", quantity=Decimal("1"), price=Decimal("105"), client_oid="oid-1",
                     liveness=_liveness(),
                 )

@@ -73,8 +73,9 @@ Current snapshots must never be described as earnings-time measurements.
   entitlement. App options access is not proof of API data access.
 - ASSUMED/UNVERIFIED: runtime options universe and its overlap with continuously
   traded stock tokens; executable option bids and asks; contract metadata.
-- ASSUMED/UNVERIFIED: Stock+ execution through Agent Hub, account-specific fees,
-  and trading-permission introspection.
+- ASSUMED/UNVERIFIED: the locally installed Agent Hub catalog for this account,
+  account-specific fees, and trading-permission introspection. The write path is
+  intentionally fixed to local Agent Hub; Reverb has no raw Bitget order fallback.
 - NOT MEASURED: earnings-time spreads and depth versus regular-hours medians;
   earnings event replay; fills, slippage, and profitability.
 - ASSUMED/UNVERIFIED: API-key inactivity expiry and whether IP binding affects it.
@@ -111,7 +112,17 @@ in your own shell and run `./.venv/bin/python scripts/account_check.py`. This
 performs a read-only call and never prints the values. The account check does
 not request withdrawal or transfer permission. A successful check still does
 not enable order placement; a pre-registration and a guarded limit-order path
-are required.
+are required. When that path is enabled, Reverb invokes the local Agent Hub
+`bgc` command for the write. It does not call a raw Bitget order endpoint. The
+same local account permissions are still required because Agent Hub signs the
+request for the account underneath its execution surface.
+
+Agent Hub is a local prerequisite for live execution. Configure `bgc` on the
+machine running Reverb, or set `REVERB_AGENT_HUB_BIN` to its local executable,
+then run `./.venv/bin/python scripts/agent_hub_check.py` before enabling writes.
+That performs the read-only `bgc discover` preflight. Reverb does not install Agent
+Hub globally, send keys to a server, or silently fall back to another order
+transport. If `bgc` is missing, the order path halts and records the failure.
 
 Start the public preview locally with `./.venv/bin/python scripts/preview_server.py`
 and open `http://127.0.0.1:8000/app` for the phone-first product surface or

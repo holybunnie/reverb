@@ -80,7 +80,7 @@ a { color:var(--mint); } .brand { font-weight:800; letter-spacing:-.04em; font-s
 <div class="card"><div class="step"><div class="num">1</div><div><h2>Open Bitget API Management</h2><p>On Bitget, open Personal Center → API Management → Create New API. Use a passphrase you can keep safe; Bitget shows the secret once.</p></div></div></div>
 <div class="card"><div class="step"><div class="num">2</div><div><h2>Choose only the required scopes</h2><p>Select Unified account trade, read and write, and Unified account management, read-only. Leave Withdraw and Transfer unchecked.</p></div></div></div>
 <div class="card"><div class="step"><div class="num">3</div><div><h2>Store the values locally</h2><p>Put the API key, secret, and passphrase in your ignored local <code>.env</code> file. Never paste them into this page, a chat, a ticket, or a screenshot.</p></div></div></div>
-<div class="card"><div class="step"><div class="num">4</div><div><h2>Verify without placing an order</h2><p>Run <code>./.venv/bin/python scripts/account_check.py</code>. Reverb checks read access, trade permission, management access, and account settings. It does not submit an order.</p></div></div></div>
+<div class="card"><div class="step"><div class="num">4</div><div><h2>Verify without placing an order</h2><p>Run <code>./.venv/bin/python scripts/account_check.py</code>. Reverb checks read access, trade permission, management access, and account settings. It does not submit an order. Live order submission, when enabled, goes through your local Agent Hub command.</p></div></div></div>
 </section>
 <p class="small"><a href="/app">Back to the earnings watch</a> · If the check fails, fix the key or IP binding locally; do not send the secret to Reverb.</p>
 </main></body></html>"""

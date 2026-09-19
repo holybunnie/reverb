@@ -18,6 +18,7 @@ DOCUMENTED statement describes a source, not a tested account capability.
 | European Black-Scholes plus token price is sufficient for every option. | ASSUMED modeling approximation: validate contract exercise style, dividends, quote synchronization and token/underlying basis before using a model-derived IV. Post-event volatility is a scenario input, not an observed fact. |
 | Beat / miss alone supplies expected move magnitude. | Missing input: direction is not a numeric thesis. Ask the user for a magnitude or use a clearly stated deterministic data rule; the model must not invent it. |
 | Keys never transmitted anywhere. | Clarify: secret and passphrase stay in local handling; authenticated requests necessarily send the API identifier and required authentication material directly to Bitget. Never send credentials to a Reverb-operated host. |
+| Reverb should submit a private order directly from its Bitget REST client. | Build decision: live writes use the local Agent Hub `bgc` execution surface only. The Bitget client remains a read adapter; the account permission layer underneath Agent Hub is not a second order transport. |
 
 The official docs also disagree internally on option expiry-date formatting:
 the list description says YYMMDD while its example and chain request use

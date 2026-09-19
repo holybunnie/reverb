@@ -17,4 +17,6 @@ All eventual engine outputs must be structured. LLMs may interpret and narrate;
 they must not select trades or supply quantitative inputs.
 
 Credentials remain local. Never log secrets, request withdrawal/transfer scopes,
-or place orders until a specific risk budget and pre-registration exist.
+or place orders until a specific risk budget and pre-registration exist. All
+future live Reality writes must use `reverb.agent_hub.AgentHubExecutor`; the
+Bitget client is read-only and must not regain a raw order method.

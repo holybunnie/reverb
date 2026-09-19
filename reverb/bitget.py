@@ -8,7 +8,6 @@ import os
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 from typing import Any, Mapping
 from urllib.parse import urlencode
 
@@ -169,9 +168,3 @@ class BitgetClient:
         if not isinstance(data, list):
             raise DataUnavailable("Bitget account assets response is not a list")
         return data
-
-    def place_reality_limit(self, *, symbol: str, side: str, quantity: Decimal, price: Decimal, client_oid: str) -> dict[str, Any]:
-        if side not in {"buy", "sell"} or quantity <= 0 or price <= 0 or not client_oid:
-            raise ConfigurationError("invalid Reality limit order intent")
-        return self._request("POST", "/api/v3/trade/place-reality-order", body={"category": "SPOT", "symbol": symbol,
-            "side": side, "orderType": "limit", "qty": str(quantity), "price": str(price), "clientOid": client_oid}, private=True)["data"]

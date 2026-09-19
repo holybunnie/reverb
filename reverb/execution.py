@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Any, Protocol
 
-from .bitget import BitgetClient
 from .errors import ConfigurationError, LedgerError
 from .ledger import Ledger
 from .models import DecisionStatus, LivenessDecision, ReactionDecision
 from .sessions import Session, validate_order_type
 
 
-def place_reaction_limit(*, client: BitgetClient, ledger: Ledger, decision: ReactionDecision,
+class OrderExecutor(Protocol):
+    def place_reality_limit(self, *, symbol: str, side: str, quantity: Decimal,
+                            price: Decimal, client_oid: str) -> dict[str, Any]: ...
+
+
+def place_reaction_limit(*, executor: OrderExecutor, ledger: Ledger, decision: ReactionDecision,
                          symbol: str, side: str, quantity: Decimal, price: Decimal,
                          client_oid: str, liveness: LivenessDecision | None = None) -> dict:
     if decision.status is not DecisionStatus.ACT:
@@ -32,7 +37,7 @@ def place_reaction_limit(*, client: BitgetClient, ledger: Ledger, decision: Reac
     if registrations[-1]["payload"].get("status") != DecisionStatus.ACT.value:
         raise LedgerError("reaction order requires an ACT pre-registration")
     try:
-        response = client.place_reality_limit(symbol=symbol, side=side, quantity=quantity, price=price, client_oid=client_oid)
+        response = executor.place_reality_limit(symbol=symbol, side=side, quantity=quantity, price=price, client_oid=client_oid)
     except Exception as exc:
         ledger.append("order_failed", {"decision_id": decision.decision_id, "symbol": symbol, "error_type": type(exc).__name__})
         raise
