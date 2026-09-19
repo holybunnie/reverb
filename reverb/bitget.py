@@ -74,6 +74,8 @@ class BitgetClient:
             document = response.json()
         except ValueError as exc:
             raise DataUnavailable(f"Bitget returned non-JSON response for {path}") from exc
+        if not isinstance(document, dict):
+            raise DataUnavailable(f"Bitget returned a non-object response for {path}")
         if response.status_code >= 400 or document.get("code") != "00000":
             raise BitgetAPIError(response.status_code, document.get("code"), str(document.get("msg", "unknown error")))
         if not isinstance(document.get("data"), (dict, list)):

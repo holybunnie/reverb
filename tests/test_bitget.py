@@ -4,7 +4,7 @@ import unittest
 import httpx
 
 from reverb.bitget import BitgetClient
-from reverb.errors import ConfigurationError
+from reverb.errors import ConfigurationError, DataUnavailable
 
 
 class BitgetMarketTests(unittest.TestCase):
@@ -39,6 +39,16 @@ class BitgetMarketTests(unittest.TestCase):
                     "RNVDAUSDT", start_time=datetime(2026, 1, 1, tzinfo=timezone.utc),
                     end_time=datetime(2026, 4, 2, tzinfo=timezone.utc),
                 )
+        finally:
+            client.close()
+
+    def test_non_object_json_is_a_data_halt(self):
+        client = BitgetClient(client=httpx.Client(
+            transport=httpx.MockTransport(lambda _: httpx.Response(200, json=["not", "an", "object"]))
+        ))
+        try:
+            with self.assertRaises(DataUnavailable):
+                client.instruments()
         finally:
             client.close()
 
