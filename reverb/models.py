@@ -47,6 +47,7 @@ class ReasonCode(str, Enum):
     DATA_UNAVAILABLE = "data_unavailable"
     PAIR_BID_ASK_UNAVAILABLE = "paired_straddle_bid_ask_unavailable"
     CALENDAR_UNAVAILABLE = "earnings_calendar_unavailable"
+    INVALID_INPUT = "invalid_input"
 
 
 class Thesis(StrictModel):

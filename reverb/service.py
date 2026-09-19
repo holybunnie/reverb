@@ -80,6 +80,15 @@ class DecisionService:
         return self._refusal(tool, symbol, code,
                              {"error_type": type(error).__name__}, explanation)
 
+    def input_refusal(self, *, tool: str, symbol: str | None, field: str,
+                      error: Exception) -> ToolDecision:
+        """Record malformed tool input as a normal, structured refusal."""
+        return self._refusal(
+            tool, symbol, ReasonCode.INVALID_INPUT,
+            {"field": field, "error_type": type(error).__name__},
+            f"Reverb refused because the {field} input is invalid; no market request was made.",
+        )
+
     def _r_token(self, underlying: str) -> str:
         instruments = reality_instruments(self.client.instruments())
         token = rtoken_for_underlying(underlying)
@@ -95,6 +104,10 @@ class DecisionService:
                 raise ConfigurationError("verified per-contract fees are required; no fee default is permitted")
             event_at = _aware(event_at, "event_at")
             underlying_symbol = _underlying(symbol)
+            try:
+                ZoneInfo(user_timezone)
+            except (ZoneInfoNotFoundError, ValueError) as exc:
+                raise ConfigurationError(f"unknown user timezone: {user_timezone}") from exc
             thesis = Thesis(symbol=underlying_symbol.removesuffix(".US"), view=view,
                             expected_move_pct=expected_move_pct, max_loss=max_loss,
                             event_at=event_at, user_timezone=user_timezone)
@@ -159,6 +172,9 @@ class DecisionService:
         try:
             event_at = _aware(event_at, "event_at")
             underlying_symbol = _underlying(symbol)
+            if historical_move_pct is not None and (not historical_move_pct.is_finite()
+                                                     or historical_move_pct <= 0 or historical_move_pct >= 1):
+                raise ConfigurationError("historical_move_pct must be between 0 and 1")
             now = datetime.now(timezone.utc)
             underlying = parse_stock_quote(self.client.stock_quote(underlying_symbol), observed_at=now)
             expiry_value, expiry = select_expiry(self.client.option_expiry_dates(underlying_symbol), event_at.date())
