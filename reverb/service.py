@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 from uuid import uuid4
@@ -222,7 +222,13 @@ class DecisionService:
             underlying_symbol = _underlying(symbol)
             token = self._r_token(underlying_symbol)
             now = datetime.now(timezone.utc)
-            rows = self.client.candles(token, interval="1m", candle_type="market", limit=100)
+            if now > event_at + timedelta(minutes=30):
+                rows = self.client.history_candles(
+                    token, start_time=event_at - timedelta(minutes=self.engine.baseline_window_minutes),
+                    end_time=event_at, interval="1m", candle_type="market", limit=100,
+                )
+            else:
+                rows = self.client.candles(token, interval="1m", candle_type="market", limit=100)
             baseline, baseline_arithmetic = baseline_price(rows, event_at, self.engine.baseline_window_minutes,
                                                             self.engine.baseline_min_points)
             quote = parse_rtoken_ticker(self.client.ticker(token), observed_at=now)

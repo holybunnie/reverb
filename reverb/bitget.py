@@ -7,6 +7,7 @@ import json
 import os
 import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Mapping
 from urllib.parse import urlencode
@@ -96,8 +97,32 @@ class BitgetClient:
             raise ConfigurationError("Reality candles must request type=market")
         if interval not in {"1m", "5m", "15m", "1H", "4H", "1D"}:
             raise ConfigurationError(f"unsupported Reality candle interval: {interval}")
+        if limit <= 0 or limit > 1000:
+            raise ConfigurationError("current candle limit must be between 1 and 1000")
         return self._request("GET", "/api/v3/market/candles", {"category": "SPOT", "symbol": symbol, "interval": interval,
                                                                     "type": candle_type, "limit": limit})["data"]
+
+    def history_candles(self, symbol: str, *, start_time: datetime, end_time: datetime,
+                        interval: str = "1m", candle_type: str = "market", limit: int = 100) -> list[list[str]]:
+        if candle_type != "market":
+            raise ConfigurationError("Reality candles must request type=market")
+        if interval not in {"1m", "5m", "15m", "1H", "4H", "1D"}:
+            raise ConfigurationError(f"unsupported Reality candle interval: {interval}")
+        if limit <= 0 or limit > 100:
+            raise ConfigurationError("historical candle limit must be between 1 and 100")
+        if start_time.tzinfo is None or end_time.tzinfo is None:
+            raise ConfigurationError("historical candle bounds must include a timezone")
+        start_utc = start_time.astimezone(timezone.utc)
+        end_utc = end_time.astimezone(timezone.utc)
+        if end_utc <= start_utc:
+            raise ConfigurationError("historical candle end must be after start")
+        if end_utc - start_utc > timedelta(days=90):
+            raise ConfigurationError("historical candle range cannot exceed 90 days")
+        return self._request("GET", "/api/v3/market/history-candles", {
+            "category": "SPOT", "symbol": symbol, "interval": interval, "type": candle_type,
+            "startTime": str(int(start_utc.timestamp() * 1000)),
+            "endTime": str(int(end_utc.timestamp() * 1000)), "limit": limit,
+        })["data"]
 
     def fee_group(self) -> list[dict[str, Any]]:
         return self._request("GET", "/api/v3/market/fee-group", {"category": "SPOT"})["data"]
