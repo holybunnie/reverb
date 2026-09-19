@@ -5,9 +5,10 @@ locally to holybunnie; publish and push using that GitHub account only. Do not
 inherit another account's identity or change global Git configuration.
 
 Read docs/m0.md and docs/corrections.md before implementation. The feasibility
-gate is unresolved. Only evidence collection and project setup are authorized
-downstream of the current findings; do not fabricate an options chain, market
-quote, recorded earnings demo, fill, or eligibility result to advance the gate.
+gate is unresolved. Deterministic math, parsing, freshness, reaction, and ledger
+code may be built, but no live trading path is enabled until the gate has a
+verified account response. Do not fabricate an options chain, market quote,
+recorded earnings demo, fill, or eligibility result to advance the gate.
 
 Use Python 3.11+, httpx, pydantic, numpy, scipy, pandas. Product rules require
 first-party sources or live API responses. Keep parameters in config/ and record

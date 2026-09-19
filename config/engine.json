@@ -1,0 +1,9 @@
+{
+  "max_quote_age_ms": 5000,
+  "risk_free_rate": "0.04",
+  "post_event_volatility": "0.30",
+  "dividend_yield": "0.00",
+  "reaction_trigger_pct": "0.03",
+  "baseline_window_minutes": 60,
+  "baseline_min_points": 30
+}

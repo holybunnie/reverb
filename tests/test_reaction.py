@@ -1,0 +1,37 @@
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+import unittest
+
+from reverb.errors import DataUnavailable
+from reverb.reaction import baseline_price, evaluate_reaction
+from reverb.sessions import Session, session_at
+
+
+class ReactionTests(unittest.TestCase):
+    def test_baseline_requires_contiguous_one_minute_candles(self):
+        event = datetime(2026, 9, 19, 16, 5, tzinfo=timezone.utc)
+        rows = [[int((event - timedelta(minutes=60 - i)).timestamp() * 1000), "99", "101", "98", str(100 + i / 100), "1"] for i in range(60)]
+        baseline, arithmetic = baseline_price(rows, event, 60, 30)
+        self.assertGreater(baseline, Decimal("100"))
+        self.assertEqual(arithmetic["timestamp_gaps"], "0")
+        rows.pop(10)
+        with self.assertRaises(DataUnavailable):
+            baseline_price(rows, event, 60, 30)
+
+    def test_weekend_market_order_is_refused(self):
+        event = datetime(2026, 9, 19, 16, 5, tzinfo=timezone.utc)
+        observed = event
+        decision = evaluate_reaction(symbol="RNVDAUSDT", baseline=Decimal("100"), observed_price=Decimal("105"),
+                                     observed_at=observed, baseline_observed_at=event - timedelta(minutes=5),
+                                     trigger_pct=Decimal("0.03"), session=Session.WEEKEND,
+                                     order_type="market", max_quote_age_ms=5000, now=observed)
+        self.assertEqual(decision.status.value, "refuse")
+        self.assertEqual(decision.reason_codes[0].value, "session_unavailable")
+
+    def test_session_uses_new_york_clock(self):
+        instant = datetime(2026, 9, 18, 20, 5, tzinfo=timezone.utc)
+        self.assertEqual(session_at(instant).session, Session.AFTER_HOURS)
+
+
+if __name__ == "__main__":
+    unittest.main()

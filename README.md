@@ -26,7 +26,9 @@ does not claim Bitget is the only place to trade after the close.
 
 DOCUMENTED: Bitget provides tokenized stocks and stock options. Its published
 options trading hours end at the regular close; selected stock tokens keep
-trading beyond it. The proposed design gives each instrument a separate job.
+trading beyond it. Bitget now also supports short options, but Reverb uses only
+long calls and long puts because their premium is the defined option-side loss.
+The proposed design gives each instrument a separate job.
 [Options rules](https://www.bitget.com/support/articles/12560603889520),
 [stock trading hours](https://www.bitget.com/support/articles/12560603892041).
 
@@ -86,9 +88,11 @@ See [the feasibility gate](docs/m0.md) and [specification corrections](docs/corr
 
 ```sh
 cd reverb
+uv venv .venv
+uv pip install --python .venv/bin/python -e .
 python3 scripts/probe.py capture
 python3 scripts/probe.py report
-python3 -m unittest discover -s tests -v
+./.venv/bin/python -m unittest discover -s tests -v
 ```
 
 The feasibility probe uses the Python standard library and needs no API keys.
