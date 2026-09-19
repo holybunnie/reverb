@@ -122,16 +122,20 @@ def value_option(underlying: UnderlyingQuote, option: OptionQuote, event_at, ris
         raise ValuationError("option bid and ask are required for an executable valuation")
     if option.ask is None:
         raise ValuationError("option ask is missing")
+    if fees < 0 or not fees.is_finite():
+        raise ValuationError("per-contract fees must be finite and non-negative")
     premium = option.ask
     inputs = BlackScholesInputs(underlying.price, option.strike, time_to_expiry(event_at, option.expiry), risk_free_rate, dividend_yield)
     iv = implied_volatility(inputs, option.direction, premium)
     greek_values = greeks(inputs, option.direction, iv)
-    breakeven = option.strike + premium if option.direction is Direction.CALL else option.strike - premium
+    fee_per_share = fees / option.contract_multiplier
+    breakeven = (option.strike + premium + fee_per_share if option.direction is Direction.CALL
+                 else option.strike - premium - fee_per_share)
     breakeven_move = abs(breakeven - underlying.price) / underlying.price
     scenario_spot = underlying.price * (Decimal("1") + expected_move_pct if option.direction is Direction.CALL else Decimal("1") - expected_move_pct)
     scenario_inputs = BlackScholesInputs(scenario_spot, option.strike, inputs.time_years, risk_free_rate, dividend_yield)
     scenario_value = price(scenario_inputs, option.direction, post_event_volatility)
-    scenario_pnl = scenario_value - premium - fees
+    scenario_pnl = (scenario_value - premium) * option.contract_multiplier - fees
     return Valuation(
         premium=premium, implied_volatility=iv, published_implied_volatility=option.published_iv,
         delta=greek_values["delta"], gamma=greek_values["gamma"], vega=greek_values["vega"],

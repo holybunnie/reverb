@@ -7,7 +7,7 @@ import unittest
 from reverb.errors import LedgerError
 from reverb.gate import evaluate_option
 from reverb.ledger import Ledger
-from reverb.math import BlackScholesInputs, greeks, implied_volatility, price
+from reverb.math import BlackScholesInputs, greeks, implied_volatility, price, value_option
 from reverb.models import Direction, OptionQuote, ReasonCode, Thesis, UnderlyingQuote, View
 
 
@@ -57,6 +57,24 @@ class EngineTests(unittest.TestCase):
                                    dividend_yield=Decimal("0"), post_event_volatility=Decimal("0.25"),
                                    per_contract_fees=Decimal("1"), max_quote_age_ms=5000, now=received)
         self.assertEqual(decision.reason_codes, (ReasonCode.STALE_UNDERLYING,))
+
+    def test_fees_are_per_contract_in_breakeven_and_scenario_pnl(self):
+        now = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+        inputs = BlackScholesInputs(Decimal("100"), Decimal("100"), Decimal("7") / Decimal("365"), Decimal("0.03"))
+        ask = price(inputs, Direction.CALL, Decimal("0.35"))
+        underlying = UnderlyingQuote(symbol="NVDA.US", price=Decimal("100"), observed_at=now,
+                                     source_timestamp=now)
+        option = OptionQuote(symbol="NVDA261002C100000.US", underlying_symbol="NVDA.US",
+                             direction=Direction.CALL, strike=Decimal("100"), expiry=date(2026, 10, 2),
+                             contract_multiplier=Decimal("100"), bid=ask - Decimal("0.01"), ask=ask,
+                             observed_at=now, source_timestamp=now)
+        valuation = value_option(underlying, option, datetime(2026, 9, 19, 20, 5, tzinfo=timezone.utc),
+                                 Decimal("0.03"), Decimal("0"), Decimal("0.30"), None,
+                                 Decimal("0.08"), Decimal("5"))
+        expected_breakeven = option.strike + ask + Decimal("0.05")
+        expected_pnl = (valuation.scenario_value_after_event - ask) * Decimal("100") - Decimal("5")
+        self.assertEqual(valuation.breakeven_price, expected_breakeven)
+        self.assertEqual(valuation.scenario_pnl, expected_pnl)
 
     def test_ledger_requires_registration_before_outcome(self):
         with TemporaryDirectory() as temp:
