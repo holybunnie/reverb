@@ -29,3 +29,10 @@ class LivenessTests(unittest.TestCase):
         with self.assertRaises(ConfigurationError):
             check_account_liveness(FakeClient(["uta_trade", "uta_mgt", "withdraw"]))
 
+    def test_missing_management_scope_halts_the_path(self):
+        with self.assertRaises(ConfigurationError):
+            check_account_liveness(FakeClient(["uta_trade"]))
+
+    def test_naive_check_timestamp_halts_the_path(self):
+        with self.assertRaises(ConfigurationError):
+            check_account_liveness(FakeClient(), datetime(2026, 9, 19, 10, 0))
