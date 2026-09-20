@@ -52,11 +52,12 @@ def _next_weekday_open(event_at_utc: datetime) -> datetime:
     return datetime.combine(candidate, time(9, 30), tzinfo=ZoneInfo("America/New_York")).astimezone(timezone.utc)
 
 
-def build_schedule(event_id: str, event_at: datetime) -> EarningsSchedule:
+def build_schedule(event_id: str, event_at: datetime, *, next_open_at: datetime | None = None,
+                   next_open_verified: bool = False) -> EarningsSchedule:
     if not event_id:
         raise ConfigurationError("earnings schedule requires an event id")
     event_at_utc = _utc(event_at)
-    next_open = _next_weekday_open(event_at_utc)
+    next_open = _utc(next_open_at) if next_open_at is not None else _next_weekday_open(event_at_utc)
     if next_open <= event_at_utc:
         raise ConfigurationError("next options-open timestamp is not after the event")
     return EarningsSchedule(
@@ -65,7 +66,8 @@ def build_schedule(event_id: str, event_at: datetime) -> EarningsSchedule:
         position_at_utc=event_at_utc - timedelta(minutes=30),
         react_until_utc=event_at_utc + timedelta(minutes=30),
         next_open_at_utc=next_open,
-        next_open_status="weekday_only; exchange-holiday calendar still unverified",
+        next_open_status=("verified" if next_open_verified else
+                          "unverified; exchange holiday and early-close calendar required"),
     )
 
 
@@ -75,7 +77,7 @@ def due_action(schedule: EarningsSchedule, now: datetime) -> WakeAction | None:
         return WakeAction.POSITION
     if schedule.event_at_utc <= current <= schedule.react_until_utc:
         return WakeAction.REACT
-    if current >= schedule.next_open_at_utc:
+    if current >= schedule.next_open_at_utc and schedule.next_open_status == "verified":
         return WakeAction.MANAGE
     return None
 
@@ -119,4 +121,3 @@ def heartbeat_from_ledger(ledger: Ledger, expected_interval_seconds: int = 60) -
         except ValueError as exc:
             raise LedgerError("last heartbeat timestamp is invalid") from exc
     return Heartbeat(ledger=ledger, expected_interval_seconds=expected_interval_seconds, last_at=last_at)
-

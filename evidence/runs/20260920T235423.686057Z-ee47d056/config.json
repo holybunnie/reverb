@@ -1,0 +1,20 @@
+{
+  "api_base": "https://api.bitget.com",
+  "timeout_seconds": 25,
+  "sample_size": 3,
+  "book_levels": 5,
+  "candle_limit": 100,
+  "candle_interval": "1m",
+  "candle_type": "market",
+  "max_book_age_ms": 5000,
+  "max_future_skew_ms": 1000,
+  "weekend_source": "https://www.bitget.com/support/articles/12560603892041",
+  "paths": {
+    "instruments": "/api/v3/market/instruments",
+    "tickers": "/api/v3/market/tickers",
+    "orderbook": "/api/v3/market/orderbook",
+    "candles": "/api/v3/market/candles",
+    "fee_group": "/api/v3/market/fee-group",
+    "option_expiry": "/api/v3/stockplus/market/option-expiry-date"
+  }
+}

@@ -14,7 +14,9 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(schedule.position_at_utc, event - timedelta(minutes=30))
         self.assertEqual(due_action(schedule, event - timedelta(minutes=10)), WakeAction.POSITION)
         self.assertEqual(due_action(schedule, event + timedelta(minutes=10)), WakeAction.REACT)
-        self.assertEqual(due_action(schedule, schedule.next_open_at_utc), WakeAction.MANAGE)
+        # Weekday arithmetic is only a tentative timestamp; holiday/early
+        # close verification is required before the option leg is managed.
+        self.assertIsNone(due_action(schedule, schedule.next_open_at_utc))
 
     def test_heartbeat_writes_gap_marker(self):
         with TemporaryDirectory() as temp:
@@ -24,4 +26,3 @@ class SchedulerTests(unittest.TestCase):
             heartbeat.tick(datetime(2026, 9, 19, 0, 3, tzinfo=timezone.utc))
             kinds = [row["kind"] for row in ledger.verify()]
             self.assertEqual(kinds, ["heartbeat", "heartbeat_gap", "heartbeat"])
-

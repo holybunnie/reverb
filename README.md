@@ -1,3 +1,11 @@
+# BELLRING (Reverb)
+
+[Open the credential-free demo surface](/demo) — it currently shows a recorded
+market-data run and clearly says which parts are still waiting for verification.
+
+> The biggest moment in a stock's quarter happens at 4am your time. This is the
+> exchange where an unattended agent can be ready for it.
+
 ## What it is
 
 Reverb is being built to trade a stock for you on the night it reports earnings,
@@ -9,8 +17,9 @@ willing to lose. Then you go to bed.
 
 The intended flow is to buy a position before the US market closes, watch how the
 price reacts after the results arrive, and tell you in the morning what happened
-and why. The public `/preview` is a live evidence preview; live trading remains
-behind the feasibility gate.
+and why. The public `/demo` (aliased locally by the preview server) is a
+credential-free evidence surface; it is not presented as an earnings event until
+an earnings capture exists. Live trading remains behind the feasibility gate.
 
 ## The problem
 
@@ -84,7 +93,8 @@ Current snapshots must never be described as earnings-time measurements.
   `default_event_time_et` explicitly before a date-only event can schedule a trade.
 - ASSUMED modeling choices: volatility after earnings, risk-free rate, dividend
   treatment, early-exercise effects, and stock-token basis relative to the option
-  underlying. None is currently used to approve a trade.
+  underlying. The configured post-event volatility is currently unverified, so
+  the option gate refuses rather than approving a live trade from that scenario.
 
 DOCUMENTED: Stock+ options API quotes require separate OPRA access and
 whitelisting. [API requirements](https://www.bitget.com/docs/catalog/stock-plus/options-quotes).
@@ -125,10 +135,15 @@ Hub globally, send keys to a server, or silently fall back to another order
 transport. If `bgc` is missing, the order path halts and records the failure.
 
 Start the public preview locally with `./.venv/bin/python scripts/preview_server.py`
-and open `http://127.0.0.1:8000/app` for the phone-first product surface or
+and open `http://127.0.0.1:8000/app` for the phone-first product surface,
+`http://127.0.0.1:8000/demo` for the credential-free demo route, or
 `http://127.0.0.1:8000/preview` for the evidence view. The JSON conclusion is at
 `http://127.0.0.1:8000/api/preview`; `/connect` contains the local-only account
 permission steps. The server does not expose raw market data or accept keys.
+
+The included `Dockerfile` runs the same credential-free surface on port 8000;
+deployment still requires an operator-provided host. No credential is needed
+for the preview container.
 
 Python dependencies for the engine are declared in `pyproject.toml`.
 The MCP decision surface is available after installation:
@@ -156,6 +171,13 @@ The UTC scheduler can be exercised for one wake with:
 
 It checks key liveness, writes a heartbeat, records a gap or missed-window
 marker, and emits the due action. It never submits an order by itself.
+
+For a guarded reaction evaluation, use `scripts/react_once.py SYMBOL EVENT_AT`.
+It replays historical windows from historical candles, requires an explicit
+reaction quantity and budget, validates live instrument precision/minimums, and
+will not call Agent Hub unless `--enable-live` is supplied and `docs/m0.md`
+explicitly says `Status: **PASSED**`. The current repository intentionally
+halts before that point.
 
 Full live order execution remains gated by `docs/m0.md`. Playbook is not used
 because the planned workflow is driven by individual earnings events rather

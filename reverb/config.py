@@ -16,11 +16,21 @@ class EngineConfig(BaseModel):
 
     max_quote_age_ms: int = Field(gt=0)
     risk_free_rate: Decimal = Field(ge=Decimal("-1"), lt=Decimal("1"))
-    post_event_volatility: Decimal = Field(gt=Decimal("0"), lt=Decimal("10"))
+    # A scenario volatility is useful for analysis, but it is not a fact and
+    # must never approve a live trade unless the operator has explicitly
+    # validated the calibration for the configured universe.
+    post_event_volatility: Decimal | None = Field(default=None, gt=Decimal("0"), lt=Decimal("10"))
+    post_event_volatility_verified: bool = False
     dividend_yield: Decimal = Field(ge=Decimal("-1"), lt=Decimal("1"))
     reaction_trigger_pct: Decimal = Field(gt=Decimal("0"), lt=Decimal("1"))
     baseline_window_minutes: int = Field(gt=0)
     baseline_min_points: int = Field(gt=0)
+    # Reaction orders stay disabled until a concrete, separately budgeted
+    # intent is configured.  None is deliberately fail-closed.
+    reaction_quantity: Decimal | None = Field(default=None, gt=Decimal("0"))
+    reaction_budget: Decimal | None = Field(default=None, gt=Decimal("0"))
+    reaction_policy: str | None = None
+    weekend_source_url: str | None = None
 
 
 class CalendarConfig(BaseModel):

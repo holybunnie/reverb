@@ -36,6 +36,7 @@ class EngineTests(unittest.TestCase):
         decision = evaluate_option(thesis=thesis, underlying=underlying, option=option,
                                    paired_straddle_move_pct=None, risk_free_rate=Decimal("0.03"),
                                    dividend_yield=Decimal("0"), post_event_volatility=Decimal("0.25"),
+                                   post_event_volatility_verified=True,
                                    per_contract_fees=Decimal("1"), max_quote_age_ms=5000, now=now)
         self.assertEqual(decision.status.value, "refuse")
         self.assertEqual(decision.reason_codes, (ReasonCode.OPTION_BID_ASK_UNAVAILABLE,))
@@ -55,8 +56,27 @@ class EngineTests(unittest.TestCase):
         decision = evaluate_option(thesis=thesis, underlying=underlying, option=option,
                                    paired_straddle_move_pct=None, risk_free_rate=Decimal("0.03"),
                                    dividend_yield=Decimal("0"), post_event_volatility=Decimal("0.25"),
+                                   post_event_volatility_verified=True,
                                    per_contract_fees=Decimal("1"), max_quote_age_ms=5000, now=received)
         self.assertEqual(decision.reason_codes, (ReasonCode.STALE_UNDERLYING,))
+
+    def test_unverified_post_event_scenario_cannot_approve_option(self):
+        now = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+        thesis = Thesis(symbol="NVDA", view=View.BEAT, expected_move_pct=Decimal("0.08"),
+                        max_loss=Decimal("1000"), event_at=datetime(2026, 9, 20, 20, 5, tzinfo=timezone.utc),
+                        user_timezone="Africa/Lagos")
+        underlying = UnderlyingQuote(symbol="NVDA.US", price=Decimal("100"), observed_at=now,
+                                     source_timestamp=now)
+        option = OptionQuote(symbol="NVDA261002C100000.US", underlying_symbol="NVDA.US",
+                             direction=Direction.CALL, strike=Decimal("100"), expiry=date(2026, 10, 2),
+                             contract_multiplier=Decimal("100"), bid=Decimal("2"), ask=Decimal("2.5"),
+                             observed_at=now, source_timestamp=now)
+        decision = evaluate_option(thesis=thesis, underlying=underlying, option=option,
+                                   paired_straddle_move_pct=None, risk_free_rate=Decimal("0.03"),
+                                   dividend_yield=Decimal("0"), post_event_volatility=None,
+                                   post_event_volatility_verified=False, per_contract_fees=Decimal("1"),
+                                   max_quote_age_ms=5000, now=now)
+        self.assertEqual(decision.reason_codes, (ReasonCode.UNVERIFIED_ASSUMPTION,))
 
     def test_fees_are_per_contract_in_breakeven_and_scenario_pnl(self):
         now = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
@@ -85,6 +105,15 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(entry["sequence"], 1)
             ledger.outcome("d1", {"result": "refused"})
             self.assertEqual(len(ledger.verify()), 2)
+
+    def test_ledger_refuses_to_append_after_tampering(self):
+        with TemporaryDirectory() as temp:
+            path = Path(temp) / "ledger.jsonl"
+            ledger = Ledger(path)
+            ledger.register({"decision_id": "d1", "status": "refuse"})
+            path.write_bytes(path.read_bytes().replace(b'"status":"refuse"', b'"status":"act"'))
+            with self.assertRaises(LedgerError):
+                ledger.append("marker", {"reason": "must halt"})
 
 
 if __name__ == "__main__":

@@ -48,6 +48,13 @@ class ReasonCode(str, Enum):
     PAIR_BID_ASK_UNAVAILABLE = "paired_straddle_bid_ask_unavailable"
     CALENDAR_UNAVAILABLE = "earnings_calendar_unavailable"
     INVALID_INPUT = "invalid_input"
+    UNVERIFIED_ASSUMPTION = "unverified_assumption"
+    BASELINE_UNAVAILABLE = "baseline_unavailable"
+    INVALID_ORDER_INTENT = "invalid_order_intent"
+    INSTRUMENT_UNAVAILABLE = "instrument_unavailable"
+    PRECISION_UNVERIFIED = "precision_unverified"
+    RISK_BUDGET_EXCEEDED = "risk_budget_exceeded"
+    REPLAY_UNAVAILABLE = "replay_unavailable"
 
 
 class Thesis(StrictModel):
@@ -63,6 +70,13 @@ class Thesis(StrictModel):
     def symbol_is_uppercase(cls, value: str) -> str:
         return value.upper()
 
+    @field_validator("event_at")
+    @classmethod
+    def event_is_aware(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("event_at must include a timezone")
+        return value
+
 
 class UnderlyingQuote(StrictModel):
     symbol: str
@@ -71,6 +85,13 @@ class UnderlyingQuote(StrictModel):
     ask: Decimal | None = Field(default=None, gt=Decimal("0"))
     observed_at: datetime
     source_timestamp: datetime
+
+    @field_validator("observed_at", "source_timestamp")
+    @classmethod
+    def timestamps_are_aware(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("quote timestamps must include a timezone")
+        return value
 
 
 class OptionQuote(StrictModel):
@@ -88,9 +109,17 @@ class OptionQuote(StrictModel):
     source_timestamp: datetime
     trade_status: str | None = None
 
+    @field_validator("observed_at", "source_timestamp")
+    @classmethod
+    def timestamps_are_aware(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("option timestamps must include a timezone")
+        return value
+
     @property
     def executable(self) -> bool:
-        return self.bid is not None and self.ask is not None and self.ask >= self.bid
+        return (self.bid is not None and self.ask is not None and self.ask >= self.bid
+                and self.trade_status in {None, "1", "online", "ONLINE", "active", "ACTIVE"})
 
 
 class Valuation(StrictModel):
@@ -135,6 +164,11 @@ class ReactionDecision(StrictModel):
     reason_codes: tuple[ReasonCode, ...]
     observed_at: datetime
     arithmetic: dict[str, str]
+    intended_side: str | None = None
+    order_quantity: Decimal | None = None
+    order_price: Decimal | None = None
+    maximum_loss: Decimal | None = None
+    risk_budget: Decimal | None = None
 
 
 class ToolDecision(StrictModel):

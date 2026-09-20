@@ -330,6 +330,22 @@ def measurements(directory):
     return "\n".join(lines)
 
 
+def latest_complete_run(root: Path) -> Path:
+    """Ignore interrupted captures; retain them as gap evidence without
+    making report/preview unusable after a transient network outage."""
+    failures = []
+    for directory in sorted((path for path in (root / "evidence" / "runs").iterdir() if path.is_dir()), reverse=True):
+        try:
+            records = verify(directory)
+            instruments = next((row for row in records if row.get("kind") == "http" and row.get("name") == "instruments"), None)
+            if "selection" not in {row.get("kind") for row in records} or instruments is None or instruments.get("status") != 200:
+                raise ValueError("capture has no usable instrument/selection evidence")
+            return directory
+        except (ValueError, KeyError, OSError) as exc:
+            failures.append(f"{directory.name}: {exc}")
+    raise ValueError("No complete evidence capture exists: " + "; ".join(failures))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["capture", "report"])
@@ -338,10 +354,7 @@ def main():
     args = parser.parse_args()
     if args.action == "capture":
         return capture(ROOT / "config" / "probe.json")
-    runs = sorted((ROOT / "evidence" / "runs").iterdir())
-    if not runs:
-        raise ValueError("No capture exists")
-    directory = args.run if args.run is not None else runs[-1]
+    directory = args.run if args.run is not None else latest_complete_run(ROOT)
     output = measurements(directory)
     target = ROOT / "docs" / "measurements.md"
     if args.check:

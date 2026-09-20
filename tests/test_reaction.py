@@ -28,6 +28,30 @@ class ReactionTests(unittest.TestCase):
         self.assertEqual(decision.status.value, "refuse")
         self.assertEqual(decision.reason_codes[0].value, "session_unavailable")
 
+    def test_triggered_move_without_registered_order_intent_is_refused(self):
+        event = datetime(2026, 9, 19, 20, 5, tzinfo=timezone.utc)
+        decision = evaluate_reaction(
+            symbol="RNVDAUSDT", baseline=Decimal("100"), observed_price=Decimal("105"),
+            observed_at=event, baseline_observed_at=event - timedelta(minutes=1),
+            trigger_pct=Decimal("0.03"), session=Session.AFTER_HOURS,
+            order_type="limit", max_quote_age_ms=5000, now=event,
+        )
+        self.assertEqual(decision.status.value, "refuse")
+        self.assertEqual(decision.reason_codes[0].value, "invalid_order_intent")
+
+    def test_triggered_move_cannot_exceed_reaction_budget(self):
+        event = datetime(2026, 9, 19, 20, 5, tzinfo=timezone.utc)
+        decision = evaluate_reaction(
+            symbol="RNVDAUSDT", baseline=Decimal("100"), observed_price=Decimal("105"),
+            observed_at=event, baseline_observed_at=event - timedelta(minutes=1),
+            trigger_pct=Decimal("0.03"), session=Session.AFTER_HOURS,
+            order_type="limit", max_quote_age_ms=5000, now=event,
+            intended_side="buy", order_quantity=Decimal("2"), order_price=Decimal("105"),
+            risk_budget=Decimal("100"),
+        )
+        self.assertEqual(decision.status.value, "refuse")
+        self.assertEqual(decision.reason_codes[0].value, "risk_budget_exceeded")
+
     def test_session_uses_new_york_clock(self):
         instant = datetime(2026, 9, 18, 20, 5, tzinfo=timezone.utc)
         self.assertEqual(session_at(instant).session, Session.AFTER_HOURS)

@@ -34,7 +34,8 @@ def _service(*, require_credentials: bool = True) -> DecisionService:
         fees = Decimal(fee_text) if fee_text else None
     except ArithmeticError:
         fees = None
-    return DecisionService(BitgetClient(credentials=credentials), loaded.value, Ledger(ledger_path), fees)
+    return DecisionService(BitgetClient(credentials=credentials), loaded.value, Ledger(ledger_path), fees,
+                           engine_config_sha256=loaded.sha256)
 
 
 def _parse_datetime(value: str, field: str) -> datetime:
@@ -71,7 +72,7 @@ mcp = MCPServer("Reverb", description="Decision-only earnings tools for Bitget; 
 
 @mcp.tool()
 def earnings_this_week(user_timezone: str) -> dict:
-    """Return reporting names, local times, and verified leg availability."""
+    """Return reporting names, local times, and explicitly qualified leg availability."""
     with _service(require_credentials=False) as service:
         return service.earnings_this_week(user_timezone=user_timezone).model_dump(mode="json")
 
@@ -88,10 +89,15 @@ def position_for(symbol: str, view: str, expected_move_pct: str, max_loss: str,
         parsed_expected_move = _parse_decimal(expected_move_pct, "expected_move_pct")
     except (ArithmeticError, TypeError, ValueError) as exc:
         return _input_refusal("position_for", symbol, "expected_move_pct", exc)
+    if parsed_expected_move <= 0 or parsed_expected_move >= 1:
+        return _input_refusal("position_for", symbol, "expected_move_pct",
+                              ValueError("expected_move_pct must be between zero and one"))
     try:
         parsed_max_loss = _parse_decimal(max_loss, "max_loss")
     except (ArithmeticError, TypeError, ValueError) as exc:
         return _input_refusal("position_for", symbol, "max_loss", exc)
+    if parsed_max_loss <= 0:
+        return _input_refusal("position_for", symbol, "max_loss", ValueError("max_loss must be positive"))
     try:
         parsed_event_at = _parse_datetime(event_at, "event_at")
     except (TypeError, ValueError) as exc:
@@ -114,6 +120,9 @@ def whats_priced_in(symbol: str, event_at: str, historical_move_pct: str | None 
             historical = _parse_decimal(historical_move_pct, "historical_move_pct")
         except (ArithmeticError, TypeError, ValueError) as exc:
             return _input_refusal("whats_priced_in", symbol, "historical_move_pct", exc)
+        if historical <= 0 or historical >= 1:
+            return _input_refusal("whats_priced_in", symbol, "historical_move_pct",
+                                  ValueError("historical_move_pct must be between zero and one"))
     else:
         historical = None
     with _service() as service:

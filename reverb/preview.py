@@ -116,23 +116,27 @@ def load_preview_snapshot(root: Path) -> PreviewSnapshot:
     runs_root = root / "evidence" / "runs"
     if not runs_root.exists():
         raise DataUnavailable("no evidence capture exists; run scripts/probe.py capture first")
-    runs = sorted(path for path in runs_root.iterdir() if path.is_dir())
+    runs = sorted((path for path in runs_root.iterdir() if path.is_dir()), reverse=True)
     if not runs:
         raise DataUnavailable("no evidence capture exists; run scripts/probe.py capture first")
-    directory = runs[-1]
-    records = _verified_records(directory)
-    requests = {record["name"]: record for record in records if record.get("kind") == "http"}
-    try:
-        instruments = _body(directory, requests["instruments"])
-        online = [row for row in instruments if row.get("isReality") == "yes" and row.get("status") == "online"]
-        if not online:
-            raise DataUnavailable("evidence contains no online Reality instruments")
-        selection = next(record for record in records if record.get("kind") == "selection")
-        samples = tuple(_book_summary(_body(directory, requests[f"book-{symbol}"]),
-                                      requests[f"book-{symbol}"], symbol)
-                        for symbol in selection["symbols"])
-    except (KeyError, StopIteration, TypeError, ValueError) as exc:
-        raise DataUnavailable(f"evidence replay is incomplete: {exc}") from exc
+    last_error: Exception | None = None
+    for directory in runs:
+        try:
+            records = _verified_records(directory)
+            requests = {record["name"]: record for record in records if record.get("kind") == "http"}
+            instruments = _body(directory, requests["instruments"])
+            online = [row for row in instruments if row.get("isReality") == "yes" and row.get("status") == "online"]
+            if not online:
+                raise DataUnavailable("evidence contains no online Reality instruments")
+            selection = next(record for record in records if record.get("kind") == "selection")
+            samples = tuple(_book_summary(_body(directory, requests[f"book-{symbol}"]),
+                                          requests[f"book-{symbol}"], symbol)
+                            for symbol in selection["symbols"])
+            break
+        except (KeyError, StopIteration, TypeError, ValueError, DataUnavailable, LedgerError) as exc:
+            last_error = exc
+    else:
+        raise DataUnavailable(f"no complete usable evidence capture exists: {last_error}")
     complete = records[-1]
     captured_at = complete.get("at")
     if not isinstance(captured_at, str):

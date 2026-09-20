@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -96,6 +97,13 @@ class QwenClient:
             raise DataUnavailable("Qwen narration response has no usable message") from exc
         if not isinstance(text, str) or not text.strip():
             raise DataUnavailable("Qwen narration returned empty prose")
+        # Narration is presentation only.  Reject numeric claims that do not
+        # occur in the deterministic decision JSON, so the model cannot add a
+        # price, percentage, timestamp, or P&L figure to the morning report.
+        allowed_numbers = set(re.findall(r"(?<![A-Za-z])[+-]?(?:\d+(?:\.\d+)?)(?![A-Za-z])", serialized))
+        narrated_numbers = set(re.findall(r"(?<![A-Za-z])[+-]?(?:\d+(?:\.\d+)?)(?![A-Za-z])", text))
+        if not narrated_numbers.issubset(allowed_numbers):
+            raise DataUnavailable("Qwen narration introduced a number not present in the decision ledger")
         input_hash = hashlib.sha256(serialized.encode()).hexdigest()
         output_hash = hashlib.sha256(text.encode()).hexdigest()
         return QwenNarration(text=text.strip(), provider="bitget-qwen", model=self.credentials.model,

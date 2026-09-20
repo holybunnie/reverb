@@ -16,7 +16,7 @@ from .errors import BitgetAPIError, ConfigurationError, DataUnavailable
 from .gate import evaluate_option
 from .ledger import Ledger
 from .models import DecisionStatus, ReasonCode, Thesis, ToolDecision, View
-from .reaction import baseline_price, evaluate_reaction
+from .reaction import baseline_price, evaluate_reaction, parse_candle
 from .sessions import Session, session_at
 from .universe import reality_instruments, rtoken_for_underlying
 
@@ -42,6 +42,23 @@ def _failure_reason(error: Exception) -> ReasonCode:
     return ReasonCode.DATA_UNAVAILABLE
 
 
+def _public_option_decision(decision: Any) -> dict[str, Any]:
+    """Keep the MCP/app surface conclusion-only; raw quote fields stay local."""
+    value = decision.model_dump(mode="json")
+    instrument = value.get("instrument")
+    if isinstance(instrument, dict):
+        value["instrument"] = {
+            key: instrument[key]
+            for key in ("symbol", "underlying_symbol", "direction", "strike", "expiry", "contract_multiplier")
+            if key in instrument
+        }
+    value["inputs"] = {
+        key: item for key, item in value.get("inputs", {}).items()
+        if key not in {"underlying_observed_at", "option_observed_at"}
+    }
+    return value
+
+
 @dataclass
 class DecisionService:
     client: BitgetClient
@@ -49,6 +66,7 @@ class DecisionService:
     ledger: Ledger
     per_contract_fees: Decimal | None = None
     calendar: EarningsCalendar | None = None
+    engine_config_sha256: str | None = None
 
     def __enter__(self) -> "DecisionService":
         return self
@@ -59,11 +77,16 @@ class DecisionService:
             self.calendar.close()
 
     def _record(self, result: ToolDecision, kind: str = "tool_observation") -> ToolDecision:
+        if self.engine_config_sha256 and result.arithmetic.get("engine_config_sha256") != self.engine_config_sha256:
+            result = result.model_copy(update={"arithmetic": {**result.arithmetic,
+                                                               "engine_config_sha256": self.engine_config_sha256}})
         self.ledger.append(kind, result.model_dump(mode="json"))
         return result
 
     def _refusal(self, tool: str, symbol: str | None, reason: ReasonCode,
                  arithmetic: dict[str, str], explanation: str) -> ToolDecision:
+        if self.engine_config_sha256:
+            arithmetic = {**arithmetic, "engine_config_sha256": self.engine_config_sha256}
         return self._record(ToolDecision(
             decision_id=str(uuid4()), tool=tool, status=DecisionStatus.REFUSE, symbol=symbol,
             reason_codes=(reason,), decision=None, arithmetic=arithmetic,
@@ -71,8 +94,10 @@ class DecisionService:
         ), kind="pre_registration")
 
     def _error(self, tool: str, symbol: str | None, error: Exception) -> ToolDecision:
-        code = _failure_reason(error)
+        code = ReasonCode.CALENDAR_UNAVAILABLE if tool == "earnings_this_week" else _failure_reason(error)
         explanation = (
+            "Reverb refused because the earnings calendar is unavailable or unresolved."
+            if code is ReasonCode.CALENDAR_UNAVAILABLE else
             "Reverb refused because the required live input is unavailable."
             if code is ReasonCode.DATA_UNAVAILABLE else
             "Reverb refused because this account is not entitled to the required Bitget API path."
@@ -94,6 +119,14 @@ class DecisionService:
         token = rtoken_for_underlying(underlying)
         if token not in instruments:
             raise DataUnavailable(f"no online Reality instrument for {underlying}")
+        if not self.engine.weekend_source_url:
+            raise ConfigurationError("24/7 source URL is required; online Reality status alone is insufficient")
+        try:
+            verified_tokens = self.client.weekend_tokens(self.engine.weekend_source_url)
+        except AttributeError as exc:
+            raise DataUnavailable("Bitget client has no 24/7 source verifier") from exc
+        if token not in verified_tokens:
+            raise DataUnavailable(f"{token} is not verified in the configured 24/7 source")
         return f"{token}USDT"
 
     def position_for(self, *, symbol: str, view: View, expected_move_pct: Decimal,
@@ -108,15 +141,35 @@ class DecisionService:
                 ZoneInfo(user_timezone)
             except (ZoneInfoNotFoundError, ValueError) as exc:
                 raise ConfigurationError(f"unknown user timezone: {user_timezone}") from exc
+            reaction_budget = self.engine.reaction_budget
+            option_budget = max_loss
+            if reaction_budget is not None:
+                if max_loss <= reaction_budget:
+                    return self._refusal(tool, symbol, ReasonCode.RISK_BUDGET_EXCEEDED,
+                                         {"combined_budget": str(max_loss), "reaction_budget": str(reaction_budget),
+                                          "decision": "the option leg must leave room for the reaction leg"},
+                                         "Reverb refused because the combined earnings budget cannot fund both legs.")
+                option_budget = max_loss - reaction_budget
             thesis = Thesis(symbol=underlying_symbol.removesuffix(".US"), view=view,
-                            expected_move_pct=expected_move_pct, max_loss=max_loss,
+                            expected_move_pct=expected_move_pct, max_loss=option_budget,
                             event_at=event_at, user_timezone=user_timezone)
+            if not self.engine.post_event_volatility_verified or self.engine.post_event_volatility is None:
+                return self._refusal(
+                    tool, thesis.symbol, ReasonCode.UNVERIFIED_ASSUMPTION,
+                    {"post_event_volatility": str(self.engine.post_event_volatility),
+                     "post_event_volatility_verified": str(self.engine.post_event_volatility_verified).lower()},
+                    "Reverb refused because post-event volatility calibration is not verified for this universe.",
+                )
             now = datetime.now(timezone.utc)
             session = session_at(now).session
             if session is not Session.REGULAR:
                 return self._refusal(tool, thesis.symbol, ReasonCode.SESSION_UNAVAILABLE,
                                      {"session": session.value, "required_session": Session.REGULAR.value},
                                      "Reverb refused because options can only be positioned during the verified regular session.")
+            # The binary-event design requires both legs on the same name.
+            # Online Reality metadata alone does not prove 24/7 eligibility;
+            # _r_token verifies the configured first-party announcement too.
+            self._r_token(underlying_symbol)
             underlying = parse_stock_quote(self.client.stock_quote(underlying_symbol), observed_at=now)
             expiry_value, expiry = select_expiry(self.client.option_expiry_dates(underlying_symbol), event_at.date())
             chain = parse_chain(self.client.option_chain(underlying_symbol, expiry_value), expiry)
@@ -128,6 +181,13 @@ class DecisionService:
             paired = observed_quotes.get(paired_symbol)
             if option is None or paired is None:
                 raise DataUnavailable("selected or paired option quote is missing")
+            if option.underlying_symbol != underlying_symbol or paired.underlying_symbol != underlying_symbol:
+                raise DataUnavailable("option quote underlying identity does not match the requested stock")
+            if option.trade_status not in {"1", "online", "ONLINE", "active", "ACTIVE"} or paired.trade_status not in {"1", "online", "ONLINE", "active", "ACTIVE"}:
+                return self._refusal(tool, thesis.symbol, ReasonCode.INSTRUMENT_UNAVAILABLE,
+                                     {"selected_trade_status": str(option.trade_status),
+                                      "paired_trade_status": str(paired.trade_status)},
+                                     "Reverb refused because the selected option contract is not verified as tradeable.")
             for label, quote in (("selected", option), ("paired", paired)):
                 age_ms = int((now - quote.source_timestamp).total_seconds() * 1000)
                 if age_ms < 0 or age_ms > self.engine.max_quote_age_ms:
@@ -150,19 +210,25 @@ class DecisionService:
                 risk_free_rate=self.engine.risk_free_rate,
                 dividend_yield=self.engine.dividend_yield,
                 post_event_volatility=self.engine.post_event_volatility,
+                post_event_volatility_verified=self.engine.post_event_volatility_verified,
                 per_contract_fees=self.per_contract_fees,
                 max_quote_age_ms=self.engine.max_quote_age_ms,
                 now=now,
             )
+            if self.engine_config_sha256:
+                decision = decision.model_copy(update={
+                    "inputs": {**decision.inputs, "engine_config_sha256": self.engine_config_sha256}
+                })
             self.ledger.register(decision.model_dump(mode="json"))
-            return ToolDecision(
+            return self._record(ToolDecision(
                 decision_id=decision.decision_id, tool=tool, status=decision.status, symbol=decision.symbol,
-                reason_codes=decision.reason_codes, decision=decision.model_dump(mode="json"),
+                reason_codes=decision.reason_codes, decision=_public_option_decision(decision),
                 arithmetic={**decision.arithmetic, "market_implied_move_pct": str(implied_move),
+                            "combined_budget": str(max_loss), "reaction_budget": str(reaction_budget),
                             "selected_expiry": expiry.isoformat()},
                 explanation=self._decision_explanation(decision.status, decision.reason_codes),
                 created_at=decision.created_at,
-            )
+            ))
         except (BitgetAPIError, ConfigurationError, DataUnavailable, ValueError) as exc:
             return self._error(tool, symbol, exc)
 
@@ -196,6 +262,10 @@ class DecisionService:
                 return self._refusal(tool, symbol, ReasonCode.PAIR_BID_ASK_UNAVAILABLE,
                                      {"call_symbol": contract.call_symbol, "put_symbol": contract.put_symbol},
                                      "Reverb refused to state what is priced in because the paired executable quotes are incomplete.")
+            if call.trade_status not in {"1", "online", "ONLINE", "active", "ACTIVE"} or put.trade_status not in {"1", "online", "ONLINE", "active", "ACTIVE"}:
+                return self._refusal(tool, symbol, ReasonCode.INSTRUMENT_UNAVAILABLE,
+                                     {"call_trade_status": str(call.trade_status), "put_trade_status": str(put.trade_status)},
+                                     "Reverb refused to state what is priced in because the option status is not verified as tradeable.")
             implied_move = (call.ask + put.ask) / underlying.price
             arithmetic = {"market_implied_move_pct": str(implied_move), "expiry": expiry.isoformat(),
                           "historical_move_pct": str(historical_move_pct) if historical_move_pct is not None else "unavailable"}
@@ -222,27 +292,66 @@ class DecisionService:
             underlying_symbol = _underlying(symbol)
             token = self._r_token(underlying_symbol)
             now = datetime.now(timezone.utc)
+            if now < event_at:
+                return self._refusal(tool, symbol, ReasonCode.REPLAY_UNAVAILABLE,
+                                     {"event_at": event_at.isoformat(), "now": now.isoformat()},
+                                     "Reverb refused because the reaction window has not started.")
             if now > event_at + timedelta(minutes=30):
                 rows = self.client.history_candles(
                     token, start_time=event_at - timedelta(minutes=self.engine.baseline_window_minutes),
-                    end_time=event_at, interval="1m", candle_type="market", limit=100,
+                    end_time=event_at + timedelta(minutes=30), interval="1m", candle_type="market", limit=100,
                 )
+                reaction_rows = []
+                for row in rows:
+                    parsed = parse_candle(row)
+                    if event_at <= parsed[0] <= event_at + timedelta(minutes=30):
+                        reaction_rows.append(parsed)
+                if not reaction_rows:
+                    raise DataUnavailable("historical reaction window has no candles")
+                observed_at, observed_price = sorted(reaction_rows, key=lambda item: item[0])[-1]
+                quote = None
+                decision_now = observed_at
             else:
                 rows = self.client.candles(token, interval="1m", candle_type="market", limit=100)
+                quote = parse_rtoken_ticker(self.client.ticker(token), observed_at=now)
+                if quote.source_timestamp < event_at:
+                    return self._refusal(tool, symbol, ReasonCode.STALE_REACTION,
+                                         {"quote_source_timestamp": quote.source_timestamp.isoformat(),
+                                          "event_at": event_at.isoformat()},
+                                         "Reverb refused because the current token quote predates the event.")
+                observed_at, observed_price = quote.source_timestamp, quote.price
+                decision_now = now
             baseline, baseline_arithmetic = baseline_price(rows, event_at, self.engine.baseline_window_minutes,
                                                             self.engine.baseline_min_points)
-            quote = parse_rtoken_ticker(self.client.ticker(token), observed_at=now)
+            baseline_observed_at = datetime.fromisoformat(baseline_arithmetic["baseline_last_at"])
+            intended_side = None
+            order_quantity = self.engine.reaction_quantity
+            order_price = None
+            if quote is not None and self.engine.reaction_policy in {"momentum", "momentum_long_only"}:
+                if quote.bid is None or quote.ask is None:
+                    return self._refusal(tool, symbol, ReasonCode.PAIR_BID_ASK_UNAVAILABLE,
+                                         {"bid": str(quote.bid), "ask": str(quote.ask)},
+                                         "Reverb refused because the reaction limit price needs a live bid and ask.")
+                intended_side = "buy" if quote.price >= baseline else "sell"
+                order_price = quote.ask if intended_side == "buy" else quote.bid
             # Order sessions are Bitget's New York session; the user's zone is
             # only for narration and display.
-            session = session_at(quote.source_timestamp, "America/New_York").session
+            session = session_at(observed_at, "America/New_York").session
             decision = evaluate_reaction(
-                symbol=token, baseline=baseline, observed_price=quote.price,
-                observed_at=quote.source_timestamp, baseline_observed_at=event_at,
+                symbol=token, baseline=baseline, observed_price=observed_price,
+                observed_at=observed_at, baseline_observed_at=baseline_observed_at,
                 trigger_pct=self.engine.reaction_trigger_pct, session=session,
-                order_type=order_type, max_quote_age_ms=self.engine.max_quote_age_ms, now=now,
+                order_type=order_type, max_quote_age_ms=self.engine.max_quote_age_ms,
+                intended_side=intended_side, order_quantity=order_quantity,
+                order_price=order_price, risk_budget=self.engine.reaction_budget,
+                now=decision_now,
             )
+            if self.engine_config_sha256:
+                decision = decision.model_copy(update={
+                    "arithmetic": {**decision.arithmetic, "engine_config_sha256": self.engine_config_sha256}
+                })
             self.ledger.register(decision.model_dump(mode="json"))
-            return ToolDecision(
+            return self._record(ToolDecision(
                 decision_id=decision.decision_id, tool=tool, status=decision.status, symbol=decision.symbol,
                 reason_codes=decision.reason_codes, decision=decision.model_dump(mode="json"),
                 arithmetic={**baseline_arithmetic, **decision.arithmetic},
@@ -250,7 +359,7 @@ class DecisionService:
                              if decision.status is DecisionStatus.ACT else
                              "The reaction did not produce an executable ACT decision."),
                 created_at=decision.observed_at,
-            )
+            ))
         except (BitgetAPIError, ConfigurationError, DataUnavailable, ValueError) as exc:
             return self._error(tool, symbol, exc)
 
@@ -262,6 +371,12 @@ class DecisionService:
             calendar = calendar or EarningsCalendar()
             events = calendar.this_week()
             instruments = reality_instruments(self.client.instruments())
+            weekend_tokens: set[str] | None = None
+            if self.engine.weekend_source_url and hasattr(self.client, "weekend_tokens"):
+                try:
+                    weekend_tokens = self.client.weekend_tokens(self.engine.weekend_source_url)
+                except DataUnavailable:
+                    weekend_tokens = None
             try:
                 ZoneInfo(user_timezone)
             except (ZoneInfoNotFoundError, ValueError) as exc:
@@ -270,12 +385,17 @@ class DecisionService:
             for event in events:
                 underlying_symbol = _underlying(event.symbol)
                 token = rtoken_for_underlying(underlying_symbol)
-                token_status = "available" if token in instruments else "missing"
+                token_status = ("verified_24_7" if token in instruments and weekend_tokens and token in weekend_tokens
+                                else "online_reality_unverified_24_7" if token in instruments else "missing")
                 option_status = "unverified"
                 if self.client.credentials is not None:
                     try:
-                        self.client.option_expiry_dates(underlying_symbol)
-                        option_status = "available"
+                        expiry_values = self.client.option_expiry_dates(underlying_symbol)
+                        valid_expiries = [value for value in expiry_values if value]
+                        if valid_expiries:
+                            expiry_value, expiry = select_expiry(valid_expiries, event.event_at.date())
+                            chain = parse_chain(self.client.option_chain(underlying_symbol, expiry_value), expiry)
+                            option_status = "available" if chain else "unverified_or_not_entitled"
                     except (BitgetAPIError, DataUnavailable):
                         option_status = "unverified_or_not_entitled"
                 items.append({

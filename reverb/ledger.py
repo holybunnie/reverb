@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import fcntl
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -27,6 +29,17 @@ class Ledger:
     def __init__(self, path: Path):
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock_path = self.path.with_name(self.path.name + ".lock")
+
+    @contextmanager
+    def _exclusive_lock(self):
+        """Serialize writers so two scheduler wakes cannot fork the chain."""
+        with self._lock_path.open("a+") as lock:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
     def _last(self) -> tuple[int, str]:
         if not self.path.exists():
@@ -40,15 +53,19 @@ class Ledger:
     def append(self, kind: str, payload: dict[str, Any]) -> dict[str, Any]:
         if not kind or not isinstance(payload, dict):
             raise LedgerError("ledger entries need a kind and object payload")
-        sequence, previous = self._last()
-        record = {"sequence": sequence + 1, "previous": previous, "kind": kind,
-                  "created_at": datetime.now(timezone.utc).isoformat(), "payload": payload}
-        record["hash"] = sha256(canonical(record))
-        with self.path.open("ab") as stream:
-            stream.write(canonical(record) + b"\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        return record
+        with self._exclusive_lock():
+            # Never append after a tampered or partially-written record.  The
+            # previous implementation only inspected the final line.
+            self.verify()
+            sequence, previous = self._last()
+            record = {"sequence": sequence + 1, "previous": previous, "kind": kind,
+                      "created_at": datetime.now(timezone.utc).isoformat(), "payload": payload}
+            record["hash"] = sha256(canonical(record))
+            with self.path.open("ab") as stream:
+                stream.write(canonical(record) + b"\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            return record
 
     def verify(self) -> list[dict[str, Any]]:
         if not self.path.exists():

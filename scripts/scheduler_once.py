@@ -48,6 +48,14 @@ def run_once(*, event_id: str, event_at: datetime, now: datetime | None = None) 
         return 2
     action = due_action(schedule, current)
     if action is None:
+        if current >= schedule.next_open_at_utc and schedule.next_open_status != "verified":
+            ledger.append("management_blocked", {
+                "event_id": event_id,
+                "reason": "next options-open timestamp is not verified against an exchange holiday/early-close calendar",
+                "tentative_next_open_at_utc": schedule.next_open_at_utc.isoformat(),
+            })
+            print("REVERB HALTED: next-open management is not verified", file=sys.stderr)
+            return 2
         if current > schedule.react_until_utc:
             existing = [row for row in ledger.verify() if row.get("kind") == "missed_window" and row["payload"].get("event_id") == event_id]
             if not existing:

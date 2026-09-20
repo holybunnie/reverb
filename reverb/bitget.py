@@ -6,6 +6,7 @@ import hmac
 import json
 import os
 import time
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
@@ -83,6 +84,29 @@ class BitgetClient:
 
     def instruments(self) -> list[dict[str, Any]]:
         return self._request("GET", "/api/v3/market/instruments", {"category": "SPOT"})["data"]
+
+    def instrument(self, symbol: str) -> dict[str, Any]:
+        rows = [row for row in self.instruments() if isinstance(row, dict) and row.get("symbol") == symbol]
+        if len(rows) != 1:
+            raise DataUnavailable(f"expected one live instrument record for {symbol}, got {len(rows)}")
+        return rows[0]
+
+    def weekend_tokens(self, source_url: str) -> set[str]:
+        """Parse the configured first-party 24/7 announcement at runtime."""
+        if not source_url.startswith("https://www.bitget.com/"):
+            raise ConfigurationError("24/7 source must be a first-party Bitget HTTPS URL")
+        try:
+            response = self._client.get(source_url)
+            response.raise_for_status()
+            body = response.text
+        except httpx.HTTPError as exc:
+            raise DataUnavailable(f"Bitget 24/7 source unavailable: {type(exc).__name__}") from exc
+        # The page presents symbols as rTokens; do not ship a copied symbol
+        # list because the exchange expands it in batches.
+        symbols = {match.upper() for match in re.findall(r"\br[A-Z][A-Z0-9]{1,9}\b", body)}
+        if not symbols:
+            raise DataUnavailable("Bitget 24/7 source contained no rToken symbols")
+        return symbols
 
     def ticker(self, symbol: str) -> dict[str, Any]:
         rows = self._request("GET", "/api/v3/market/tickers", {"category": "SPOT", "symbol": symbol})["data"]

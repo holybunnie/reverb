@@ -24,12 +24,17 @@ def _refusal(thesis, code, arithmetic, inputs, instrument=None):
 
 def evaluate_option(*, thesis: Thesis, underlying: UnderlyingQuote, option: OptionQuote,
                     paired_straddle_move_pct: Decimal | None, risk_free_rate: Decimal,
-                    dividend_yield: Decimal, post_event_volatility: Decimal,
+                    dividend_yield: Decimal, post_event_volatility: Decimal | None,
+                    post_event_volatility_verified: bool,
                     per_contract_fees: Decimal, max_quote_age_ms: int,
                     now: datetime | None = None) -> Decision:
     now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        raise ValueError("option evaluation timestamp must include a timezone")
+    now = now.astimezone(timezone.utc)
     inputs = {"underlying_observed_at": underlying.observed_at.isoformat(), "option_observed_at": option.observed_at.isoformat(),
-              "max_quote_age_ms": str(max_quote_age_ms), "post_event_volatility": str(post_event_volatility)}
+              "max_quote_age_ms": str(max_quote_age_ms), "post_event_volatility": str(post_event_volatility),
+              "post_event_volatility_verified": str(post_event_volatility_verified).lower()}
     if thesis.view.direction is not option.direction:
         return _refusal(thesis, ReasonCode.INVALID_CONTRACT, {"view_direction": thesis.view.direction.value, "option_direction": option.direction.value}, inputs, option)
     try:
@@ -44,6 +49,14 @@ def evaluate_option(*, thesis: Thesis, underlying: UnderlyingQuote, option: Opti
             return _refusal(thesis, ReasonCode.STALE_OPTION, {"option_age_ms": str(option_age), "max_quote_age_ms": str(max_quote_age_ms)}, inputs, option)
         if not option.executable:
             return _refusal(thesis, ReasonCode.OPTION_BID_ASK_UNAVAILABLE, {"last_done": str(option.last_done), "bid": str(option.bid), "ask": str(option.ask)}, inputs, option)
+        if not post_event_volatility_verified or post_event_volatility is None:
+            return _refusal(
+                thesis, ReasonCode.UNVERIFIED_ASSUMPTION,
+                {"post_event_volatility": str(post_event_volatility),
+                 "post_event_volatility_verified": str(post_event_volatility_verified).lower(),
+                 "decision": "scenario calibration is required before live approval"},
+                inputs, option,
+            )
         valuation = value_option(underlying, option, thesis.event_at, risk_free_rate, dividend_yield,
                                  post_event_volatility, paired_straddle_move_pct, thesis.expected_move_pct, per_contract_fees)
     except FreshnessError as exc:

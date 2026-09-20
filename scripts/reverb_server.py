@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -12,7 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from reverb.app import render_app_html, render_connection_html  # noqa: E402
+from reverb.ledger import Ledger  # noqa: E402
 from reverb.preview import load_preview_snapshot, render_preview_html  # noqa: E402
+from reverb.report import morning_report  # noqa: E402
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -30,15 +33,18 @@ class Handler(BaseHTTPRequestHandler):
         route = urlsplit(self.path).path
         try:
             snapshot = load_preview_snapshot(ROOT)
-            if route in {"/", "/preview"}:
+            if route in {"/", "/preview", "/demo"}:
                 self._send(200, "text/html; charset=utf-8", render_preview_html(snapshot).encode())
                 return
             if route == "/app":
                 query = parse_qs(urlsplit(self.path).query)
                 risk_budget = query.get("risk", [None])[0]
                 timezone_name = query.get("timezone", [None])[0]
+                ledger_path = Path(os.getenv("REVERB_LEDGER_PATH", str(ROOT / "data" / "private" / "ledger.jsonl")))
+                report = morning_report(Ledger(ledger_path)) if ledger_path.exists() else None
                 self._send(200, "text/html; charset=utf-8",
-                           render_app_html(snapshot, risk_budget=risk_budget, timezone_name=timezone_name).encode())
+                           render_app_html(snapshot, risk_budget=risk_budget, timezone_name=timezone_name,
+                                           morning_report_html=report).encode())
                 return
             if route == "/connect":
                 self._send(200, "text/html; charset=utf-8", render_connection_html().encode())
