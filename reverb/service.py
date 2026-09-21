@@ -36,10 +36,9 @@ def _aware(value: datetime, name: str) -> datetime:
 
 
 def _failure_reason(error: Exception) -> ReasonCode:
-    # 40012 is the response Bitget currently returns when the authenticated
-    # key can reach Stock+/UTA routes but lacks the product entitlement.  Keep
-    # it distinct from an unavailable market feed so the user gets an
-    # actionable permission refusal rather than a generic data error.
+    # 40012 is a protected-route authorization response. Bitget does not make
+    # the missing condition observable here, so do not label it as a separate
+    # Stock+ API-key permission or as a malformed credential.
     if isinstance(error, BitgetAPIError) and error.code in {"40006", "40009", "40010", "40012"}:
         return ReasonCode.API_NOT_ENTITLED
     if isinstance(error, ConfigurationError):
@@ -105,7 +104,7 @@ class DecisionService:
             if code is ReasonCode.CALENDAR_UNAVAILABLE else
             "Reverb refused because the required live input is unavailable."
             if code is ReasonCode.DATA_UNAVAILABLE else
-            "Reverb refused because this account is not entitled to the required Bitget API path."
+            "Reverb refused because Bitget did not authorize the required API path; the response does not distinguish a key scope from account or product eligibility."
         )
         return self._refusal(tool, symbol, code,
                              {"error_type": type(error).__name__}, explanation)
