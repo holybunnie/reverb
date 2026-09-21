@@ -2,8 +2,8 @@
   "schema_version": 1,
   "status": "BLOCKED",
   "blockers": [
-    "The authenticated account check returns Bitget code 40012 for the UTA/Stock+ path.",
-    "Stock+ options API access requires the documented OPRA API market-data card and whitelist.",
+    "The authenticated account check returns Bitget code 40012 for a protected UTA/Stock+ route; the response does not identify the missing entitlement.",
+    "Stock+ options API data may require the documented OPRA API market-data card and whitelist; this is not a separate Stock+ checkbox in the API-key screen.",
     "The installed Agent Hub catalog has no Stock+ options order tool; its direct order schema is not verified.",
     "No historical 16:05 order-book sample exists; candle replay cannot substitute for a historical book."
   ],

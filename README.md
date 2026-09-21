@@ -1,4 +1,4 @@
-# BELLRING (Reverb)
+# Reverb
 
 [Open the credential-free demo](https://holybunnie.github.io/reverb/) — once
 GitHub Pages is enabled for this repository, it replays a real NVIDIA earnings
@@ -103,8 +103,10 @@ Current snapshots must never be described as earnings-time measurements.
   underlying. The configured post-event volatility is currently unverified, so
   the option gate refuses rather than approving a live trade from that scenario.
 - OBSERVED: the local authenticated check reaches Bitget but currently returns
-  `40012` for the UTA/Stock+ path; the key is not entitled until the required
-  Unified Account scopes and Stock+ eligibility are enabled.
+  `40012` for a protected UTA/Stock+ route. That response does not distinguish
+  a missing UTA API-key scope from account-level Stock+ eligibility. Bitget's
+  Stock+ announcement routes product permissions through the U.S. Stocks
+  section; it is not a separate Stock+ checkbox on this API-key screen.
 - OBSERVED: Agent Hub `bgc` is installed locally and its catalog is reachable,
   but it exposes no Stock+ options order tool. The option write path therefore
   remains blocked rather than guessing the direct REST payload.

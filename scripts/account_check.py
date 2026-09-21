@@ -28,7 +28,7 @@ def main() -> int:
         if exc.code in {"40006", "40009", "40010"}:
             print("REVERB HALTED: Bitget rejected the API authentication. Check the key, secret, passphrase, API permission, IP binding, and local clock.", file=sys.stderr)
         elif exc.code == "40012":
-            print("REVERB HALTED: Bitget accepted the request signature but this key is not entitled to the requested UTA/Stock+ path. Enable Unified account trade read/write and Unified account management read-only, and ensure Stock+ eligibility.", file=sys.stderr)
+            print("REVERB HALTED: Bitget returned 40012 for a protected UTA/Stock+ route. This response does not identify whether the missing condition is a UTA API-key scope or account-level Stock+ eligibility. Verify UTA trade read/write and management read-only scopes; Stock+ product access is handled through Bitget's U.S. Stocks eligibility flow, not a separate Stock+ checkbox in this API-key screen. No order was sent.", file=sys.stderr)
         else:
             print(f"REVERB HALTED: Bitget returned code {exc.code}. Check the Stock+ and UTA permissions.", file=sys.stderr)
     except DataUnavailable as exc:
