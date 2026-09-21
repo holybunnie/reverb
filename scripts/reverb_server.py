@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from reverb.app import render_app_html, render_connection_html  # noqa: E402
+from reverb.errors import DataUnavailable, LedgerError  # noqa: E402
 from reverb.ledger import Ledger  # noqa: E402
 from reverb.preview import load_preview_snapshot, render_preview_html  # noqa: E402
 from reverb.report import morning_report  # noqa: E402
@@ -47,14 +48,16 @@ class Handler(BaseHTTPRequestHandler):
                 timezone_name = query.get("timezone", [None])[0]
                 ledger_path = Path(os.getenv("REVERB_LEDGER_PATH", str(ROOT / "data" / "private" / "ledger.jsonl")))
                 report = morning_report(Ledger(ledger_path)) if ledger_path.exists() else None
+                replay = None
+                try:
+                    replay = load_replay_snapshot(ROOT)
+                except (DataUnavailable, LedgerError, OSError, ValueError):
+                    replay = None
                 if report is None:
-                    try:
-                        report = render_replay_report(load_replay_snapshot(ROOT))
-                    except Exception:
-                        report = None
+                    report = render_replay_report(replay) if replay is not None else None
                 self._send(200, "text/html; charset=utf-8",
                            render_app_html(snapshot, risk_budget=risk_budget, timezone_name=timezone_name,
-                                           morning_report_html=report).encode())
+                                           morning_report_html=report, replay_snapshot=replay).encode())
                 return
             if route == "/connect":
                 self._send(200, "text/html; charset=utf-8", render_connection_html().encode())

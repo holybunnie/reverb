@@ -456,9 +456,21 @@ def render_replay_html(snapshot: ReplaySnapshot) -> str:
 
 
 def render_replay_report(snapshot: ReplaySnapshot) -> str:
-    """Small ledger-backed report fragment used by the consumer app."""
-    return (
-        _decision_card("paper reaction signal", snapshot.action)
-        + _decision_card("same signal, oversized intent", snapshot.refusal, refusal=True)
-        + '<p class="small">No order was submitted; this report is a verified historical replay.</p>'
-    )
+    """Compact ledger-backed report fragment used by the consumer dashboard."""
+    action_math = snapshot.action.get("arithmetic", {})
+    refusal_math = snapshot.refusal.get("arithmetic", {})
+    move = _pct(action_math.get("move_pct", snapshot.arithmetic.get("move_pct")))
+    baseline = _money(action_math.get("baseline", snapshot.arithmetic.get("baseline")))
+    observed = _money(action_math.get("observed"))
+    action_notional = _money(snapshot.arithmetic.get("action_order_notional"))
+    refusal_notional = _money(refusal_math.get("order_notional", snapshot.arithmetic.get("refusal_order_notional")))
+    budget = _money(refusal_math.get("risk_budget", snapshot.arithmetic.get("risk_budget")))
+    quantity = html.escape(str(action_math.get("order_quantity", "—")))
+    return f"""
+<article class="decision action"><div class="decision-head"><strong>ACT</strong><span>paper reaction signal</span></div>
+<p>The token moved <b>{move}</b> from its pre-event baseline and crossed the recorded trigger.</p>
+<ul class="small"><li><span>Baseline</span>{baseline}</li><li><span>Observed</span>{observed}</li><li><span>Paper quantity</span>{quantity}</li><li><span>Budget used</span>{action_notional}</li></ul></article>
+<article class="decision refusal"><div class="decision-head"><strong>REFUSE</strong><span>same signal, oversized intent</span></div>
+<p>The direction was identical. The size was not: required capital exceeded the declared limit.</p>
+<ul class="small"><li><span>Required capital</span>{refusal_notional}</li><li><span>Risk budget</span>{budget}</li><li><span>Reason</span>risk budget exceeded</li><li><span>Order submitted</span>no</li></ul></article>
+<p class="small report-note">No order was submitted; this report is a verified historical replay.</p>"""

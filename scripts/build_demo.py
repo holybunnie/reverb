@@ -8,8 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from reverb.errors import DataUnavailable, LedgerError  # noqa: E402
+from reverb.app import render_app_html  # noqa: E402
 from reverb.preview import load_preview_snapshot, render_preview_html  # noqa: E402
-from reverb.replay import load_replay_snapshot, render_replay_html  # noqa: E402
+from reverb.replay import load_replay_snapshot, render_replay_html, render_replay_report  # noqa: E402
 
 
 def main() -> int:
@@ -21,9 +22,17 @@ def main() -> int:
         return 2
     site = ROOT / "site"
     site.mkdir(parents=True, exist_ok=True)
-    page = render_replay_html(replay)
-    (site / "index.html").write_text(page, encoding="utf-8")
+    dashboard = render_app_html(
+        preview,
+        risk_budget=str(replay.arithmetic["risk_budget"]),
+        timezone_name="Africa/Lagos",
+        morning_report_html=render_replay_report(replay),
+        replay_snapshot=replay,
+        static_demo=True,
+    )
+    (site / "index.html").write_text(dashboard, encoding="utf-8")
     (site / "demo").mkdir(exist_ok=True)
+    page = render_replay_html(replay)
     (site / "demo" / "index.html").write_text(
         page.replace('href="preview"', 'href="../preview"'),
         encoding="utf-8",
