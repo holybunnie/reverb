@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta, timezone
 from enum import Enum
+from typing import Any, Callable, Mapping
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .errors import ConfigurationError, LedgerError
@@ -13,6 +14,9 @@ class WakeAction(str, Enum):
     POSITION = "position"
     REACT = "react"
     MANAGE = "manage_option_leg"
+
+
+ActionDispatcher = Callable[[WakeAction, "EarningsSchedule", datetime], Mapping[str, Any]]
 
 
 @dataclass(frozen=True)
@@ -80,6 +84,56 @@ def due_action(schedule: EarningsSchedule, now: datetime) -> WakeAction | None:
     if current >= schedule.next_open_at_utc and schedule.next_open_status == "verified":
         return WakeAction.MANAGE
     return None
+
+
+def dispatch_action(*, ledger: Ledger, event_id: str, action: WakeAction,
+                    schedule: EarningsSchedule, now: datetime,
+                    dispatcher: ActionDispatcher | None) -> dict[str, Any]:
+    """Dispatch a due wake and record the result in the append-only ledger.
+
+    A scheduler wake without a dispatcher used to print ``wake`` and exit
+    successfully.  That is a silent miss: the clock fired, but no engine path
+    ran.  The caller must now provide an explicit action callback; otherwise a
+    blocked dispatch is recorded and the process can alert on a non-zero exit.
+    """
+    current = _utc(now)
+    if dispatcher is None:
+        payload = {
+            "event_id": event_id,
+            "action": action.value,
+            "at": current.isoformat(),
+            "reason": "no action dispatcher was configured",
+            "position_at_utc": schedule.position_at_utc.isoformat(),
+            "event_at_utc": schedule.event_at_utc.isoformat(),
+        }
+        ledger.append("dispatch_blocked", payload)
+        return {"status": "blocked", **payload}
+    try:
+        result = dispatcher(action, schedule, current)
+    except Exception as exc:
+        payload = {
+            "event_id": event_id,
+            "action": action.value,
+            "at": current.isoformat(),
+            "error_type": type(exc).__name__,
+        }
+        ledger.append("dispatch_failed", payload)
+        raise
+    if not isinstance(result, Mapping):
+        payload = {
+            "event_id": event_id,
+            "action": action.value,
+            "at": current.isoformat(),
+            "reason": "action dispatcher returned a non-object result",
+        }
+        ledger.append("dispatch_failed", payload)
+        raise ConfigurationError(payload["reason"])
+    # Dispatchers return structured conclusions, not raw API documents.  The
+    # result is intentionally retained beside the wake for audit/replay.
+    payload = {"event_id": event_id, "action": action.value, "at": current.isoformat(),
+               "result": dict(result)}
+    ledger.append("action_dispatched", payload)
+    return {"status": "dispatched", **payload}
 
 
 @dataclass

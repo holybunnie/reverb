@@ -1,0 +1,17 @@
+{
+  "symbol": "NVDA",
+  "token_symbol": "RNVDAUSDT",
+  "event_at": "2026-08-26T20:20:00+00:00",
+  "event_time_basis": "The issuer's first-party notice says the results were publicly announced at approximately 1:20 p.m. PT; the replay uses the corresponding 20:20 UTC one-minute candle.",
+  "event_source_url": "https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Announces-Financial-Results-for-Second-Quarter-Fiscal-2027/default.aspx",
+  "timing_source_url": "https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Sets-Conference-Call-for-Second-Quarter-Financial-Results/default.aspx",
+  "history_start_minutes": 60,
+  "reaction_window_minutes": 30,
+  "trigger_pct": "0.02",
+  "max_quote_age_ms": 5000,
+  "order_type": "limit",
+  "risk_budget": "50",
+  "action_quantity": "0.1",
+  "refusal_quantity": "1",
+  "timeout_seconds": 20
+}

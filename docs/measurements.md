@@ -1,28 +1,28 @@
 # Public-data feasibility measurements
 
-Run: `20260919T094350.291839Z-5d1ec429`.
+Run: `20260921T101740.309305Z-9ca1210d`.
 
-Ledger head: `f3fc4c8e4f916733d097100703ba67e6889f88e3bd824d804137c819c1b6581e`.
+Ledger head: `f54870514b47bd56b95cc69f9b04730ff438d7a31c0ee0de82f2734d34c113ef`.
 
 OBSERVED: these are capture-time diagnostic snapshots, not earnings-window measurements.
 The options intersection, event sample, fills and strategy performance remain unmeasured.
 
-OBSERVED: 2238 spot instruments returned; 1653 online Reality instruments.
+OBSERVED: 2710 spot instruments returned; 2125 online Reality instruments.
 
-OBSERVED: 1653 online Reality candidates came from the live instruments and ticker feeds. The dated weekend source was unavailable from this host, so 24/7 membership remains unverified; this is not the options intersection.
+OBSERVED: 2125 online Reality candidates came from the live instruments and ticker feeds. The dated weekend source was unavailable from this host, so 24/7 membership remains unverified; this is not the options intersection.
 
 | Symbol | Spread (basis points) | Displayed bid / ask value (quote units) | Book age (ms) | Freshness |
 | --- | ---: | ---: | ---: | --- |
-| RSPCXUSDT | 5.2401 | 684.187272 / 1821.659197 | 270 | FRESH |
-| RMUUSDT | 0.0994 | 109914.3971552 / 5448.6505447 | 303 | FRESH |
-| RQQQUSDT | 1.3865 | 94491.15109 / 7808.751140 | 263 | FRESH |
+| RFOXAUSDT | — | — | — | UNAVAILABLE: Book has an empty side |
+| RCORUSDT | — | — | — | UNAVAILABLE: Book has an empty side |
+| RRJFUSDT | — | — | — | UNAVAILABLE: Book has an empty side |
 
 Displayed depth covers only the requested levels and is not a guaranteed fill.
 A stale timestamp is retained as a failed freshness gate, never promoted to a live quote.
 
-OBSERVED `RSPCXUSDT`: 100 candles returned; 68 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
-OBSERVED `RMUUSDT`: 100 candles returned; 56 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
-OBSERVED `RQQQUSDT`: 100 candles returned; 31 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
+OBSERVED `RFOXAUSDT`: 100 candles returned; 12 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
+OBSERVED `RCORUSDT`: 100 candles returned; 14 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
+OBSERVED `RRJFUSDT`: 100 candles returned; 16 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
 
 ## Access and collection failures
 

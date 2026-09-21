@@ -13,12 +13,14 @@ sys.path.insert(0, str(ROOT))
 from reverb.bitget import BitgetClient, Credentials  # noqa: E402
 from reverb.config import EngineConfig, load_config  # noqa: E402
 from reverb.errors import ConfigurationError, ReverbError  # noqa: E402
+from reverb.env import load_local_env  # noqa: E402
 from reverb.ledger import Ledger  # noqa: E402
 from reverb.models import View  # noqa: E402
 from reverb.service import DecisionService  # noqa: E402
 
 
 def _service(*, require_credentials: bool = True) -> DecisionService:
+    load_local_env(ROOT)
     credentials = None
     try:
         credentials = Credentials.from_env()

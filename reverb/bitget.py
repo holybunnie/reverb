@@ -9,6 +9,7 @@ import time
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Any, Mapping
 from urllib.parse import urlencode
 
@@ -179,7 +180,49 @@ class BitgetClient:
         rows = data.get("secuQuote")
         if not isinstance(rows, list) or len(rows) != len(symbols):
             raise DataUnavailable("option quote response is incomplete")
-        return rows
+        enriched: list[dict[str, Any]] = []
+        for expected_symbol, row in zip(symbols, rows):
+            if not isinstance(row, dict) or row.get("symbol") != expected_symbol:
+                raise DataUnavailable("option quote response has an unexpected symbol")
+            # The documented option-quote response carries last trade/IV but
+            # does not publish executable bid/ask fields.  Fetch the matching
+            # Stock+ depth snapshot rather than treating lastDone as a fill.
+            if row.get("bid") in (None, "") or row.get("ask") in (None, ""):
+                depth = self.stockplus_depth(expected_symbol)
+                copy = dict(row)
+                copy["bid"] = self._depth_top(depth.get("bids"), side="bid")
+                copy["ask"] = self._depth_top(depth.get("asks"), side="ask")
+                enriched.append(copy)
+            else:
+                enriched.append(dict(row))
+        return enriched
+
+    def stockplus_depth(self, symbol: str) -> dict[str, Any]:
+        if not symbol or any(character.isspace() for character in symbol):
+            raise ConfigurationError("Stock+ depth requires a valid symbol")
+        data = self._request("GET", "/api/v3/stockplus/market/depth", {"symbol": symbol}, private=True)["data"]
+        if not isinstance(data, dict):
+            raise DataUnavailable("Stock+ depth response is not an object")
+        return data
+
+    @staticmethod
+    def _depth_top(levels: Any, *, side: str) -> str | None:
+        if not isinstance(levels, list):
+            raise DataUnavailable("Stock+ depth side is not a list")
+        prices: list[Decimal] = []
+        for level in levels:
+            if not isinstance(level, dict) or level.get("price") in (None, ""):
+                raise DataUnavailable("Stock+ depth level has no price")
+            try:
+                price = Decimal(str(level["price"]))
+            except (ArithmeticError, TypeError, ValueError) as exc:
+                raise DataUnavailable("Stock+ depth price is not numeric") from exc
+            if not price.is_finite() or price <= 0:
+                raise DataUnavailable("Stock+ depth price is invalid")
+            prices.append(price)
+        if not prices:
+            return None
+        return str(min(prices) if side == "ask" else max(prices))
 
     def account_settings(self) -> dict[str, Any]:
         return self._request("GET", "/api/v3/account/settings", private=True)["data"]

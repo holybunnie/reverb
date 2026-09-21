@@ -1,4 +1,6 @@
 .env
+site/
+*.jsonl.lock
 .env.*
 !.env.example
 .venv/

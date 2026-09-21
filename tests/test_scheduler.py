@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from reverb.ledger import Ledger
-from reverb.scheduler import WakeAction, build_schedule, due_action, heartbeat_from_ledger
+from reverb.scheduler import WakeAction, build_schedule, dispatch_action, due_action, heartbeat_from_ledger
 
 
 class SchedulerTests(unittest.TestCase):
@@ -26,3 +26,32 @@ class SchedulerTests(unittest.TestCase):
             heartbeat.tick(datetime(2026, 9, 19, 0, 3, tzinfo=timezone.utc))
             kinds = [row["kind"] for row in ledger.verify()]
             self.assertEqual(kinds, ["heartbeat", "heartbeat_gap", "heartbeat"])
+
+    def test_due_wake_without_dispatcher_is_a_blocked_non_success(self):
+        with TemporaryDirectory() as temp:
+            ledger = Ledger(Path(temp) / "ledger.jsonl")
+            event = datetime(2026, 9, 24, 20, 5, tzinfo=timezone.utc)
+            schedule = build_schedule("nvda-2026-09-24", event)
+            result = dispatch_action(
+                ledger=ledger, event_id=schedule.event_id, action=WakeAction.POSITION,
+                schedule=schedule, now=event - timedelta(minutes=10), dispatcher=None,
+            )
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(ledger.verify()[-1]["kind"], "dispatch_blocked")
+
+    def test_dispatcher_result_is_recorded(self):
+        with TemporaryDirectory() as temp:
+            ledger = Ledger(Path(temp) / "ledger.jsonl")
+            event = datetime(2026, 9, 24, 20, 5, tzinfo=timezone.utc)
+            schedule = build_schedule("nvda-2026-09-24", event)
+            result = dispatch_action(
+                ledger=ledger, event_id=schedule.event_id, action=WakeAction.REACT,
+                schedule=schedule, now=event + timedelta(minutes=10),
+                dispatcher=lambda action, current_schedule, now: {
+                    "decision_id": "decision-1", "status": "refuse",
+                    "action": action.value, "event_id": current_schedule.event_id,
+                    "at": now.isoformat(),
+                },
+            )
+            self.assertEqual(result["status"], "dispatched")
+            self.assertEqual(ledger.verify()[-1]["kind"], "action_dispatched")

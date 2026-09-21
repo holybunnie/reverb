@@ -58,7 +58,9 @@ def evaluate_option(*, thesis: Thesis, underlying: UnderlyingQuote, option: Opti
                 inputs, option,
             )
         valuation = value_option(underlying, option, thesis.event_at, risk_free_rate, dividend_yield,
-                                 post_event_volatility, paired_straddle_move_pct, thesis.expected_move_pct, per_contract_fees)
+                                 post_event_volatility, paired_straddle_move_pct, thesis.expected_move_pct,
+                                 per_contract_fees,
+                                 valuation_at=max(underlying.source_timestamp, option.source_timestamp))
     except FreshnessError as exc:
         return _refusal(thesis, ReasonCode.STALE_UNDERLYING, {"error": str(exc)}, inputs, option)
     except ValuationError as exc:

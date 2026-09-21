@@ -3,7 +3,7 @@ import unittest
 
 import httpx
 
-from reverb.bitget import BitgetClient
+from reverb.bitget import BitgetClient, Credentials
 from reverb.errors import ConfigurationError, DataUnavailable
 
 
@@ -16,7 +16,8 @@ class BitgetMarketTests(unittest.TestCase):
             captured["query"] = dict(request.url.params)
             return httpx.Response(200, json={"code": "00000", "msg": "success", "data": []})
 
-        client = BitgetClient(client=httpx.Client(transport=httpx.MockTransport(handler)))
+        client = BitgetClient(credentials=Credentials("test-key", "test-secret", "test-pass"),
+                              client=httpx.Client(transport=httpx.MockTransport(handler)))
         try:
             rows = client.history_candles(
                 "RNVDAUSDT", start_time=datetime(2026, 9, 18, 19, 5, tzinfo=timezone.utc),
@@ -51,6 +52,37 @@ class BitgetMarketTests(unittest.TestCase):
                 client.instruments()
         finally:
             client.close()
+
+    def test_option_quotes_enrich_last_trade_with_documented_depth(self):
+        requests = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request.url.path)
+            if request.url.path.endswith("/option-quote"):
+                return httpx.Response(200, json={"code": "00000", "msg": "success", "data": {
+                    "secuQuote": [{"symbol": "AAPL260925C100000.US", "lastDone": "2.5",
+                                    "timestamp": "1789989000000", "tradeStatus": "1",
+                                    "impliedVolatility": "0.4", "expiryDate": "20260925",
+                                    "strikePrice": "100", "contractMultipier": "100",
+                                    "direction": "C", "underlyingSymbol": "AAPL.US"}]
+                }})
+            if request.url.path.endswith("/depth"):
+                return httpx.Response(200, json={"code": "00000", "msg": "success", "data": {
+                    "asks": [{"position": 2, "price": "2.60", "volume": "5"},
+                             {"position": 1, "price": "2.55", "volume": "2"}],
+                    "bids": [{"position": 1, "price": "2.45", "volume": "3"}],
+                }})
+            return httpx.Response(404, json={"code": "404", "msg": "unexpected", "data": {}})
+
+        client = BitgetClient(credentials=Credentials("test-key", "test-secret", "test-pass"),
+                              client=httpx.Client(transport=httpx.MockTransport(handler)))
+        try:
+            rows = client.option_quotes(["AAPL260925C100000.US"])
+        finally:
+            client.close()
+        self.assertEqual(rows[0]["bid"], "2.45")
+        self.assertEqual(rows[0]["ask"], "2.55")
+        self.assertEqual(requests, ["/api/v3/stockplus/market/option-quote", "/api/v3/stockplus/market/depth"])
 
 
 if __name__ == "__main__":

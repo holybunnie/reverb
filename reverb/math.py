@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from math import exp, log, pi, sqrt
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from scipy.optimize import brentq
 
@@ -101,11 +102,27 @@ def greeks(inputs: BlackScholesInputs, direction: Direction, volatility: Decimal
     return {k: Decimal(str(v)) for k, v in {"delta": delta, "gamma": gamma, "vega": vega, "theta_per_year": theta}.items()}
 
 
-def time_to_expiry(event_at, expiry: date) -> Decimal:
-    remaining = (expiry - event_at.date()).days
-    if remaining <= 0:
-        raise ValuationError("option must expire after the event date")
-    return Decimal(remaining) / Decimal(365)
+def option_expiry_at(expiry: date) -> datetime:
+    """Return the documented 16:00 New York expiry boundary in UTC."""
+    try:
+        return datetime.combine(expiry, time(16, 0), tzinfo=ZoneInfo("America/New_York")).astimezone(timezone.utc)
+    except ZoneInfoNotFoundError as exc:  # pragma: no cover - standard Python zone data
+        raise ValuationError("America/New_York timezone data is unavailable") from exc
+
+
+def time_to_expiry(valuation_at: datetime, expiry: date) -> Decimal:
+    """Compute year fraction from the quote timestamp to the expiry boundary.
+
+    Date-only subtraction overstates time value whenever a quote arrives partway
+    through a session.  The valuation timestamp must be aware and expiry is
+    treated as 16:00 America/New_York on the contract's expiry date.
+    """
+    if not isinstance(valuation_at, datetime) or valuation_at.tzinfo is None:
+        raise ValuationError("valuation timestamp must include a timezone")
+    remaining_seconds = (option_expiry_at(expiry) - valuation_at.astimezone(timezone.utc)).total_seconds()
+    if remaining_seconds <= 0:
+        raise ValuationError("option must expire after the valuation timestamp")
+    return Decimal(str(remaining_seconds)) / Decimal(365 * 24 * 60 * 60)
 
 
 def straddle_implied_move(call_price: Decimal, put_price: Decimal, spot: Decimal) -> Decimal:
@@ -117,7 +134,7 @@ def straddle_implied_move(call_price: Decimal, put_price: Decimal, spot: Decimal
 def value_option(underlying: UnderlyingQuote, option: OptionQuote, event_at, risk_free_rate: Decimal,
                  dividend_yield: Decimal, post_event_volatility: Decimal,
                  implied_move_pct: Decimal | None, expected_move_pct: Decimal,
-                 fees: Decimal) -> Valuation:
+                 fees: Decimal, valuation_at: datetime | None = None) -> Valuation:
     if not option.executable:
         raise ValuationError("option bid and ask are required for an executable valuation")
     if option.ask is None:
@@ -125,7 +142,17 @@ def value_option(underlying: UnderlyingQuote, option: OptionQuote, event_at, ris
     if fees < 0 or not fees.is_finite():
         raise ValuationError("per-contract fees must be finite and non-negative")
     premium = option.ask
-    inputs = BlackScholesInputs(underlying.price, option.strike, time_to_expiry(event_at, option.expiry), risk_free_rate, dividend_yield)
+    valuation_at = valuation_at or option.source_timestamp
+    if valuation_at.tzinfo is None or event_at.tzinfo is None:
+        raise ValuationError("valuation and event timestamps must include a timezone")
+    quote_inputs = BlackScholesInputs(
+        underlying.price, option.strike, time_to_expiry(valuation_at, option.expiry),
+        risk_free_rate, dividend_yield,
+    )
+    # The post-event scenario starts at the event timestamp, not at the quote
+    # timestamp.  IV/Greeks and post-print valuation therefore use different T.
+    scenario_time = time_to_expiry(event_at, option.expiry)
+    inputs = quote_inputs
     iv = implied_volatility(inputs, option.direction, premium)
     greek_values = greeks(inputs, option.direction, iv)
     fee_per_share = fees / option.contract_multiplier
@@ -133,7 +160,7 @@ def value_option(underlying: UnderlyingQuote, option: OptionQuote, event_at, ris
                  else option.strike - premium - fee_per_share)
     breakeven_move = abs(breakeven - underlying.price) / underlying.price
     scenario_spot = underlying.price * (Decimal("1") + expected_move_pct if option.direction is Direction.CALL else Decimal("1") - expected_move_pct)
-    scenario_inputs = BlackScholesInputs(scenario_spot, option.strike, inputs.time_years, risk_free_rate, dividend_yield)
+    scenario_inputs = BlackScholesInputs(scenario_spot, option.strike, scenario_time, risk_free_rate, dividend_yield)
     scenario_value = price(scenario_inputs, option.direction, post_event_volatility)
     scenario_pnl = (scenario_value - premium) * option.contract_multiplier - fees
     return Valuation(

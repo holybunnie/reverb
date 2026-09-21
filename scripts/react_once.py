@@ -21,8 +21,10 @@ from reverb.bitget import BitgetClient, Credentials  # noqa: E402
 from reverb.config import EngineConfig, load_config  # noqa: E402
 from reverb.errors import ConfigurationError, ReverbError  # noqa: E402
 from reverb.execution import RealityOrderConstraints, place_reaction_limit  # noqa: E402
+from reverb.env import load_local_env  # noqa: E402
 from reverb.ledger import Ledger  # noqa: E402
 from reverb.liveness import check_account_liveness  # noqa: E402
+from reverb.m0 import gate_passed  # noqa: E402
 from reverb.service import DecisionService  # noqa: E402
 
 
@@ -33,12 +35,8 @@ def _timestamp(value: str) -> datetime:
     return parsed.astimezone(timezone.utc)
 
 
-def _gate_is_passed() -> bool:
-    text = (ROOT / "docs" / "m0.md").read_text(encoding="utf-8")
-    return "Status: **PASSED**" in text
-
-
 def run_once(*, symbol: str, event_at: datetime, enable_live: bool = False) -> int:
+    load_local_env(ROOT)
     loaded = load_config(ROOT / "config" / "engine.json", EngineConfig)
     ledger = Ledger(Path(os.getenv("REVERB_LEDGER_PATH", str(ROOT / "data" / "private" / "ledger.jsonl"))))
     credentials = Credentials.from_env()
@@ -52,10 +50,10 @@ def run_once(*, symbol: str, event_at: datetime, enable_live: bool = False) -> i
                 ledger.append("execution_blocked", {"decision_id": result.decision_id,
                                                      "reason": "--enable-live was not supplied"})
                 return 0
-            if not _gate_is_passed():
+            if not gate_passed(ROOT):
                 ledger.append("execution_blocked", {"decision_id": result.decision_id,
-                                                     "reason": "docs/m0.md feasibility gate is not PASSED"})
-                raise ConfigurationError("live execution is blocked until docs/m0.md says Status: **PASSED**")
+                                                     "reason": "docs/m0_gate.json is not a verified PASSED artifact"})
+                raise ConfigurationError("live execution is blocked until docs/m0_gate.json is hash-verified and PASSED")
             liveness = check_account_liveness(client)
             decision = result.decision
             if not isinstance(decision, dict):

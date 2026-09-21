@@ -2,14 +2,17 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 from reverb.bitget import BitgetClient, Credentials
+from reverb.env import load_local_env
 from reverb.errors import BitgetAPIError, ConfigurationError, DataUnavailable
 from reverb.liveness import check_account_liveness
 
 
 def main() -> int:
     try:
+        load_local_env(Path(__file__).resolve().parents[1])
         credentials = Credentials.from_env()
         with BitgetClient(credentials=credentials) as client:
             liveness = check_account_liveness(client)
@@ -24,6 +27,8 @@ def main() -> int:
     except BitgetAPIError as exc:
         if exc.code in {"40006", "40009", "40010"}:
             print("REVERB HALTED: Bitget rejected the API authentication. Check the key, secret, passphrase, API permission, IP binding, and local clock.", file=sys.stderr)
+        elif exc.code == "40012":
+            print("REVERB HALTED: Bitget accepted the request signature but this key is not entitled to the requested UTA/Stock+ path. Enable Unified account trade read/write and Unified account management read-only, and ensure Stock+ eligibility.", file=sys.stderr)
         else:
             print(f"REVERB HALTED: Bitget returned code {exc.code}. Check the Stock+ and UTA permissions.", file=sys.stderr)
     except DataUnavailable as exc:

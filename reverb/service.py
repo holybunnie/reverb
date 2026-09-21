@@ -15,6 +15,7 @@ from .config import EngineConfig
 from .errors import BitgetAPIError, ConfigurationError, DataUnavailable
 from .gate import evaluate_option
 from .ledger import Ledger
+from .math import straddle_implied_move
 from .models import DecisionStatus, ReasonCode, Thesis, ToolDecision, View
 from .reaction import baseline_price, evaluate_reaction, parse_candle
 from .sessions import Session, session_at
@@ -35,7 +36,11 @@ def _aware(value: datetime, name: str) -> datetime:
 
 
 def _failure_reason(error: Exception) -> ReasonCode:
-    if isinstance(error, BitgetAPIError) and error.code in {"40006", "40009", "40010"}:
+    # 40012 is the response Bitget currently returns when the authenticated
+    # key can reach Stock+/UTA routes but lacks the product entitlement.  Keep
+    # it distinct from an unavailable market feed so the user gets an
+    # actionable permission refusal rather than a generic data error.
+    if isinstance(error, BitgetAPIError) and error.code in {"40006", "40009", "40010", "40012"}:
         return ReasonCode.API_NOT_ENTITLED
     if isinstance(error, ConfigurationError):
         return ReasonCode.DATA_UNAVAILABLE
@@ -174,21 +179,41 @@ class DecisionService:
             expiry_value, expiry = select_expiry(self.client.option_expiry_dates(underlying_symbol), event_at.date())
             chain = parse_chain(self.client.option_chain(underlying_symbol, expiry_value), expiry)
             selected_contract = select_contract(chain, view.direction, underlying.price, expected_move_pct)
+            # The directional contract is chosen from the thesis, but the
+            # market's event move must be measured from the same-expiry ATM
+            # straddle.  Using the thesis strike would make the refusal gate
+            # depend on the user's strike selection rather than the market's
+            # priced move.
+            atm_contract = select_at_the_money(chain, underlying.price)
             selected_symbol, paired_symbol = paired_symbols(selected_contract, view.direction)
-            rows = self.client.option_quotes([selected_symbol, paired_symbol])
+            quote_symbols = list(dict.fromkeys([
+                selected_symbol, paired_symbol, atm_contract.call_symbol, atm_contract.put_symbol,
+            ]))
+            rows = self.client.option_quotes(quote_symbols)
             observed_quotes = {str(row.get("symbol")): parse_option_quote(row, observed_at=now) for row in rows}
             option = observed_quotes.get(selected_symbol)
             paired = observed_quotes.get(paired_symbol)
-            if option is None or paired is None:
-                raise DataUnavailable("selected or paired option quote is missing")
-            if option.underlying_symbol != underlying_symbol or paired.underlying_symbol != underlying_symbol:
+            atm_call = observed_quotes.get(atm_contract.call_symbol)
+            atm_put = observed_quotes.get(atm_contract.put_symbol)
+            required_quotes = (("selected", option), ("selected_pair", paired),
+                               ("atm_call", atm_call), ("atm_put", atm_put))
+            if any(quote is None for _, quote in required_quotes):
+                return self._refusal(tool, thesis.symbol, ReasonCode.PAIR_BID_ASK_UNAVAILABLE,
+                                     {label + "_symbol": symbol for label, symbol in (
+                                         ("selected", selected_symbol), ("selected_pair", paired_symbol),
+                                         ("atm_call", atm_contract.call_symbol), ("atm_put", atm_contract.put_symbol),
+                                     )},
+                                     "Reverb refused because the selected contract and ATM straddle quotes were incomplete.")
+            assert option is not None and paired is not None and atm_call is not None and atm_put is not None
+            if any(quote.underlying_symbol != underlying_symbol for _, quote in required_quotes):
                 raise DataUnavailable("option quote underlying identity does not match the requested stock")
-            if option.trade_status not in {"1", "online", "ONLINE", "active", "ACTIVE"} or paired.trade_status not in {"1", "online", "ONLINE", "active", "ACTIVE"}:
+            if any(quote.trade_status not in {"1", "online", "ONLINE", "active", "ACTIVE"}
+                   for _, quote in required_quotes):
                 return self._refusal(tool, thesis.symbol, ReasonCode.INSTRUMENT_UNAVAILABLE,
-                                     {"selected_trade_status": str(option.trade_status),
-                                      "paired_trade_status": str(paired.trade_status)},
-                                     "Reverb refused because the selected option contract is not verified as tradeable.")
-            for label, quote in (("selected", option), ("paired", paired)):
+                                     {label + "_trade_status": str(quote.trade_status)
+                                      for label, quote in required_quotes},
+                                     "Reverb refused because a selected or ATM option contract is not verified as tradeable.")
+            for label, quote in required_quotes:
                 age_ms = int((now - quote.source_timestamp).total_seconds() * 1000)
                 if age_ms < 0 or age_ms > self.engine.max_quote_age_ms:
                     return self._refusal(tool, thesis.symbol, ReasonCode.STALE_OPTION,
@@ -197,13 +222,18 @@ class DecisionService:
                                          "Reverb refused because an option quote was outside the freshness gate.")
             if option.strike != paired.strike or option.expiry != paired.expiry:
                 raise DataUnavailable("selected and paired option quotes do not describe the same contract")
-            if not option.executable or not paired.executable or option.ask is None or paired.ask is None:
+            if atm_call.strike != atm_put.strike or atm_call.expiry != atm_put.expiry:
+                raise DataUnavailable("ATM call and put quotes do not describe the same contract")
+            if (not option.executable or not paired.executable or not atm_call.executable or not atm_put.executable
+                    or option.ask is None or paired.ask is None or atm_call.ask is None or atm_put.ask is None):
                 return self._refusal(tool, thesis.symbol, ReasonCode.PAIR_BID_ASK_UNAVAILABLE,
                                      {"selected_symbol": selected_symbol, "paired_symbol": paired_symbol,
                                       "selected_bid": str(option.bid), "selected_ask": str(option.ask),
-                                      "paired_bid": str(paired.bid), "paired_ask": str(paired.ask)},
-                                     "Reverb refused because both sides of the same-strike volatility check need executable quotes.")
-            implied_move = (option.ask + paired.ask) / underlying.price
+                                      "paired_bid": str(paired.bid), "paired_ask": str(paired.ask),
+                                      "atm_call_symbol": atm_contract.call_symbol, "atm_put_symbol": atm_contract.put_symbol,
+                                      "atm_call_ask": str(atm_call.ask), "atm_put_ask": str(atm_put.ask)},
+                                     "Reverb refused because the selected option and ATM straddle need executable quotes.")
+            implied_move = straddle_implied_move(atm_call.ask, atm_put.ask, underlying.price)
             decision = evaluate_option(
                 thesis=thesis, underlying=underlying, option=option,
                 paired_straddle_move_pct=implied_move,
@@ -225,7 +255,8 @@ class DecisionService:
                 reason_codes=decision.reason_codes, decision=_public_option_decision(decision),
                 arithmetic={**decision.arithmetic, "market_implied_move_pct": str(implied_move),
                             "combined_budget": str(max_loss), "reaction_budget": str(reaction_budget),
-                            "selected_expiry": expiry.isoformat()},
+                            "selected_expiry": expiry.isoformat(),
+                            "implied_move_strike": str(atm_contract.strike)},
                 explanation=self._decision_explanation(decision.status, decision.reason_codes),
                 created_at=decision.created_at,
             ))

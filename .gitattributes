@@ -1,0 +1,3 @@
+# Captured HTTP bodies are evidence bytes; preserve them exactly and skip
+# source-style whitespace normalization/checks.
+evidence/**/*.body binary

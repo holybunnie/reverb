@@ -1,7 +1,8 @@
 # BELLRING (Reverb)
 
-[Open the credential-free demo surface](/demo) — it currently shows a recorded
-market-data run and clearly says which parts are still waiting for verification.
+[Open the credential-free demo](https://holybunnie.github.io/reverb/) — it
+replays a real NVIDIA earnings window from the issuer's release and Bitget's
+public Reality candles. No account or credentials are required.
 
 > The biggest moment in a stock's quarter happens at 4am your time. This is the
 > exchange where an unattended agent can be ready for it.
@@ -17,9 +18,10 @@ willing to lose. Then you go to bed.
 
 The intended flow is to buy a position before the US market closes, watch how the
 price reacts after the results arrive, and tell you in the morning what happened
-and why. The public `/demo` (aliased locally by the preview server) is a
-credential-free evidence surface; it is not presented as an earnings event until
-an earnings capture exists. Live trading remains behind the feasibility gate.
+and why. The public demo is a credential-free historical replay: it shows one
+deterministic paper action, one arithmetic-backed refusal, and the morning
+report. It is not a live fill or a profitability claim. Live trading remains
+behind the feasibility gate.
 
 ## The problem
 
@@ -53,13 +55,16 @@ device with permission to read and trade only. The secret and passphrase stay
 local; authentication is sent directly to Bitget. Reverb will never request
 withdrawal or transfer permission.
 
-## Live preview, trade, and refusal evidence
+## Demo, trade, and refusal evidence
 
-The credential-free `/preview` route presents a real, hash-checked public-data
-capture. It shows live data reachability, book freshness, the blocked gate, and
-the access failures. It deliberately does not call this an earnings event, a
-real order, or a profitable strategy. A data access failure is not an economic
-refusal, and a replay is not a real order.
+The credential-free demo replays NVIDIA's 26 August 2026 results. The issuer's
+first-party release and timing notice are captured beside 90 contiguous
+one-minute `RNVDAUSDT` candles from Bitget. The page shows the baseline, the
+first move that crossed the declared trigger, a small paper intent that fits a
+declared budget, and a one-unit intent refused because its notional exceeded the
+same budget. It deliberately does not call either decision a real order or a
+profitable strategy. The `/preview` route remains the live feasibility evidence
+surface.
 
 ## How it will work
 
@@ -86,7 +91,8 @@ Current snapshots must never be described as earnings-time measurements.
   account-specific fees, and trading-permission introspection. The write path is
   intentionally fixed to local Agent Hub; Reverb has no raw Bitget order fallback.
 - NOT MEASURED: earnings-time spreads and depth versus regular-hours medians;
-  earnings event replay; fills, slippage, and profitability.
+  live fills, slippage, and profitability. The checked historical replay is
+  evidence of the data path, not a performance sample.
 - ASSUMED/UNVERIFIED: API-key inactivity expiry and whether IP binding affects it.
 - OBSERVED: the configured public Nasdaq calendar returns earnings dates but can
   omit the reporting time; `config/calendar.json` must set
@@ -95,6 +101,12 @@ Current snapshots must never be described as earnings-time measurements.
   treatment, early-exercise effects, and stock-token basis relative to the option
   underlying. The configured post-event volatility is currently unverified, so
   the option gate refuses rather than approving a live trade from that scenario.
+- OBSERVED: the local authenticated check reaches Bitget but currently returns
+  `40012` for the UTA/Stock+ path; the key is not entitled until the required
+  Unified Account scopes and Stock+ eligibility are enabled.
+- OBSERVED: Agent Hub `bgc` is installed locally and its catalog is reachable,
+  but it exposes no Stock+ options order tool. The option write path therefore
+  remains blocked rather than guessing the direct REST payload.
 
 DOCUMENTED: Stock+ options API quotes require separate OPRA access and
 whitelisting. [API requirements](https://www.bitget.com/docs/catalog/stock-plus/options-quotes).
@@ -108,6 +120,8 @@ uv venv .venv
 uv pip install --python .venv/bin/python -e .
 python3 scripts/probe.py capture
 python3 scripts/probe.py report
+./.venv/bin/python scripts/replay_capture.py check
+./.venv/bin/python scripts/build_demo.py
 ./.venv/bin/python -m unittest discover -s tests -v
 ```
 
@@ -117,15 +131,22 @@ It saves public responses, timestamps, configuration, and checksums under
 new evidence; archived data is never silently replaced. The report command
 verifies the ledger and regenerates the published measurement table offline.
 
-To verify a real account, export the three local variables from `.env.example`
-in your own shell and run `./.venv/bin/python scripts/account_check.py`. This
-performs a read-only call and never prints the values. The account check does
-not request withdrawal or transfer permission. A successful check still does
-not enable order placement; a pre-registration and a guarded limit-order path
-are required. When that path is enabled, Reverb invokes the local Agent Hub
-`bgc` command for the write. It does not call a raw Bitget order endpoint. The
-same local account permissions are still required because Agent Hub signs the
-request for the account underneath its execution surface.
+The historical demo is regenerated with `./.venv/bin/python
+scripts/replay_capture.py capture` (read-only issuer and Bitget requests) and
+verified offline with `./.venv/bin/python scripts/replay_capture.py check`.
+The capture stores the two first-party issuer pages and the 90 one-minute
+Bitget candles under `evidence/replays/`; failed attempts remain incomplete and
+cannot be served by `/demo`.
+
+Put the three values in the ignored local `.env` (or export them) and run
+`./.venv/bin/python scripts/account_check.py`. It performs a read-only call and
+never prints the values. The account check does not request withdrawal or
+transfer permission. A successful check still does not enable order placement;
+a pre-registration and a guarded limit-order path are required. When that path
+is enabled, Reverb invokes the local Agent Hub `bgc` command for the write. It
+does not call a raw Bitget order endpoint. The same local account permissions
+are still required because Agent Hub signs the request for the account
+underneath its execution surface.
 
 Agent Hub is a local prerequisite for live execution. Configure `bgc` on the
 machine running Reverb, or set `REVERB_AGENT_HUB_BIN` to its local executable,
@@ -134,16 +155,17 @@ That performs the read-only `bgc discover` preflight. Reverb does not install Ag
 Hub globally, send keys to a server, or silently fall back to another order
 transport. If `bgc` is missing, the order path halts and records the failure.
 
-Start the public preview locally with `./.venv/bin/python scripts/preview_server.py`
-and open `http://127.0.0.1:8000/app` for the phone-first product surface,
-`http://127.0.0.1:8000/demo` for the credential-free demo route, or
+Start the local server with `./.venv/bin/python scripts/preview_server.py` and
+open `http://127.0.0.1:8000/app` for the phone-first product surface,
+`http://127.0.0.1:8000/demo` for the historical replay, or
 `http://127.0.0.1:8000/preview` for the evidence view. The JSON conclusion is at
 `http://127.0.0.1:8000/api/preview`; `/connect` contains the local-only account
 permission steps. The server does not expose raw market data or accept keys.
 
-The included `Dockerfile` runs the same credential-free surface on port 8000;
-deployment still requires an operator-provided host. No credential is needed
-for the preview container.
+The included `Dockerfile` runs the same credential-free surface on port 8000.
+GitHub Pages deployment is defined in `.github/workflows/pages.yml`; it builds
+the static demo from the checked replay evidence and publishes the public URL
+above. No credential is needed for the demo artifact.
 
 Python dependencies for the engine are declared in `pyproject.toml`.
 The MCP decision surface is available after installation:
@@ -175,10 +197,14 @@ marker, and emits the due action. It never submits an order by itself.
 For a guarded reaction evaluation, use `scripts/react_once.py SYMBOL EVENT_AT`.
 It replays historical windows from historical candles, requires an explicit
 reaction quantity and budget, validates live instrument precision/minimums, and
-will not call Agent Hub unless `--enable-live` is supplied and `docs/m0.md`
-explicitly says `Status: **PASSED**`. The current repository intentionally
-halts before that point.
+will not call Agent Hub unless `--enable-live` is supplied and the
+hash-verified `docs/m0_gate.json` artifact is `PASSED`. The current repository
+intentionally halts before that point.
 
-Full live order execution remains gated by `docs/m0.md`. Playbook is not used
-because the planned workflow is driven by individual earnings events rather
-than grid or recurring trades.
+The UTC scheduler accepts `--dispatch` and invokes the position/reaction
+decision path at the due wake; a missing dispatcher or missing thesis inputs is
+recorded as a non-success `dispatch_blocked` ledger entry. Stock+ option order
+submission remains blocked until its endpoint schema and this account's
+entitlement are verified. Full live execution remains gated by
+`docs/m0_gate.json`. Playbook is not used because the planned workflow is
+driven by individual earnings events rather than grid or recurring trades.

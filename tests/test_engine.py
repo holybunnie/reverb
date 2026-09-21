@@ -7,7 +7,7 @@ import unittest
 from reverb.errors import LedgerError
 from reverb.gate import evaluate_option
 from reverb.ledger import Ledger
-from reverb.math import BlackScholesInputs, greeks, implied_volatility, price, value_option
+from reverb.math import BlackScholesInputs, greeks, implied_volatility, option_expiry_at, price, time_to_expiry, value_option
 from reverb.models import Direction, OptionQuote, ReasonCode, Thesis, UnderlyingQuote, View
 
 
@@ -95,6 +95,13 @@ class EngineTests(unittest.TestCase):
         expected_pnl = (valuation.scenario_value_after_event - ask) * Decimal("100") - Decimal("5")
         self.assertEqual(valuation.breakeven_price, expected_breakeven)
         self.assertEqual(valuation.scenario_pnl, expected_pnl)
+
+    def test_time_to_expiry_uses_intraday_expiry_boundary(self):
+        valuation_at = datetime(2026, 9, 19, 15, 0, tzinfo=timezone.utc)
+        expiry = date(2026, 9, 21)
+        expected_seconds = (option_expiry_at(expiry) - valuation_at).total_seconds()
+        expected = Decimal(str(expected_seconds)) / Decimal(365 * 24 * 60 * 60)
+        self.assertEqual(time_to_expiry(valuation_at, expiry), expected)
 
     def test_ledger_requires_registration_before_outcome(self):
         with TemporaryDirectory() as temp:

@@ -16,6 +16,7 @@ from reverb.app import render_app_html, render_connection_html  # noqa: E402
 from reverb.ledger import Ledger  # noqa: E402
 from reverb.preview import load_preview_snapshot, render_preview_html  # noqa: E402
 from reverb.report import morning_report  # noqa: E402
+from reverb.replay import load_replay_snapshot, render_replay_html, render_replay_report  # noqa: E402
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -32,8 +33,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         route = urlsplit(self.path).path
         try:
+            if route == "/demo":
+                replay = load_replay_snapshot(ROOT)
+                self._send(200, "text/html; charset=utf-8", render_replay_html(replay).encode())
+                return
             snapshot = load_preview_snapshot(ROOT)
-            if route in {"/", "/preview", "/demo"}:
+            if route in {"/", "/preview"}:
                 self._send(200, "text/html; charset=utf-8", render_preview_html(snapshot).encode())
                 return
             if route == "/app":
@@ -42,6 +47,11 @@ class Handler(BaseHTTPRequestHandler):
                 timezone_name = query.get("timezone", [None])[0]
                 ledger_path = Path(os.getenv("REVERB_LEDGER_PATH", str(ROOT / "data" / "private" / "ledger.jsonl")))
                 report = morning_report(Ledger(ledger_path)) if ledger_path.exists() else None
+                if report is None:
+                    try:
+                        report = render_replay_report(load_replay_snapshot(ROOT))
+                    except Exception:
+                        report = None
                 self._send(200, "text/html; charset=utf-8",
                            render_app_html(snapshot, risk_budget=risk_budget, timezone_name=timezone_name,
                                            morning_report_html=report).encode())
@@ -51,6 +61,10 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if route == "/api/preview":
                 self._send(200, "application/json; charset=utf-8", json.dumps(snapshot.as_dict(), sort_keys=True).encode())
+                return
+            if route == "/api/demo":
+                replay = load_replay_snapshot(ROOT)
+                self._send(200, "application/json; charset=utf-8", json.dumps(replay.as_dict(), sort_keys=True).encode())
                 return
             if route == "/health":
                 self._send(200, "application/json; charset=utf-8", b'{"status":"ok","credentials_required":false}')

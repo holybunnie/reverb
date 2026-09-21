@@ -1,8 +1,7 @@
-"""Keep the UTC scheduler awake for configured event timestamps.
+"""Keep the UTC scheduler awake and dispatch due decision actions.
 
-The loop records every heartbeat and delegates each wake to ``scheduler_once``.
-It does not invent a thesis or submit an order; a position/reaction intent must
-already exist in the ledger and the guarded execution command remains separate.
+The loop requires ``--dispatch`` to invoke a position/reaction path. Without
+it, every due wake is recorded as a blocked dispatch rather than disappearing.
 """
 from __future__ import annotations
 
@@ -11,8 +10,10 @@ import signal
 import sys
 import time
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from scheduler_once import run_once, _parse_timestamp
+from reverb.models import View
 
 
 STOP = False
@@ -28,6 +29,13 @@ def main() -> int:
     parser.add_argument("event_id")
     parser.add_argument("event_at", help="ISO timestamp with timezone")
     parser.add_argument("--interval", type=float, default=60.0)
+    parser.add_argument("--dispatch", action="store_true")
+    parser.add_argument("--symbol")
+    parser.add_argument("--view", choices=[value.value for value in View])
+    parser.add_argument("--expected-move-pct")
+    parser.add_argument("--max-loss")
+    parser.add_argument("--timezone", default="America/New_York")
+    parser.add_argument("--enable-live", action="store_true")
     args = parser.parse_args()
     if args.interval <= 0:
         parser.error("--interval must be positive")
@@ -36,7 +44,14 @@ def main() -> int:
     signal.signal(signal.SIGTERM, _stop)
     exit_code = 0
     while not STOP:
-        code = run_once(event_id=args.event_id, event_at=event_at, now=datetime.now(timezone.utc))
+        code = run_once(
+            event_id=args.event_id, event_at=event_at, now=datetime.now(timezone.utc),
+            dispatch=args.dispatch, symbol=args.symbol,
+            view=View(args.view) if args.view else None,
+            expected_move_pct=Decimal(args.expected_move_pct) if args.expected_move_pct else None,
+            max_loss=Decimal(args.max_loss) if args.max_loss else None,
+            user_timezone=args.timezone, enable_live=args.enable_live,
+        )
         exit_code = max(exit_code, code)
         if not STOP:
             time.sleep(args.interval)

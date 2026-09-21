@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED",
+  "answers": {
+    "option_hours": {
+      "status": "UNVERIFIED",
+      "evidence": []
+    },
+    "eligibility": {
+      "status": "UNVERIFIED",
+      "evidence": []
+    },
+    "tradeable_intersection": {
+      "status": "UNVERIFIED",
+      "evidence": []
+    },
+    "event_book": {
+      "status": "UNVERIFIED",
+      "evidence": []
+    }
+  }
+}
