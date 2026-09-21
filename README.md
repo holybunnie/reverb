@@ -1,8 +1,9 @@
 # BELLRING (Reverb)
 
-[Open the credential-free demo](https://holybunnie.github.io/reverb/) — it
-replays a real NVIDIA earnings window from the issuer's release and Bitget's
-public Reality candles. No account or credentials are required.
+[Open the credential-free demo](https://holybunnie.github.io/reverb/) — once
+GitHub Pages is enabled for this repository, it replays a real NVIDIA earnings
+window from the issuer's release and Bitget's public Reality candles. No
+account or credentials are required.
 
 > The biggest moment in a stock's quarter happens at 4am your time. This is the
 > exchange where an unattended agent can be ready for it.
@@ -165,7 +166,10 @@ permission steps. The server does not expose raw market data or accept keys.
 The included `Dockerfile` runs the same credential-free surface on port 8000.
 GitHub Pages deployment is defined in `.github/workflows/pages.yml`; it builds
 the static demo from the checked replay evidence and publishes the public URL
-above. No credential is needed for the demo artifact.
+above. Enable it once at the repository's Settings → Pages → Build and
+deployment → Source → GitHub Actions, then rerun the workflow. Until that
+setting is enabled, GitHub returns 404 even though the build artifact passes.
+No credential is needed for the demo artifact.
 
 Python dependencies for the engine are declared in `pyproject.toml`.
 The MCP decision surface is available after installation:
