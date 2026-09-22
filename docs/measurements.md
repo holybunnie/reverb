@@ -1,8 +1,8 @@
 # Public-data feasibility measurements
 
-Run: `20260921T101740.309305Z-9ca1210d`.
+Run: `20260922T011228.304604Z-9dc0b95d`.
 
-Ledger head: `f54870514b47bd56b95cc69f9b04730ff438d7a31c0ee0de82f2734d34c113ef`.
+Ledger head: `26f1b2955c6f24b477415ac7c292b4182fd45fc23556c751f1461dc0f0fa8677`.
 
 OBSERVED: these are capture-time diagnostic snapshots, not earnings-window measurements.
 The options intersection, event sample, fills and strategy performance remain unmeasured.
@@ -13,16 +13,16 @@ OBSERVED: 2125 online Reality candidates came from the live instruments and tick
 
 | Symbol | Spread (basis points) | Displayed bid / ask value (quote units) | Book age (ms) | Freshness |
 | --- | ---: | ---: | ---: | --- |
-| RFOXAUSDT | — | — | — | UNAVAILABLE: Book has an empty side |
-| RCORUSDT | — | — | — | UNAVAILABLE: Book has an empty side |
-| RRJFUSDT | — | — | — | UNAVAILABLE: Book has an empty side |
+| RSPYUSDT | 2.5843 | 64266.854532 / 88704.161809 | 0 | FRESH |
+| RNVDAUSDT | 8.7873 | 155303.1204 / 159841.284534 | 0 | FRESH |
+| RMETAUSDT | 4.1911 | 46667.0028 / 48042.7980 | 0 | FRESH |
 
 Displayed depth covers only the requested levels and is not a guaranteed fill.
 A stale timestamp is retained as a failed freshness gate, never promoted to a live quote.
 
-OBSERVED `RFOXAUSDT`: 100 candles returned; 12 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
-OBSERVED `RCORUSDT`: 100 candles returned; 14 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
-OBSERVED `RRJFUSDT`: 100 candles returned; 16 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
+OBSERVED `RSPYUSDT`: 100 candles returned; 1 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
+OBSERVED `RNVDAUSDT`: 100 candles returned; 0 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
+OBSERVED `RMETAUSDT`: 100 candles returned; 0 nonconsecutive timestamp pairs. This is not a validated earnings baseline.
 
 ## Access and collection failures
 

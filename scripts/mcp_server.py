@@ -15,6 +15,7 @@ from reverb.config import EngineConfig, load_config  # noqa: E402
 from reverb.errors import ConfigurationError, ReverbError  # noqa: E402
 from reverb.env import load_local_env  # noqa: E402
 from reverb.ledger import Ledger  # noqa: E402
+from reverb.language import decision_with_narration, interpret_view_and_record, optional_qwen_client  # noqa: E402
 from reverb.models import View  # noqa: E402
 from reverb.service import DecisionService  # noqa: E402
 
@@ -63,6 +64,32 @@ def _input_refusal(tool: str, symbol: str | None, field: str, error: Exception) 
         return service.input_refusal(tool=tool, symbol=symbol, field=field, error=error).model_dump(mode="json")
 
 
+def _ledger() -> Ledger:
+    return Ledger(Path(os.getenv("REVERB_LEDGER_PATH", str(ROOT / "data" / "private" / "ledger.jsonl"))))
+
+
+def _render(decision: dict) -> dict:
+    qwen = optional_qwen_client()
+    try:
+        return decision_with_narration(decision=decision, ledger=_ledger(), qwen=qwen)
+    finally:
+        if qwen is not None:
+            qwen.close()
+
+
+def _view(value: str) -> View:
+    try:
+        return View(value.strip().lower())
+    except (AttributeError, TypeError, ValueError):
+        qwen = optional_qwen_client()
+        if qwen is None:
+            raise ValueError("view must be beat, miss, or no_view unless local Qwen is configured")
+        try:
+            return interpret_view_and_record(text=value, ledger=_ledger(), qwen=qwen)
+        finally:
+            qwen.close()
+
+
 try:
     from mcp.server.mcpserver import MCPServer
 except ImportError as exc:  # pragma: no cover - exercised by installation, not the deterministic unit suite
@@ -76,7 +103,8 @@ mcp = MCPServer("Reverb", description="Decision-only earnings tools for Bitget; 
 def earnings_this_week(user_timezone: str) -> dict:
     """Return reporting names, local times, and explicitly qualified leg availability."""
     with _service(require_credentials=False) as service:
-        return service.earnings_this_week(user_timezone=user_timezone).model_dump(mode="json")
+        decision = service.earnings_this_week(user_timezone=user_timezone).model_dump(mode="json")
+    return _render(decision)
 
 
 @mcp.tool()
@@ -84,7 +112,7 @@ def position_for(symbol: str, view: str, expected_move_pct: str, max_loss: str,
                 event_at: str, user_timezone: str) -> dict:
     """Return a guarded option decision or a refusal with its arithmetic."""
     try:
-        parsed_view = View(view)
+        parsed_view = _view(view)
     except (TypeError, ValueError) as exc:
         return _input_refusal("position_for", symbol, "view", exc)
     try:
@@ -105,9 +133,10 @@ def position_for(symbol: str, view: str, expected_move_pct: str, max_loss: str,
     except (TypeError, ValueError) as exc:
         return _input_refusal("position_for", symbol, "event_at", exc)
     with _service() as service:
-        return service.position_for(symbol=symbol, view=parsed_view, expected_move_pct=parsed_expected_move,
-                                    max_loss=parsed_max_loss, event_at=parsed_event_at,
-                                    user_timezone=user_timezone).model_dump(mode="json")
+        decision = service.position_for(symbol=symbol, view=parsed_view, expected_move_pct=parsed_expected_move,
+                                        max_loss=parsed_max_loss, event_at=parsed_event_at,
+                                        user_timezone=user_timezone).model_dump(mode="json")
+    return _render(decision)
 
 
 @mcp.tool()
@@ -128,8 +157,9 @@ def whats_priced_in(symbol: str, event_at: str, historical_move_pct: str | None 
     else:
         historical = None
     with _service() as service:
-        return service.whats_priced_in(symbol=symbol, event_at=parsed_event_at,
-                                       historical_move_pct=historical).model_dump(mode="json")
+        decision = service.whats_priced_in(symbol=symbol, event_at=parsed_event_at,
+                                           historical_move_pct=historical).model_dump(mode="json")
+    return _render(decision)
 
 
 @mcp.tool()
@@ -141,15 +171,17 @@ def react(symbol: str, event_at: str, user_timezone: str = "America/New_York",
     except (TypeError, ValueError) as exc:
         return _input_refusal("react", symbol, "event_at", exc)
     with _service(require_credentials=False) as service:
-        return service.react(symbol=symbol, event_at=parsed_event_at,
-                             user_timezone=user_timezone, order_type=order_type).model_dump(mode="json")
+        decision = service.react(symbol=symbol, event_at=parsed_event_at,
+                                 user_timezone=user_timezone, order_type=order_type).model_dump(mode="json")
+    return _render(decision)
 
 
 @mcp.tool()
 def my_positions() -> dict:
     """Return ledger-known positions with outcome attribution, never raw account data."""
     with _service(require_credentials=False) as service:
-        return service.my_positions().model_dump(mode="json")
+        decision = service.my_positions().model_dump(mode="json")
+    return _render(decision)
 
 
 def main() -> int:

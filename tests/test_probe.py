@@ -26,6 +26,13 @@ class ProbeTests(unittest.TestCase):
         self.assertEqual(metric["status"], "STALE")
         self.assertGreater(float(metric["spread_bps"]), 0)
 
+    def test_book_metrics_clamps_tolerated_future_clock_skew(self):
+        record = {"received_at": "2026-09-19T10:00:00+00:00"}
+        data = {"ts": "1789812000500", "b": [[100, 2]], "a": [[101, 3]]}
+        metric = probe.book_metrics(data, record, {"max_book_age_ms": 5000, "max_future_skew_ms": 1000})
+        self.assertEqual(metric["status"], "FRESH")
+        self.assertEqual(metric["age_ms"], 0)
+
     def test_hash_chain_and_body_hash_are_checked(self):
         with tempfile.TemporaryDirectory() as temp:
             directory = Path(temp)

@@ -184,7 +184,9 @@ def book_metrics(data, record, config):
     elif age < -config["max_future_skew_ms"]:
         status = "FUTURE_TIMESTAMP"
     return {
-        "status": status, "age_ms": age,
+        # Small negative values are ordinary cross-host clock skew and pass the
+        # configured tolerance. Publish zero rather than a nonsensical age.
+        "status": status, "age_ms": max(age, 0),
         "spread_bps": str((ask - bid) / ((ask + bid) / 2) * 10000),
         "displayed_bid_notional": str(sum(p * q for p, q in bids)),
         "displayed_ask_notional": str(sum(p * q for p, q in asks)),

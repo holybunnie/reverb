@@ -52,6 +52,9 @@ historical event, not evidence of profitability.
 
 The language model may interpret a plain-language view and narrate the report.
 It never supplies a price, volatility, strike, expiry, size, or trade decision.
+The Qwen layer is independent of Bitget account authentication: without Qwen,
+Reverb falls back to deterministic report text; without a Bitget key, public
+replay, reaction research, and language features still run.
 
 ## Why Bitget
 
@@ -75,10 +78,13 @@ hours.
 | Live option execution through Agent Hub | **Blocked** |
 | Live orders submitted | **None** |
 
-The local authenticated check previously returned Bitget code `40012` on a
-protected UTA/Stock+ route. That response does not identify whether the missing
-condition is an API-key scope, account eligibility, regional access, or a
-market-data entitlement. Reverb records the uncertainty instead of guessing.
+OBSERVED on 21 September 2026: the configured HMAC key authenticated against a
+protected v2 account route, which returned `40085` and confirmed that the
+account is already in Unified Account mode. The same key returned `40012` on
+UTA v3 account, trade, and Stock+ routes, including read-only trade queries.
+This isolates the immediate blocker to Bitget's v3 authentication/activation
+path; Stock+ eligibility and OPRA entitlement still cannot be tested until v3
+accepts the key.
 
 See [Milestone 0](docs/m0.md), the executable
 [gate artifact](docs/m0_gate.json), and the
@@ -156,6 +162,18 @@ Start the local MCP server with:
 ```sh
 ./.venv/bin/python scripts/mcp_server.py
 ```
+
+If `BITGET_QWEN_API_KEY` is configured locally, `position_for` also accepts a
+plain-language view and every MCP decision includes a Qwen-written narration.
+The underlying decision is unchanged and the model output is recorded beside
+it in the ledger. Verify the language endpoint independently with:
+
+```sh
+./.venv/bin/python scripts/qwen_check.py
+```
+
+This check does not call an authenticated Bitget endpoint and cannot place an
+order. Never add the Qwen key to the static GitHub Pages build.
 
 Agent Hub's local `bgc` catalog is available for supported execution paths, but
 the current catalog exposes no verified Stock+ options order tool. Reverb does
