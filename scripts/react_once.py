@@ -39,7 +39,12 @@ def run_once(*, symbol: str, event_at: datetime, enable_live: bool = False) -> i
     load_local_env(ROOT)
     loaded = load_config(ROOT / "config" / "engine.json", EngineConfig)
     ledger = Ledger(Path(os.getenv("REVERB_LEDGER_PATH", str(ROOT / "data" / "private" / "ledger.jsonl"))))
-    credentials = Credentials.from_env()
+    try:
+        credentials = Credentials.from_env()
+    except ConfigurationError:
+        if enable_live:
+            raise ConfigurationError("live reaction execution requires local Bitget credentials")
+        credentials = None
     with BitgetClient(credentials=credentials) as client:
         with DecisionService(client, loaded.value, ledger, engine_config_sha256=loaded.sha256) as service:
             result = service.react(symbol=symbol, event_at=event_at)
@@ -48,7 +53,7 @@ def run_once(*, symbol: str, event_at: datetime, enable_live: bool = False) -> i
                 return 0
             if not enable_live:
                 ledger.append("execution_blocked", {"decision_id": result.decision_id,
-                                                     "reason": "--enable-live was not supplied"})
+                                                     "reason": "paper/public-data mode; --enable-live was not supplied"})
                 return 0
             if not gate_passed(ROOT):
                 ledger.append("execution_blocked", {"decision_id": result.decision_id,

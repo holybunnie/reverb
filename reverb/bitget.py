@@ -86,6 +86,14 @@ class BitgetClient:
     def instruments(self) -> list[dict[str, Any]]:
         return self._request("GET", "/api/v3/market/instruments", {"category": "SPOT"})["data"]
 
+    def reality_stock_info(self, symbol: str | None = None) -> list[dict[str, Any]]:
+        """Return Bitget's public session and weekend eligibility metadata."""
+        data = self._request("GET", "/api/v3/reality/market/stock-info",
+                             {"symbol": symbol} if symbol else None)["data"]
+        if not isinstance(data, list):
+            raise DataUnavailable("Reality stock-info response is not a list")
+        return data
+
     def instrument(self, symbol: str) -> dict[str, Any]:
         rows = [row for row in self.instruments() if isinstance(row, dict) and row.get("symbol") == symbol]
         if len(rows) != 1:

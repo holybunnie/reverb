@@ -98,9 +98,18 @@ def run_once(*, event_id: str, event_at: datetime, now: datetime | None = None,
             liveness = check_account_liveness(client, now=current)
             ledger.append("key_liveness", {"event_id": event_id, **liveness.model_dump(mode="json")})
     except (BitgetAPIError, ConfigurationError, DataUnavailable) as exc:
-        ledger.append("key_liveness_failure", {"event_id": event_id, "error_type": type(exc).__name__})
-        print(f"REVERB HALTED: key liveness failed ({type(exc).__name__})", file=sys.stderr)
-        return 2
+        ledger.append("key_liveness_failure", {
+            "event_id": event_id, "error_type": type(exc).__name__,
+            "live_execution_requested": enable_live,
+        })
+        if enable_live:
+            print(f"REVERB HALTED: key liveness failed ({type(exc).__name__})", file=sys.stderr)
+            return 2
+        # A missing/rejected account key must not block UTC scheduling, public
+        # calendar work, historical replay, or public Reality analysis. It is
+        # still an explicit ledger warning and live writes remain impossible.
+        print(f"REVERB WARNING: key liveness unavailable ({type(exc).__name__}); continuing without live execution",
+              file=sys.stderr)
     action = due_action(schedule, current)
     if action is None:
         if current >= schedule.next_open_at_utc and schedule.next_open_status != "verified":

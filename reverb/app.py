@@ -123,7 +123,28 @@ def render_app_html(
       <label><span>Risk budget</span><input name="risk" inputmode="decimal" placeholder="50" value="{html.escape(risk_budget or '')}"></label>
       <label><span>Timezone</span><input name="timezone" placeholder="Africa/Lagos" value="{html.escape(timezone_name or '')}"></label>
       <button type="submit">Update dashboard</button>
-    </form>"""
+    </form>
+    <section class="language-panel" aria-labelledby="language-title">
+      <div><div class="label">Optional Qwen layer</div><h3 id="language-title">Say the view naturally.</h3><p>Qwen classifies direction only. It cannot choose a contract, size, price, or trade.</p></div>
+      <form id="thesis-form"><label><span>Your earnings view</span><input id="thesis-view" maxlength="500" placeholder="I expect NVIDIA to report stronger results"></label><button type="submit">Classify view</button></form>
+      <p class="small" id="thesis-result" role="status">Runs locally when <code>BITGET_QWEN_API_KEY</code> is configured.</p>
+    </section>
+    <script>
+    (() => {{
+      const form = document.getElementById('thesis-form');
+      const result = document.getElementById('thesis-result');
+      form.addEventListener('submit', async (event) => {{
+        event.preventDefault();
+        result.textContent = 'Classifying direction…';
+        try {{
+          const response = await fetch('/api/language/view', {{method:'POST', headers:{{'Content-Type':'application/json'}}, body:JSON.stringify({{view:document.getElementById('thesis-view').value}})}});
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.message || 'Language layer unavailable');
+          result.textContent = `Direction: ${{payload.view.replace('_', ' ')}}. No trade decision was made.`;
+        }} catch (error) {{ result.textContent = error.message; }}
+      }});
+    }})();
+    </script>"""
     report = morning_report_html or '<div class="empty-report"><span>○</span><p>No registered decision exists for this account yet.</p></div>'
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -151,12 +172,13 @@ a {{ color:inherit; text-decoration:none; }} .shell {{ width:min(1180px,calc(100
 .report-grid {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }} .decision {{ min-height:250px; padding:22px; border:1px solid var(--line); border-radius:22px; background:var(--panel); box-shadow:var(--shadow); }} .decision-head {{ display:flex; justify-content:space-between; gap:14px; align-items:center; }} .decision-head strong {{ padding:5px 9px; border-radius:999px; font-size:10px; letter-spacing:.1em; }} .decision-head span {{ color:var(--muted); font-size:12px; }} .action {{ border-top:2px solid var(--cyan); }} .refusal {{ border-top:2px solid var(--rose); }} .action .decision-head strong {{ color:var(--cyan); background:rgba(103,231,209,.09); }} .refusal .decision-head strong {{ color:var(--rose); background:rgba(255,125,132,.09); }} .decision p {{ color:var(--muted); }} .decision p b {{ color:var(--text); }} .decision ul {{ padding:13px 0 0; margin:13px 0 0; list-style:none; border-top:1px solid var(--line); }} .decision li {{ display:flex; justify-content:space-between; gap:20px; padding:7px 0; color:var(--text); font-size:12px; }} .decision li span {{ color:var(--muted); }} .report-note {{ grid-column:1/-1; margin:0 2px; }}
 .readiness {{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }} .readiness-card {{ padding:24px; }} .readiness-card h3 {{ margin:13px 0 7px; font-size:22px; letter-spacing:-.03em; }} .readiness-card p {{ margin:0; color:var(--muted); }} .metric {{ display:flex; justify-content:space-between; gap:16px; margin-top:22px; padding-top:15px; border-top:1px solid var(--line); }} .metric strong {{ font-size:28px; letter-spacing:-.04em; }} .metric span {{ max-width:150px; color:var(--muted); font-size:11px; text-align:right; }}
 .settings-panel {{ display:grid; grid-template-columns:1fr 1fr auto; gap:10px; margin-top:14px; padding:16px; border:1px solid var(--line); border-radius:18px; background:rgba(255,255,255,.025); }} .settings-panel label span {{ display:block; margin-bottom:5px; color:var(--muted); font-size:11px; }} input,button {{ min-height:42px; border:1px solid var(--line); border-radius:10px; color:var(--text); background:var(--ink-2); font:inherit; }} input {{ width:100%; padding:0 11px; }} button {{ align-self:end; padding:0 15px; border-color:transparent; background:var(--acid); color:#11150c; font-weight:760; cursor:pointer; }}
+.language-panel {{ display:grid; grid-template-columns:1fr 1.2fr; gap:22px; margin-top:14px; padding:22px; border:1px solid var(--line); border-radius:18px; background:rgba(103,231,209,.035); }} .language-panel h3 {{ margin:6px 0; font-size:22px; }} .language-panel p {{ margin:0; color:var(--muted); }} .language-panel form {{ display:grid; grid-template-columns:1fr auto; gap:10px; align-items:end; }} .language-panel label span {{ display:block; margin-bottom:5px; color:var(--muted); font-size:11px; }} .language-panel > .small {{ grid-column:2; }}
 .empty-report {{ grid-column:1/-1; min-height:180px; display:grid; place-items:center; align-content:center; color:var(--muted); border:1px dashed var(--line); border-radius:20px; text-align:center; }} .empty-report span {{ font-size:30px; color:var(--amber); }}
 .small {{ font-size:12px; color:var(--muted); }} footer {{ display:flex; justify-content:space-between; gap:18px; margin-top:64px; padding:22px 2px 0; border-top:1px solid var(--line); color:var(--muted); font-size:11px; }} code {{ color:var(--cyan); }}
 .reveal {{ opacity:0; transform:translateY(18px); animation:enter .7s cubic-bezier(.22,1,.36,1) forwards; }} .delay-1 {{ animation-delay:.08s; }} .delay-2 {{ animation-delay:.16s; }} .delay-3 {{ animation-delay:.24s; }}
 @keyframes enter {{ to {{ opacity:1; transform:none; }} }} @keyframes ambient {{ to {{ transform:translate3d(3%,-2%,0) scale(1.04); }} }} @keyframes ping {{ 0% {{ transform:scale(.7); opacity:.9; }} 75%,100% {{ transform:scale(1.8); opacity:0; }} }} @keyframes pulse {{ 50% {{ opacity:.42; transform:scale(.78); }} }} @keyframes travel {{ 0%,15% {{ left:0; opacity:0; }} 25% {{ opacity:1; }} 75% {{ opacity:1; }} 85%,100% {{ left:calc(100% - 7px); opacity:0; }} }} @keyframes ring-in {{ from {{ --ring:0%; }} }}
 @media(max-width:850px) {{ .hero {{ grid-template-columns:1fr; padding-top:60px; }} .hero-note {{ display:none; }} .dashboard {{ grid-template-columns:1fr; }} .side-stack {{ grid-template-columns:1fr 1fr; grid-template-rows:auto; }} .event-card {{ min-height:370px; }} }}
-@media(max-width:620px) {{ .shell {{ width:min(100% - 22px,1180px); }} .topbar {{ top:8px; }} .nav a {{ display:none; }} .hero {{ padding:48px 3px 26px; }} h1 {{ font-size:52px; }} .side-stack,.report-grid,.readiness {{ grid-template-columns:1fr; }} .card-top {{ gap:9px; }} .ticker {{ font-size:76px; }} .event-card {{ min-height:390px; padding:20px; }} .timeline {{ left:20px; right:20px; }} .section {{ margin-top:46px; }} .section-head {{ display:block; }} .section-head p {{ margin-top:10px; }} .settings-panel {{ grid-template-columns:1fr; }} footer {{ display:block; }} footer span {{ display:block; margin-top:7px; }} }}
+@media(max-width:620px) {{ .shell {{ width:min(100% - 22px,1180px); }} .topbar {{ top:8px; }} .nav a {{ display:none; }} .hero {{ padding:48px 3px 26px; }} h1 {{ font-size:52px; }} .side-stack,.report-grid,.readiness,.language-panel {{ grid-template-columns:1fr; }} .language-panel form {{ grid-template-columns:1fr; }} .language-panel > .small {{ grid-column:1; }} .card-top {{ gap:9px; }} .ticker {{ font-size:76px; }} .event-card {{ min-height:390px; padding:20px; }} .timeline {{ left:20px; right:20px; }} .section {{ margin-top:46px; }} .section-head {{ display:block; }} .section-head p {{ margin-top:10px; }} .settings-panel {{ grid-template-columns:1fr; }} footer {{ display:block; }} footer span {{ display:block; margin-top:7px; }} }}
 @media(prefers-reduced-motion:reduce) {{ *,*::before,*::after {{ animation-duration:.001ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; transition-duration:.001ms!important; }} }}
 </style></head><body><div class="shell">
 <header class="topbar reveal"><a class="brand" href="{home_href}"><span class="brand-mark" aria-hidden="true"></span>reverb</a><nav class="nav" aria-label="Primary"><a href="{demo_href}">Replay</a><a href="{preview_href}">Evidence</a><a href="{html.escape(connect_href)}">Connect</a><span class="mode-pill"><i aria-hidden="true"></i>paper replay</span></nav></header>

@@ -19,6 +19,14 @@ class ProbeTests(unittest.TestCase):
         ]
         self.assertEqual([r["baseCoin"] for r in probe.reality(rows)], ["rGOOD"])
 
+    def test_continuous_symbols_require_weekend_and_after_hours(self):
+        rows = [
+            {"symbol": "RGOODUSDT", "weekendTradable": "yes", "tradingPeriod": ["regular", "after_hours"]},
+            {"symbol": "RNOWEEKENDUSDT", "weekendTradable": "no", "tradingPeriod": ["regular", "after_hours"]},
+            {"symbol": "RNOAFTERUSDT", "weekendTradable": "yes", "tradingPeriod": ["regular"]},
+        ]
+        self.assertEqual(probe.continuously_traded_symbols(rows), {"RGOODUSDT"})
+
     def test_book_metrics_marks_old_exchange_timestamp_stale(self):
         record = {"received_at": "2026-09-19T10:00:05+00:00"}
         data = {"ts": "1789804799000", "b": [[100, 2]], "a": [[101, 3]]}

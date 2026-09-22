@@ -71,7 +71,11 @@ hours.
 | Public dashboard and recorded replay | **Live** |
 | Replay evidence and hash-chain verification | **Verified** |
 | Deterministic valuation, refusal, reaction, and scheduler tests | **Passing** |
-| Public Reality-market discovery | **Observed** |
+| Public Reality-market discovery and 24/7 metadata | **Working without credentials** |
+| Public earnings calendar and local-time conversion | **Working; 16:05 ET fallback labelled assumed** |
+| Historical/public reaction evaluation | **Working without credentials** |
+| Qwen thesis classification and narration | **Implemented; live key check pending local configuration** |
+| UTC scheduler research/paper mode | **Working without credentials** |
 | Account-specific Stock+ options access | **Unverified** |
 | Options × continuously traded token intersection | **Unverified** |
 | Three-name earnings-time order-book study | **Not measured** |
@@ -127,6 +131,10 @@ To create a new public-data capture:
 Captures are appended under `evidence/`; existing evidence is never silently
 replaced. The probe has no order-placement capability.
 
+The public probe verifies continuous eligibility from Bitget's live Reality
+`stock-info` response (`tradingPeriod` plus `weekendTradable`), rather than
+copying a hardcoded symbol list or depending on an announcement page.
+
 ## Connect Bitget locally
 
 The hosted site never accepts credentials.
@@ -144,6 +152,23 @@ The hosted site never accepts credentials.
 ```
 
 The command never prints the credential values and never submits an order.
+
+## What works without a Bitget account key
+
+- The hosted dashboard, verified NVIDIA replay, evidence view, and morning-report rendering.
+- Public Reality instruments, live `stock-info` session eligibility, tickers,
+  order books, and current/historical candles.
+- The weekly earnings calendar, timezone conversion, and explicit unresolved/
+  assumed time provenance.
+- Deterministic Black–Scholes checks, refusal arithmetic, reaction evaluation,
+  hash-chained ledger, UTC scheduler research mode, and MCP tools that use only
+  public data or the local ledger.
+- Local Qwen thesis classification and narration after only
+  `BITGET_QWEN_API_KEY` is configured.
+
+Authenticated Bitget v3 access is required only for account liveness and
+permissions, account-specific fees, Stock+ quotes/chains and the options/token
+intersection, balances, and guarded live orders.
 
 ## Agent interface
 
@@ -211,6 +236,10 @@ Key modules:
   three-name 16:05 spread and depth study is still outstanding.
 - Post-event volatility, dividends, early exercise, and token/underlying basis
   are model assumptions until verified against contract and market data.
+- Nasdaq calendar rows often provide only a date or an after-hours category.
+  Reverb displays those at the checksummed `16:05 ET` configured fallback and
+  labels their `event_time_basis` as `configured_default_assumption`; it is not
+  treated as an issuer-confirmed timestamp.
 - Full live execution remains disabled while `docs/m0_gate.json` is `BLOCKED`.
 
 ## First-party references

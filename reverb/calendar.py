@@ -15,9 +15,12 @@ from .config import CalendarConfig, load_config
 @dataclass(frozen=True)
 class EarningsEvent:
     symbol: str
-    event_at: datetime
+    event_at: datetime | None
+    event_date: date
     source: str
     source_id: str
+    time_basis: str
+    timing_category: str | None = None
 
 
 class EarningsCalendar:
@@ -86,6 +89,7 @@ class EarningsCalendar:
         source_id = row.get("id") or row.get("eventId") or f"{symbol}:{event_value}"
         if not isinstance(symbol, str) or not symbol.strip() or not isinstance(event_value, str):
             raise DataUnavailable("earnings calendar row is missing symbol or event time")
+        timing_category = _timing_category(row)
         try:
             if ("T" in event_value or event_value.endswith("Z")
                     or (" " in event_value and ":" in event_value)):
@@ -93,21 +97,34 @@ class EarningsCalendar:
                 if event_at.tzinfo is None:
                     raise ValueError("event time has no timezone")
                 event_at = event_at.astimezone(timezone.utc)
+                event_date = event_at.astimezone(ZoneInfo("America/New_York")).date()
+                time_basis = "source_exact"
             else:
                 event_date = _parse_event_date(event_value)
                 explicit_time = _explicit_event_time(row)
                 event_time = _parse_clock_time(explicit_time) if explicit_time is not None else None
                 if event_time is None:
+                    if timing_category == "pre_market":
+                        return EarningsEvent(
+                            symbol=symbol.upper(), event_at=None, event_date=event_date,
+                            source="configured-earnings-calendar", source_id=str(source_id),
+                            time_basis="unresolved_source_category", timing_category=timing_category,
+                        )
                     configured_time = default_event_time_et
                     if not configured_time:
                         raise DataUnavailable("calendar supplied a date without a time; set calendar.default_event_time_et explicitly")
                     event_time = _parse_clock_time(configured_time)
+                    time_basis = "configured_default_assumption"
+                else:
+                    time_basis = "source_exact"
                 event_at = datetime.combine(event_date, event_time, tzinfo=ZoneInfo("America/New_York")).astimezone(timezone.utc)
         except (ValueError, ZoneInfoNotFoundError) as exc:
             raise DataUnavailable(f"earnings calendar event time is invalid: {event_value}") from exc
         if not isinstance(source_id, (str, int)):
             raise DataUnavailable("earnings calendar event id is invalid")
-        return EarningsEvent(symbol=symbol.upper(), event_at=event_at, source="configured-earnings-calendar", source_id=str(source_id))
+        return EarningsEvent(symbol=symbol.upper(), event_at=event_at, event_date=event_date,
+                             source="configured-earnings-calendar", source_id=str(source_id),
+                             time_basis=time_basis, timing_category=timing_category)
 
 
 def _parse_event_date(value: str) -> date:
@@ -124,9 +141,28 @@ def _explicit_event_time(row: dict[str, Any]) -> str | None:
     if not isinstance(value, str):
         return None
     normalized = value.strip()
-    if not normalized or normalized.lower() in {"time-not-supplied", "not-supplied", "unknown", "n/a", "tbd"}:
+    categorical = {
+        "time-not-supplied", "time-after-hours", "time-before-hours", "time-pre-market",
+        "after-hours", "before-hours", "pre-market", "post-market",
+        "not-supplied", "unknown", "n/a", "tbd",
+    }
+    if not normalized or normalized.lower() in categorical:
         return None
     return normalized
+
+
+def _timing_category(row: dict[str, Any]) -> str | None:
+    value = row.get("time") or row.get("reportTime") or row.get("report_time")
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().lower()
+    if normalized in {"time-pre-market", "time-before-hours", "before-hours", "pre-market"}:
+        return "pre_market"
+    if normalized in {"time-after-hours", "after-hours", "post-market"}:
+        return "after_hours"
+    if normalized in {"time-not-supplied", "not-supplied", "unknown", "n/a", "tbd"}:
+        return "unspecified"
+    return None
 
 
 def _parse_clock_time(value: str) -> time:

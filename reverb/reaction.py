@@ -23,6 +23,28 @@ def parse_candle(row: list[str | int | float]) -> tuple[datetime, Decimal]:
     return timestamp, close
 
 
+def select_reaction_observation(*, rows: list[list[str | int | float]], event_at: datetime,
+                                end_at: datetime, baseline: Decimal,
+                                trigger_pct: Decimal) -> tuple[datetime, Decimal]:
+    """Select the first trigger crossing, or the final candle when none crossed."""
+    if event_at.tzinfo is None or end_at.tzinfo is None or end_at <= event_at:
+        raise DataUnavailable("reaction window bounds must be ordered timezone-aware timestamps")
+    if baseline <= 0 or not baseline.is_finite() or trigger_pct <= 0 or trigger_pct >= 1:
+        raise DataUnavailable("reaction selector requires a valid baseline and trigger")
+    observations = []
+    for row in rows:
+        observation = parse_candle(row)
+        if event_at <= observation[0] < end_at:
+            observations.append(observation)
+    observations.sort(key=lambda item: item[0])
+    if not observations:
+        raise DataUnavailable("reaction window has no candles")
+    for observed_at, observed_price in observations:
+        if abs((observed_price - baseline) / baseline) >= trigger_pct:
+            return observed_at, observed_price
+    return observations[-1]
+
+
 def baseline_price(rows: list[list[str | int | float]], event_at: datetime,
                    window_minutes: int, minimum_points: int) -> tuple[Decimal, dict[str, str]]:
     if event_at.tzinfo is None:

@@ -16,7 +16,7 @@ class ConfigTests(unittest.TestCase):
 
     def test_calendar_config_is_checked_and_date_time_is_explicit(self):
         loaded = load_config(Path("config/calendar.json"), CalendarConfig)
-        self.assertIsNone(loaded.value.default_event_time_et)
+        self.assertEqual(loaded.value.default_event_time_et, "16:05")
         self.assertEqual(len(loaded.sha256), 64)
 
 

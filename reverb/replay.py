@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 from .errors import DataUnavailable, LedgerError
 from .ledger import Ledger
 from .models import ReactionDecision
-from .reaction import baseline_price, evaluate_reaction, parse_candle
+from .reaction import baseline_price, evaluate_reaction, parse_candle, select_reaction_observation
 from .sessions import session_at
 
 
@@ -190,20 +190,11 @@ def _build_decisions(config: dict[str, Any], rows: list[list[Any]], *, event_at:
         validated, event_at, int(config["history_start_minutes"]),
         max(1, int(config["history_start_minutes"])),
     )
-    reaction: list[tuple[datetime, Decimal]] = []
-    for row in validated:
-        timestamp, close = parse_candle(row)
-        if event_at <= timestamp < end_at:
-            reaction.append((timestamp, close))
-    if not reaction:
-        raise DataUnavailable("replay reaction window has no candles")
-    observed_at, observed_price = reaction[-1]
+    observed_at, observed_price = select_reaction_observation(
+        rows=validated, event_at=event_at, end_at=end_at,
+        baseline=baseline, trigger_pct=trigger,
+    )
     move = (observed_price - baseline) / baseline
-    for candidate_at, candidate_price in reaction:
-        candidate_move = (candidate_price - baseline) / baseline
-        if abs(candidate_move) >= trigger:
-            observed_at, observed_price, move = candidate_at, candidate_price, candidate_move
-            break
     baseline_observed_at = datetime.fromisoformat(baseline_arithmetic["baseline_last_at"])
     session = session_at(observed_at, "America/New_York").session
     side = "sell" if move < 0 else "buy"

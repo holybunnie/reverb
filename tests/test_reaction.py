@@ -3,11 +3,24 @@ from decimal import Decimal
 import unittest
 
 from reverb.errors import DataUnavailable
-from reverb.reaction import baseline_price, evaluate_reaction
+from reverb.reaction import baseline_price, evaluate_reaction, select_reaction_observation
 from reverb.sessions import Session, session_at
 
 
 class ReactionTests(unittest.TestCase):
+    def test_completed_window_uses_first_trigger_crossing(self):
+        event = datetime(2026, 8, 26, 20, 5, tzinfo=timezone.utc)
+        rows = [
+            [str(int((event + timedelta(minutes=i)).timestamp() * 1000)), "100", "100", "100", close]
+            for i, close in enumerate(("101", "104", "102"))
+        ]
+        observed_at, observed_price = select_reaction_observation(
+            rows=rows, event_at=event, end_at=event + timedelta(minutes=3),
+            baseline=Decimal("100"), trigger_pct=Decimal("0.03"),
+        )
+        self.assertEqual(observed_at, event + timedelta(minutes=1))
+        self.assertEqual(observed_price, Decimal("104"))
+
     def test_baseline_requires_contiguous_one_minute_candles(self):
         event = datetime(2026, 9, 19, 16, 5, tzinfo=timezone.utc)
         rows = [[int((event - timedelta(minutes=60 - i)).timestamp() * 1000), "99", "101", "98", str(100 + i / 100), "1"] for i in range(60)]

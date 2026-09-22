@@ -14,6 +14,8 @@ class AppTests(unittest.TestCase):
         self.assertIn("Africa/Lagos", page)
         self.assertIn("No event is being invented", page)
         self.assertNotIn("implied volatility", page.lower())
+        self.assertIn("/api/language/view", page)
+        self.assertIn("Say the view naturally", page)
 
     def test_connection_surface_is_local_only_and_excludes_dangerous_scopes(self):
         page = render_connection_html()
@@ -46,3 +48,4 @@ class AppTests(unittest.TestCase):
         self.assertIn("prefers-reduced-motion", page)
         self.assertIn('./demo/', page)
         self.assertNotIn('action="/app"', page)
+        self.assertNotIn("/api/language/view", page)

@@ -17,7 +17,7 @@ from .gate import evaluate_option
 from .ledger import Ledger
 from .math import straddle_implied_move
 from .models import DecisionStatus, ReasonCode, Thesis, ToolDecision, View
-from .reaction import baseline_price, evaluate_reaction, parse_candle
+from .reaction import baseline_price, evaluate_reaction, parse_candle, select_reaction_observation
 from .sessions import Session, session_at
 from .universe import reality_instruments, rtoken_for_underlying
 
@@ -123,15 +123,17 @@ class DecisionService:
         token = rtoken_for_underlying(underlying)
         if token not in instruments:
             raise DataUnavailable(f"no online Reality instrument for {underlying}")
-        if not self.engine.weekend_source_url:
-            raise ConfigurationError("24/7 source URL is required; online Reality status alone is insufficient")
-        try:
-            verified_tokens = self.client.weekend_tokens(self.engine.weekend_source_url)
-        except AttributeError as exc:
-            raise DataUnavailable("Bitget client has no 24/7 source verifier") from exc
-        if token not in verified_tokens:
-            raise DataUnavailable(f"{token} is not verified in the configured 24/7 source")
-        return f"{token}USDT"
+        market_symbol = f"{token}USDT"
+        rows = self.client.reality_stock_info(market_symbol)
+        matches = [row for row in rows if isinstance(row, dict) and row.get("symbol") == market_symbol]
+        if len(matches) != 1:
+            raise DataUnavailable(f"no unique Reality session metadata for {market_symbol}")
+        metadata = matches[0]
+        periods = metadata.get("tradingPeriod")
+        if (metadata.get("weekendTradable") != "yes" or not isinstance(periods, list)
+                or "after_hours" not in periods):
+            raise DataUnavailable(f"{market_symbol} is not verified for continuous after-hours trading")
+        return market_symbol
 
     def position_for(self, *, symbol: str, view: View, expected_move_pct: Decimal,
                      max_loss: Decimal, event_at: datetime, user_timezone: str) -> ToolDecision:
@@ -172,7 +174,7 @@ class DecisionService:
                                      "Reverb refused because options can only be positioned during the verified regular session.")
             # The binary-event design requires both legs on the same name.
             # Online Reality metadata alone does not prove 24/7 eligibility;
-            # _r_token verifies the configured first-party announcement too.
+            # _r_token verifies Bitget's live session metadata too.
             self._r_token(underlying_symbol)
             underlying = parse_stock_quote(self.client.stock_quote(underlying_symbol), observed_at=now)
             expiry_value, expiry = select_expiry(self.client.option_expiry_dates(underlying_symbol), event_at.date())
@@ -331,16 +333,7 @@ class DecisionService:
                     token, start_time=event_at - timedelta(minutes=self.engine.baseline_window_minutes),
                     end_time=event_at + timedelta(minutes=30), interval="1m", candle_type="market", limit=100,
                 )
-                reaction_rows = []
-                for row in rows:
-                    parsed = parse_candle(row)
-                    if event_at <= parsed[0] <= event_at + timedelta(minutes=30):
-                        reaction_rows.append(parsed)
-                if not reaction_rows:
-                    raise DataUnavailable("historical reaction window has no candles")
-                observed_at, observed_price = sorted(reaction_rows, key=lambda item: item[0])[-1]
                 quote = None
-                decision_now = observed_at
             else:
                 rows = self.client.candles(token, interval="1m", candle_type="market", limit=100)
                 quote = parse_rtoken_ticker(self.client.ticker(token), observed_at=now)
@@ -353,6 +346,12 @@ class DecisionService:
                 decision_now = now
             baseline, baseline_arithmetic = baseline_price(rows, event_at, self.engine.baseline_window_minutes,
                                                             self.engine.baseline_min_points)
+            if quote is None:
+                observed_at, observed_price = select_reaction_observation(
+                    rows=rows, event_at=event_at, end_at=event_at + timedelta(minutes=30),
+                    baseline=baseline, trigger_pct=self.engine.reaction_trigger_pct,
+                )
+                decision_now = observed_at
             baseline_observed_at = datetime.fromisoformat(baseline_arithmetic["baseline_last_at"])
             intended_side = None
             order_quantity = self.engine.reaction_quantity
@@ -401,12 +400,13 @@ class DecisionService:
             calendar = calendar or EarningsCalendar()
             events = calendar.this_week()
             instruments = reality_instruments(self.client.instruments())
-            weekend_tokens: set[str] | None = None
-            if self.engine.weekend_source_url and hasattr(self.client, "weekend_tokens"):
-                try:
-                    weekend_tokens = self.client.weekend_tokens(self.engine.weekend_source_url)
-                except DataUnavailable:
-                    weekend_tokens = None
+            session_rows = self.client.reality_stock_info()
+            continuous_symbols = {
+                str(row.get("symbol")) for row in session_rows
+                if isinstance(row, dict) and row.get("weekendTradable") == "yes"
+                and isinstance(row.get("tradingPeriod"), list)
+                and "after_hours" in row["tradingPeriod"]
+            }
             try:
                 ZoneInfo(user_timezone)
             except (ZoneInfoNotFoundError, ValueError) as exc:
@@ -415,10 +415,11 @@ class DecisionService:
             for event in events:
                 underlying_symbol = _underlying(event.symbol)
                 token = rtoken_for_underlying(underlying_symbol)
-                token_status = ("verified_24_7" if token in instruments and weekend_tokens and token in weekend_tokens
+                market_symbol = f"{token}USDT"
+                token_status = ("verified_24_7" if token in instruments and market_symbol in continuous_symbols
                                 else "online_reality_unverified_24_7" if token in instruments else "missing")
                 option_status = "unverified"
-                if self.client.credentials is not None:
+                if self.client.credentials is not None and event.event_at is not None:
                     try:
                         expiry_values = self.client.option_expiry_dates(underlying_symbol)
                         valid_expiries = [value for value in expiry_values if value]
@@ -430,12 +431,16 @@ class DecisionService:
                         option_status = "unverified_or_not_entitled"
                 items.append({
                     "symbol": event.symbol,
-                    "event_at_utc": event.event_at.isoformat(),
-                    "event_at_local": event.event_at.astimezone(ZoneInfo(user_timezone)).isoformat(),
+                    "event_date": event.event_date.isoformat(),
+                    "event_at_utc": event.event_at.isoformat() if event.event_at is not None else "unresolved",
+                    "event_at_local": (event.event_at.astimezone(ZoneInfo(user_timezone)).isoformat()
+                                       if event.event_at is not None else "unresolved"),
                     "token_status": token_status,
                     "options_status": option_status,
                     "calendar_source": event.source,
                     "calendar_event_id": event.source_id,
+                    "event_time_basis": event.time_basis,
+                    "timing_category": event.timing_category or "exact",
                 })
             result = ToolDecision(decision_id=str(uuid4()), tool=tool, status=DecisionStatus.HOLD,
                                   symbol=None, reason_codes=(), decision={"events": items},

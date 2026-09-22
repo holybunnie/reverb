@@ -165,6 +165,21 @@ def reality(rows):
     return selected
 
 
+def continuously_traded_symbols(rows):
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("Reality stock session metadata missing")
+    selected = set()
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get("symbol"), str):
+            raise ValueError("Malformed Reality stock session metadata")
+        periods = row.get("tradingPeriod")
+        if row.get("weekendTradable") == "yes" and isinstance(periods, list) and "after_hours" in periods:
+            selected.add(row["symbol"])
+    if not selected:
+        raise ValueError("No continuously traded Reality symbols identified")
+    return selected
+
+
 def book_metrics(data, record, config):
     bids = [(Decimal(str(p)), Decimal(str(q))) for p, q in data["b"]]
     asks = [(Decimal(str(p)), Decimal(str(q))) for p, q in data["a"]]
@@ -220,24 +235,16 @@ def capture(config_path):
 
     rows = fetch("instruments", "instruments", {"category": "SPOT"})
     tickers = fetch("tickers", "tickers", {"category": "SPOT"})
+    stock_info = fetch("stock-info", "stock_info", {})
     fetch("fee-group", "fee_group", {"category": "SPOT"})
-    announcement = evidence.get("weekend-announcement", config["weekend_source"], config["timeout_seconds"])
-    weekend_tokens = set()
-    weekend_source_status = "UNAVAILABLE"
     try:
-        if announcement["error"] or announcement["status"] != 200:
-            raise ValueError("Weekend announcement unavailable")
-        table = TokenTable()
-        table.feed((directory / announcement["body"]).read_text())
-        if not table.tokens:
-            raise ValueError("Weekend announcement contained no parseable token table")
-        weekend_tokens = table.tokens
-        weekend_source_status = "AVAILABLE"
-        evidence.append({"kind": "source_parse", "source": config["weekend_source"],
-                         "token_count": len(weekend_tokens), "at": utc_now()})
-    except (ValueError, KeyError, TypeError, UnicodeDecodeError) as exc:
-        failures.append({"request": "weekend-source-parse", "reason": str(exc)})
-        evidence.append({"kind": "failure", "request": "weekend-source-parse", "reason": str(exc), "at": utc_now()})
+        continuous_symbols = continuously_traded_symbols(stock_info)
+        evidence.append({"kind": "session_metadata", "source": config["paths"]["stock_info"],
+                         "continuous_symbol_count": len(continuous_symbols), "at": utc_now()})
+    except (ValueError, KeyError, TypeError) as exc:
+        continuous_symbols = set()
+        failures.append({"request": "stock-info-parse", "reason": str(exc)})
+        evidence.append({"kind": "failure", "request": "stock-info-parse", "reason": str(exc), "at": utc_now()})
         print(str(exc), file=sys.stderr, flush=True)
 
     try:
@@ -254,11 +261,11 @@ def capture(config_path):
         selected = sorted(candidates, key=lambda r: (-turnover[r["symbol"]], r["symbol"]))[:config["sample_size"]]
         if len(selected) != config["sample_size"]:
             raise ValueError("Insufficient online Reality candidates for configured sample")
-        selected_weekend = [r["baseCoin"] for r in candidates if r["baseCoin"] in weekend_tokens]
+        selected_weekend = [r["symbol"] for r in candidates if r["symbol"] in continuous_symbols]
         evidence.append({"kind": "selection", "method": "online Reality instruments ranked by live ticker turnover24h",
                          "symbols": [r["symbol"] for r in selected], "candidate_count": len(candidates),
-                         "weekend_source_status": weekend_source_status,
-                         "weekend_candidate_count": len(selected_weekend) if weekend_tokens else None})
+                         "weekend_source_status": "AVAILABLE" if continuous_symbols else "UNAVAILABLE",
+                         "weekend_candidate_count": len(selected_weekend) if continuous_symbols else None})
         for instrument in selected:
             symbol = instrument["symbol"]
             fetch(f"book-{symbol}", "orderbook", {"category": "SPOT", "symbol": symbol, "limit": config["book_levels"]})
@@ -296,9 +303,9 @@ def measurements(directory):
         selection = selections[0]
         candidate_note = f"OBSERVED: {selection['candidate_count']} online Reality candidates came from the live instruments and ticker feeds."
         if selection.get("weekend_source_status") == "AVAILABLE":
-            candidate_note += f" The dated weekend source also identified {selection.get('weekend_candidate_count')} of them; this still is not the options intersection."
+            candidate_note += f" Bitget's live stock-info metadata verified {selection.get('weekend_candidate_count')} of them for weekend plus after-hours trading; this still is not the options intersection."
         else:
-            candidate_note += " The dated weekend source was unavailable from this host, so 24/7 membership remains unverified; this is not the options intersection."
+            candidate_note += " Live Reality session metadata was unavailable, so 24/7 membership remains unverified; this is not the options intersection."
         lines += ["", candidate_note, "",
                   "| Symbol | Spread (basis points) | Displayed bid / ask value (quote units) | Book age (ms) | Freshness |",
                   "| --- | ---: | ---: | ---: | --- |"]
