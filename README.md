@@ -3,7 +3,10 @@
 **An earnings-driven trading agent that stays awake after the closing bell.**
 
 [Live dashboard](https://holybunnie.github.io/reverb/) ·
+[Workspace](https://holybunnie.github.io/reverb/app/) ·
+[Events](https://holybunnie.github.io/reverb/events/) ·
 [Verified earnings replay](https://holybunnie.github.io/reverb/demo/) ·
+[Morning report](https://holybunnie.github.io/reverb/report/) ·
 [Evidence view](https://holybunnie.github.io/reverb/preview/)
 
 > The market closes. The numbers land. Reverb acts, holds, or refuses—and shows
@@ -19,9 +22,29 @@ The refusal matters as much as the trade. If the data is stale, the market has
 already priced a larger move, or the position exceeds the budget, Reverb stops
 and records why.
 
-The hosted dashboard is a credential-free historical replay. It cannot place an
-order. Live account access is local-only and remains behind a machine-verifiable
-feasibility gate.
+The hosted dashboard is credential-free and cannot place an order. Live account
+access is local-only. The Reality-stock transport has been proven through Agent
+Hub; unattended earnings execution remains behind the event gate.
+
+## One real execution proof
+
+OBSERVED on 22 September 2026: Agent Hub submitted and filled a small
+`RCAPRUSDT` Reality-stock limit order from this machine. The checked receipt is
+stored under `evidence/live/20260922T103212Z/`.
+
+| Receipt field | Recorded value |
+| --- | ---: |
+| Quantity | `0.65 rCAPR` |
+| Limit price | `9.07 USDT` |
+| Average fill | `9.06 USDT` |
+| Executed value | `5.88978 USDT` |
+| Fee | `0.00294489 USDT` |
+| Order ID | `1486234440836431872` |
+
+This proves authentication and the Agent Hub Reality-stock write transport. It
+was manually approved before Reverb's pre-registration path was used, so it is
+**not** presented as a Reverb strategy trade, earnings trade, or profitability
+evidence.
 
 ## What the demo proves
 
@@ -41,14 +64,14 @@ historical event, not evidence of profitability.
 
 ## How it works
 
-1. Before the close, Reverb evaluates whether a long option can express the
-   user's view within the declared loss budget.
-2. It refuses when required inputs are missing, stale, unavailable, or too
-   expensive.
-3. After the release, it measures the stock token against the pre-event baseline
-   and creates a session-aware reaction decision.
-4. The ledger preserves the pre-registration, arithmetic, action or refusal, and
-   eventual outcome for the morning report.
+1. The user selects an earnings event, states a direction and expected move,
+   and caps the stock-token budget.
+2. Reverb refuses when required inputs are missing, stale, unavailable, or the
+   order exceeds that budget.
+3. After the release, it measures the Reality stock token against the pre-event
+   baseline and creates a session-aware limit-order decision.
+4. The ledger preserves the thesis, pre-registration, arithmetic, action or
+   refusal, and eventual outcome for the morning report.
 
 The language model may interpret a plain-language view and narrate the report.
 It never supplies a price, volatility, strike, expiry, size, or trade decision.
@@ -58,17 +81,17 @@ replay, reaction research, and language features still run.
 
 ## Why Bitget
 
-Bitget exposes tokenized stock markets beyond regular US hours and has added US
-stock options. Reverb gives the two instruments separate jobs: options provide a
-defined premium risk before the event; the stock token carries the after-hours
-reaction. The design does not claim Bitget is the only broker with extended
-hours.
+Bitget exposes tokenized stock markets beyond regular US hours. Reverb uses that
+market for the post-earnings reaction. Bitget also offers stock options, but the
+current account cannot access Stock+ through the API, so the submission ships
+the honest Reality-token path and keeps options as a blocked extension. The
+design does not claim Bitget is the only broker with extended hours.
 
 ## Current status
 
 | Area | Status |
 | --- | --- |
-| Public dashboard and recorded replay | **Live** |
+| Landing, workspace, events, report, replay, and evidence pages | **Live** |
 | Replay evidence and hash-chain verification | **Verified** |
 | Deterministic valuation, refusal, reaction, and scheduler tests | **Passing** |
 | Public Reality-market discovery and 24/7 metadata | **Working without credentials** |
@@ -76,19 +99,19 @@ hours.
 | Historical/public reaction evaluation | **Working without credentials** |
 | Qwen thesis classification and narration | **Implemented; live key check pending local configuration** |
 | UTC scheduler research/paper mode | **Working without credentials** |
-| Account-specific Stock+ options access | **Unverified** |
+| UTA Trade authentication and reads | **Verified** |
+| Reality-stock execution through Agent Hub | **Verified with one small fill** |
+| Account-specific Stock+ options access | **Blocked: account returned `100001`** |
 | Options × continuously traded token intersection | **Unverified** |
 | Three-name earnings-time order-book study | **Not measured** |
 | Live option execution through Agent Hub | **Blocked** |
-| Live orders submitted | **None** |
+| Live Reality orders submitted | **One transport-proof fill; not a strategy claim** |
 
-OBSERVED on 21 September 2026: the configured HMAC key authenticated against a
-protected v2 account route, which returned `40085` and confirmed that the
-account is already in Unified Account mode. The same key returned `40012` on
-UTA v3 account, trade, and Stock+ routes, including read-only trade queries.
-This isolates the immediate blocker to Bitget's v3 authentication/activation
-path; Stock+ eligibility and OPRA entitlement still cannot be tested until v3
-accepts the key.
+OBSERVED on 22 September 2026: the current HMAC key authenticates to UTA v3,
+exposes read/write `uta_trade`, reads open orders, reports buying power through
+Agent Hub, and placed the checked Reality-stock order above. Protected Stock+
+quote and option-expiry routes return `100001 — U.S. stock trading is not
+enabled for this account`.
 
 See [Milestone 0](docs/m0.md), the executable
 [gate artifact](docs/m0_gate.json), and the
@@ -108,7 +131,10 @@ python3 -m venv .venv
 
 Open:
 
+- `http://127.0.0.1:8000/` — standalone landing page
 - `http://127.0.0.1:8000/app` — dashboard
+- `http://127.0.0.1:8000/events` — search and thesis builder
+- `http://127.0.0.1:8000/report` — morning report
 - `http://127.0.0.1:8000/demo` — verified historical replay
 - `http://127.0.0.1:8000/preview` — public feasibility evidence
 - `http://127.0.0.1:8000/connect` — local connection guide
@@ -119,6 +145,13 @@ Open:
 ./.venv/bin/python scripts/replay_capture.py check
 ./.venv/bin/python scripts/probe.py report --check
 ./.venv/bin/python -m unittest discover -s tests -v
+```
+
+Regenerate the complete checked paper lifecycle—thesis, registration, reaction,
+outcome, and report—with:
+
+```sh
+./.venv/bin/python scripts/run_paper_workflow.py
 ```
 
 To create a new public-data capture:
@@ -166,9 +199,8 @@ The command never prints the credential values and never submits an order.
 - Local Qwen thesis classification and narration after only
   `BITGET_QWEN_API_KEY` is configured.
 
-Authenticated Bitget v3 access is required only for account liveness and
-permissions, account-specific fees, Stock+ quotes/chains and the options/token
-intersection, balances, and guarded live orders.
+Authenticated Bitget v3 access is required for account liveness, buying power,
+Stock+ quotes/chains, account-specific fees, and guarded live orders.
 
 ## Agent interface
 
@@ -213,7 +245,7 @@ Bitget public data ──► deterministic engine ──► hash-chained ledger
                               └──► MCP decisions        └──► evidence replay
 
 UTC scheduler ──► freshness + session gates ──► local Agent Hub execution
-                                                (disabled until M0 passes)
+                                                (Reality transport verified)
 ```
 
 Key modules:
@@ -224,7 +256,7 @@ Key modules:
 - `reverb/ledger.py` — append-only hash chain
 - `reverb/scheduler.py` — UTC wake and missed-window handling
 - `reverb/service.py` — shared decision surface for app and MCP
-- `reverb/app.py` — phone-first dashboard
+- `reverb/web.py` and `reverb/static/` — multi-page consumer product
 
 ## Known limits
 
@@ -240,7 +272,8 @@ Key modules:
   Reverb displays those at the checksummed `16:05 ET` configured fallback and
   labels their `event_time_basis` as `configured_default_assumption`; it is not
   treated as an issuer-confirmed timestamp.
-- Full live execution remains disabled while `docs/m0_gate.json` is `BLOCKED`.
+- Reality-stock transport is verified. Autonomous earnings execution remains
+  disabled while the event-book portion of `docs/m0_gate.json` is unresolved.
 
 ## First-party references
 

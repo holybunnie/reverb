@@ -62,7 +62,7 @@ class ExecutionTests(unittest.TestCase):
                 liveness=_liveness(), constraints=RealityOrderConstraints(
                     price_precision=2, quantity_precision=4,
                     min_order_qty=Decimal("0.0001"), min_order_amount=Decimal("10"),
-                ),
+                ), available_quote=Decimal("105"),
             )
             self.assertEqual(response["orderId"], "order-1")
             self.assertEqual(ledger.verify()[-1]["kind"], "order_submitted")

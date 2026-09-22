@@ -58,6 +58,14 @@ class AgentHubTests(unittest.TestCase):
                 price=Decimal("105"), client_oid="oid-1",
             )
 
+    def test_available_quote_uses_read_only_agent_hub_max_open(self):
+        executor, runner = self._executor(json.dumps({"data": {"available": "5.997001"}}))
+        available = executor.available_quote_for_limit(
+            symbol="RCAPRUSDT", side="buy", price=Decimal("9.07"))
+        self.assertEqual(available, Decimal("5.997001"))
+        command = runner.call_args.args[0]
+        self.assertEqual(command[1:4], ["--read-only", "order", "--action"])
+
 
 if __name__ == "__main__":
     unittest.main()

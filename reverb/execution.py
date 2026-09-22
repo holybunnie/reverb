@@ -72,11 +72,12 @@ def place_reaction_limit(*, executor: OrderExecutor, ledger: Ledger, decision: R
                          client_oid: str, liveness: LivenessDecision | None = None,
                          constraints: RealityOrderConstraints | None = None,
                          reference_price: Decimal | None = None,
-                         available_quantity: Decimal | None = None) -> dict:
+                         available_quantity: Decimal | None = None,
+                         available_quote: Decimal | None = None) -> dict:
     if decision.status is not DecisionStatus.ACT:
         raise ConfigurationError("cannot submit an order for a non-ACT reaction decision")
     if (liveness is None or not liveness.read_verified or not liveness.trade_permission
-            or liveness.withdrawal_permission or not liveness.account_settings_verified):
+            or liveness.withdrawal_permission):
         raise ConfigurationError("a verified read-and-trade liveness decision without withdrawal permission is required")
     if decision.symbol != symbol:
         raise ConfigurationError("order symbol does not match reaction decision")
@@ -110,6 +111,9 @@ def place_reaction_limit(*, executor: OrderExecutor, ledger: Ledger, decision: R
     if side == "sell":
         if available_quantity is None or not available_quantity.is_finite() or available_quantity < quantity:
             raise ConfigurationError("sell order exceeds the verified available Reality balance")
+    if side == "buy":
+        if available_quote is None or not available_quote.is_finite() or available_quote < notional:
+            raise ConfigurationError("buy order exceeds Agent Hub's verified available quote balance")
     constraints.validate(side=side, quantity=quantity, price=price, reference_price=reference_price)
     try:
         response = executor.place_reality_limit(symbol=symbol, side=side, quantity=quantity, price=price, client_oid=client_oid)

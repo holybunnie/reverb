@@ -110,3 +110,25 @@ class AgentHubExecutor:
         if not isinstance(order_id, str) or not order_id:
             raise DataUnavailable("Agent Hub order result has no order id")
         return data
+
+    def available_quote_for_limit(self, *, symbol: str, side: str, price: Decimal) -> Decimal:
+        """Read the quote balance Agent Hub reports as available for a limit order."""
+        if not symbol or any(character.isspace() for character in symbol):
+            raise ConfigurationError("invalid Reality symbol")
+        if side not in {"buy", "sell"}:
+            raise ConfigurationError("Reality order side must be buy or sell")
+        _positive_finite(price, "Reality order price")
+        document = self._run([
+            "--read-only", "order", "--action", "maxOpen", "--category", "SPOT",
+            "--symbol", symbol, "--side", side, "--orderType", "limit", "--price", str(price),
+        ])
+        data = document.get("data")
+        if not isinstance(data, dict) or data.get("available") in (None, ""):
+            raise DataUnavailable("Agent Hub buying-power result has no available balance")
+        try:
+            available = Decimal(str(data["available"]))
+        except (ArithmeticError, ValueError) as exc:
+            raise DataUnavailable("Agent Hub returned an invalid available balance") from exc
+        if not available.is_finite() or available < 0:
+            raise DataUnavailable("Agent Hub returned an invalid available balance")
+        return available

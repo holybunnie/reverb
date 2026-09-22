@@ -12,7 +12,10 @@ from urllib.parse import parse_qs, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from reverb.app import render_app_html, render_connection_html  # noqa: E402
+from reverb.app import (  # noqa: E402
+    render_app_html, render_connection_html, render_events_html,
+    render_landing_html, render_report_html,
+)
 from reverb.errors import DataUnavailable, LedgerError  # noqa: E402
 from reverb.env import load_local_env  # noqa: E402
 from reverb.language import interpret_view_and_record, optional_qwen_client  # noqa: E402
@@ -36,13 +39,31 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         route = urlsplit(self.path).path
         try:
+            if route.startswith("/assets/"):
+                name = route.removeprefix("/assets/")
+                if name not in {"styles.css", "app.js"}:
+                    self._send(404, "text/plain; charset=utf-8", b"not found\n")
+                    return
+                body = (ROOT / "reverb" / "static" / name).read_bytes()
+                kind = "text/css; charset=utf-8" if name.endswith(".css") else "text/javascript; charset=utf-8"
+                self._send(200, kind, body)
+                return
             if route == "/demo":
                 replay = load_replay_snapshot(ROOT)
                 self._send(200, "text/html; charset=utf-8", render_replay_html(replay).encode())
                 return
             snapshot = load_preview_snapshot(ROOT)
-            if route in {"/", "/preview"}:
+            if route == "/preview":
                 self._send(200, "text/html; charset=utf-8", render_preview_html(snapshot).encode())
+                return
+            replay = None
+            try:
+                replay = load_replay_snapshot(ROOT)
+            except (DataUnavailable, LedgerError, OSError, ValueError):
+                replay = None
+            if route == "/":
+                self._send(200, "text/html; charset=utf-8",
+                           render_landing_html(snapshot, replay_snapshot=replay).encode())
                 return
             if route == "/app":
                 query = parse_qs(urlsplit(self.path).query)
@@ -50,16 +71,21 @@ class Handler(BaseHTTPRequestHandler):
                 timezone_name = query.get("timezone", [None])[0]
                 ledger_path = Path(os.getenv("REVERB_LEDGER_PATH", str(ROOT / "data" / "private" / "ledger.jsonl")))
                 report = morning_report(Ledger(ledger_path)) if ledger_path.exists() else None
-                replay = None
-                try:
-                    replay = load_replay_snapshot(ROOT)
-                except (DataUnavailable, LedgerError, OSError, ValueError):
-                    replay = None
                 if report is None:
                     report = render_replay_report(replay) if replay is not None else None
                 self._send(200, "text/html; charset=utf-8",
                            render_app_html(snapshot, risk_budget=risk_budget, timezone_name=timezone_name,
                                            morning_report_html=report, replay_snapshot=replay).encode())
+                return
+            if route == "/events":
+                self._send(200, "text/html; charset=utf-8",
+                           render_events_html(snapshot, replay_snapshot=replay).encode())
+                return
+            if route == "/report":
+                report = render_replay_report(replay) if replay is not None else None
+                self._send(200, "text/html; charset=utf-8",
+                           render_report_html(snapshot, replay_snapshot=replay,
+                                              morning_report_html=report).encode())
                 return
             if route == "/connect":
                 self._send(200, "text/html; charset=utf-8", render_connection_html().encode())

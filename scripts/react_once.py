@@ -80,14 +80,20 @@ def run_once(*, symbol: str, event_at: datetime, enable_live: bool = False) -> i
                 if raw_available in (None, ""):
                     raise ConfigurationError("account asset has no validated available balance")
                 available_quantity = Decimal(str(raw_available))
+            executor = AgentHubExecutor()
+            available_quote = None
+            if parsed_decision.intended_side == "buy":
+                available_quote = executor.available_quote_for_limit(
+                    symbol=parsed_decision.symbol, side="buy", price=parsed_decision.order_price)
             response = place_reaction_limit(
-                executor=AgentHubExecutor(), ledger=ledger, decision=parsed_decision,
+                executor=executor, ledger=ledger, decision=parsed_decision,
                 symbol=parsed_decision.symbol, side=parsed_decision.intended_side,
                 quantity=parsed_decision.order_quantity, price=parsed_decision.order_price,
                 client_oid="reverb-" + parsed_decision.decision_id,
                 liveness=liveness, constraints=constraints,
                 reference_price=parsed_decision.observed_price,
                 available_quantity=available_quantity,
+                available_quote=available_quote,
             )
             print({"order_submitted": response["orderId"]})
             return 0

@@ -1,0 +1,13 @@
+{
+  "ledger_head": "fef0cc10d6cf2a6e786c6dc0ccd3665d41c888e1d37333b0c4e031faf21489b4",
+  "orders_submitted": false,
+  "source_replay": "20260921T124726.859400Z-6f11916b",
+  "stages": [
+    "thesis",
+    "pre_registration",
+    "reaction",
+    "outcome",
+    "morning_report"
+  ],
+  "status": "complete_paper_workflow"
+}
