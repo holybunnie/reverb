@@ -19,6 +19,12 @@ class FakeClient:
 
 
 class LivenessTests(unittest.TestCase):
+    def test_live_shape_accepts_underscore_permission_and_null_ips(self):
+        client = FakeClient(permissions=["uta_trade", "uta_mgt"], perm_type="read_and_write", ips=None)
+        result = check_account_liveness(client)
+        self.assertTrue(result.trade_permission)
+        self.assertFalse(result.ip_binding_present)
+
     def test_trade_and_read_permissions_are_verified_without_withdrawal(self):
         result = check_account_liveness(FakeClient(), datetime(2026, 9, 19, tzinfo=timezone.utc))
         self.assertTrue(result.read_verified)
@@ -29,9 +35,10 @@ class LivenessTests(unittest.TestCase):
         with self.assertRaises(ConfigurationError):
             check_account_liveness(FakeClient(["uta_trade", "uta_mgt", "withdraw"]))
 
-    def test_missing_management_scope_halts_the_path(self):
-        with self.assertRaises(ConfigurationError):
-            check_account_liveness(FakeClient(["uta_trade"]))
+    def test_missing_management_scope_verifies_trade_but_not_execution_settings(self):
+        result = check_account_liveness(FakeClient(["uta_trade"]))
+        self.assertTrue(result.trade_permission)
+        self.assertFalse(result.account_settings_verified)
 
     def test_naive_check_timestamp_halts_the_path(self):
         with self.assertRaises(ConfigurationError):

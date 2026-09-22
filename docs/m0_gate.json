@@ -2,7 +2,7 @@
   "schema_version": 1,
   "status": "BLOCKED",
   "blockers": [
-    "The key authenticates on a protected v2 route and Bitget confirms the account is UTA, but all tested protected v3 account/trade/Stock+ routes return 40012; v3 key activation is unresolved.",
+    "A new key authenticates and UTA trade reads succeed, but protected Stock+ quote and option-expiry routes return 100001: U.S. stock trading is not enabled for this account.",
     "Stock+ options API data may require the documented OPRA API market-data card and whitelist; this is not a separate Stock+ checkbox in the API-key screen.",
     "The installed Agent Hub catalog has no Stock+ options order tool; its direct order schema is not verified.",
     "No historical 16:05 order-book sample exists; candle replay cannot substitute for a historical book."

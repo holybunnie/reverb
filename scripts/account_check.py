@@ -16,7 +16,8 @@ def main() -> int:
         credentials = Credentials.from_env()
         with BitgetClient(credentials=credentials) as client:
             liveness = check_account_liveness(client)
-            print({"status": "verified", "read_only": liveness.read_verified,
+            print({"status": "verified" if liveness.account_settings_verified else "trade_verified_management_unavailable",
+                   "read_only": liveness.read_verified,
                    "trade_permission": liveness.trade_permission,
                    "withdrawal_permission": liveness.withdrawal_permission,
                    "ip_binding_present": liveness.ip_binding_present,

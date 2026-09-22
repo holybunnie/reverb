@@ -39,7 +39,7 @@ def _failure_reason(error: Exception) -> ReasonCode:
     # 40012 is a protected-route authentication/authorization response. Do not
     # turn it into a Stock+ eligibility result; it can occur on generic v3 trade
     # routes before Stock+ entitlement is evaluated.
-    if isinstance(error, BitgetAPIError) and error.code in {"40006", "40009", "40010", "40012"}:
+    if isinstance(error, BitgetAPIError) and error.code in {"40006", "40009", "40010", "40012", "100001"}:
         return ReasonCode.API_NOT_ENTITLED
     if isinstance(error, ConfigurationError):
         return ReasonCode.DATA_UNAVAILABLE
