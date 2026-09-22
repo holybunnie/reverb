@@ -197,7 +197,7 @@ The command never prints the credential values and never submits an order.
   hash-chained ledger, UTC scheduler research mode, and MCP tools that use only
   public data or the local ledger.
 - Local Qwen thesis classification and narration after only
-  `BITGET_QWEN_API_KEY` is configured.
+  `QWEN_API_KEY` is configured.
 
 Authenticated Bitget v3 access is required for account liveness, buying power,
 Stock+ quotes/chains, account-specific fees, and guarded live orders.
@@ -220,7 +220,7 @@ Start the local MCP server with:
 ./.venv/bin/python scripts/mcp_server.py
 ```
 
-If `BITGET_QWEN_API_KEY` is configured locally, `position_for` also accepts a
+If `QWEN_API_KEY` is configured locally, `position_for` also accepts a
 plain-language view and every MCP decision includes a Qwen-written narration.
 The underlying decision is unchanged and the model output is recorded beside
 it in the ledger. Verify the language endpoint independently with:

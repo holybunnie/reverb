@@ -1,11 +1,12 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from reverb.language import decision_with_narration, interpret_view_and_record
 from reverb.ledger import Ledger
 from reverb.errors import DataUnavailable
-from reverb.qwen import QwenNarration, QwenViewInterpretation
+from reverb.qwen import QwenCredentials, QwenNarration, QwenViewInterpretation
 
 
 class FakeQwen:
@@ -29,6 +30,11 @@ class FailingQwen:
 
 
 class LanguageTests(unittest.TestCase):
+    def test_hackathon_qwen_key_name_is_accepted(self):
+        with patch.dict("os.environ", {"QWEN_API_KEY": "local-test-value"}, clear=True):
+            credentials = QwenCredentials.from_env()
+        self.assertEqual(credentials.api_key, "local-test-value")
+
     def test_plain_language_view_is_recorded_separately_from_decision(self):
         with TemporaryDirectory() as temp:
             ledger = Ledger(Path(temp) / "ledger.jsonl")

@@ -12,7 +12,7 @@ from .qwen import QwenClient, QwenCredentials
 
 def optional_qwen_client() -> QwenClient | None:
     """Return the local Qwen client only when its key is configured."""
-    if not os.getenv("BITGET_QWEN_API_KEY"):
+    if not (os.getenv("QWEN_API_KEY") or os.getenv("BITGET_QWEN_API_KEY")):
         return None
     return QwenClient(QwenCredentials.from_env())
 

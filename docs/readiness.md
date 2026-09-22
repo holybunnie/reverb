@@ -14,7 +14,7 @@ work. `PUBLIC/LOCAL` paths must remain usable without Bitget credentials.
 | UTC scheduler heartbeat, gaps, missed windows, paper/research dispatch | Local process + public data | COMPLETE |
 | MCP decision surface and deterministic narration fallback | Local process | COMPLETE |
 | Ticker search, thesis inputs, risk settings, local persistence | Browser + checked replay | COMPLETE for checked events |
-| Qwen view classification and report narration | Local Qwen key only | IMPLEMENTED; live key verification pending |
+| Qwen view classification and report narration | Local Qwen key only | CLASSIFICATION VERIFIED; narration implemented with deterministic fallback |
 | Account liveness and UTA Trade permission | Bitget protected UTA v3 | VERIFIED |
 | Buy-side buying power | Agent Hub `maxOpen` | VERIFIED |
 | Stock+ option chain, quotes, fees, intersection | Stock+/OPRA entitlement | BLOCKED by account entitlement |

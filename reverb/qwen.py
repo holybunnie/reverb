@@ -20,9 +20,9 @@ class QwenCredentials:
 
     @classmethod
     def from_env(cls) -> "QwenCredentials":
-        api_key = os.getenv("BITGET_QWEN_API_KEY")
+        api_key = os.getenv("QWEN_API_KEY") or os.getenv("BITGET_QWEN_API_KEY")
         if not api_key:
-            raise ConfigurationError("BITGET_QWEN_API_KEY is not set; deterministic narration remains available")
+            raise ConfigurationError("QWEN_API_KEY is not set; deterministic narration remains available")
         base_url = os.getenv("BITGET_QWEN_BASE_URL", "https://hackathon.bitgetops.com/v1").rstrip("/")
         model = os.getenv("BITGET_QWEN_MODEL", "qwen3.6-plus")
         if not base_url or not model:
