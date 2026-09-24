@@ -114,7 +114,7 @@ def main() -> int:
         })
         print(f"Read-only Costco recorder started: {symbol}; raw captures stay under data/private.", flush=True)
         print(f"Window: {iso_utc(start_at)} → {iso_utc(end_at)} ({expected_slots} minute slots).", flush=True)
-        print("Candles and the raw account-scoped Reality order book are required. Public book/fills are diagnostics; Reality platform fills are optional provenance. No order path is called.", flush=True)
+        print("Candles and the public UTA Reality-token order book are required. Account-scoped Reality book/fills and public fills are optional provenance. No order path is called.", flush=True)
 
         slot = start_at
         while slot < end_at:

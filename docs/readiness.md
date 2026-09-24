@@ -8,7 +8,7 @@ work. `PUBLIC/LOCAL` paths must remain usable without Bitget credentials.
 | Standalone landing and multi-page consumer surface | Checked repository evidence | COMPLETE |
 | Public Reality universe and 24/7/session metadata | Public Bitget v3 | COMPLETE |
 | Public books, candles, baseline, first-crossing reaction | Public Bitget v3 | COMPLETE |
-| Event-time Reality depth and optional platform fills | Raw account-scoped Reality book for required depth; public UTA v3 SPOT book/fills are labelled diagnostics; platform fills are optional provenance | BLOCKED for a complete Costco run: the account-scoped book returns `40025` even though the read key reports both UTA scopes |
+| Event-time Reality depth and optional platform fills | Public UTA v3 SPOT order book for required depth; account-scoped Reality book/fills are optional provenance | READY for capture; EXNIGHT proved the public route, while protected routes may continue returning `40025` without invalidating a slot |
 | Earnings week and timezone conversion | Public Nasdaq calendar | COMPLETE; assumed/unresolved times labelled |
 | Black–Scholes, IV inversion, Greeks, refusal arithmetic | Local deterministic engine | COMPLETE |
 | Hash-chained pre-registration and outcome ledger | Local filesystem | COMPLETE |
@@ -30,7 +30,7 @@ work. `PUBLIC/LOCAL` paths must remain usable without Bitget credentials.
 | Reality-stock order transport | UTA Trade + Agent Hub | VERIFIED with one manually approved fill |
 | Autonomous earnings orders | Spot-specific pre-close path + event book + account/runtime checks | BLOCKED; scheduler pre-registers paper intent only; no Reverb earnings order has been sent |
 | Agent Hub Stock+ option operation | Installed `bgc` catalog | BLOCKED; 22 September search returned no match |
-| Reality-book event-time spread/depth and candle/fill provenance | Raw account-scoped Reality book + future earnings window | BLOCKED until the required raw book is available; public book/fills remain separately labelled diagnostics |
+| Reality-book event-time spread/depth and candle/fill provenance | Public UTA v3 SPOT book + future earnings window | READY for the event window; protected Reality feeds remain optional provenance and all failures are recorded |
 
 Credential-free verification:
 

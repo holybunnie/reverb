@@ -18,7 +18,7 @@ class CostcoReportTests(unittest.TestCase):
         self.assertIn("EPS above consensus", page)
         self.assertIn("UNSCORED", page)
         self.assertIn("REFUSE", page)
-        self.assertIn("raw Reality-book interval", page)
+        self.assertIn("public order-book interval", page)
         self.assertIn("data-human-review", page)
         self.assertNotIn("NVIDIA", page)
 

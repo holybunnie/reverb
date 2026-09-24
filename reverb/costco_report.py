@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import json
 from datetime import timezone
 from pathlib import Path
 
@@ -9,7 +10,11 @@ from .reconciliation import FrozenThesis, verify_frozen_thesis
 
 
 def load_costco_thesis(root: Path) -> FrozenThesis | None:
-    path = root / "evidence" / "costco" / "frozen_thesis.json"
+    config_path = root / "config" / "costco_run.json"
+    artifact = "evidence/costco/frozen_thesis.json"
+    if config_path.exists():
+        artifact = json.loads(config_path.read_text(encoding="utf-8")).get("frozen_thesis_path", artifact)
+    path = root / artifact
     if not path.exists():
         return None
     thesis = FrozenThesis.model_validate_json(path.read_text(encoding="utf-8"))
@@ -53,7 +58,7 @@ def render_costco_morning_brief(root: Path) -> str | None:
             "</tr>"
         )
     return f'''<section class="section costco-brief"><div class="section-intro"><div class="eyebrow"><b></b> 1 · Your thesis</div><h2>COSTCO · Q4 FY2026</h2><p>Frozen at {html.escape(thesis.frozen_at.astimezone(timezone.utc).isoformat())}. Hash <code>{html.escape(thesis.sha256)}</code>. The claim set was explicitly human-approved; the unavailable Qwen attempt did not supply claims.</p></div><div class="card"><table class="claim-table"><thead><tr><th>Claim</th><th>Status</th><th>Evidence rule</th></tr></thead><tbody>{''.join(rows)}</tbody></table><p class="small">Scored: 0 of {len([claim for claim in thesis.claims if claim.scoreable])} before the release. The snapshot contains no claim-resolving public evidence at freeze.</p></div></section>
-<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 2 · The market</div><h2>Capture pending</h2><p>The event window has not produced a verified Costco result yet. The diagnostic `40025` response is not substituted for the required raw Reality book.</p></div><div class="report-summary"><article><span>Pre-close baseline</span><strong>—</strong></article><article><span>Largest move</span><strong>—</strong></article><article><span>Trigger</span><strong>3.00%</strong></article><article><span>Spread / depth</span><strong>—</strong></article></div></section>
-<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 3 · Market quality</div><h2>Not measured</h2><p>Visible depth, two-sidedness, and candle/book/fill provenance will be reported only from the continuous event capture. Public diagnostics cannot fill that gap.</p></div></section>
-<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 4 · Reverb's recommendation</div><h2>REFUSE</h2><p>Deterministic reason: the issuer timestamp and required raw Reality-book interval are not available, so no Costco event decision can be produced.</p></div></section>
+<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 2 · The market</div><h2>Capture pending</h2><p>The event window has not produced a verified Costco result yet. Required depth will come from the proven public UTA Reality-token order-book route; protected-route `40025` responses remain optional provenance.</p></div><div class="report-summary"><article><span>Pre-close baseline</span><strong>—</strong></article><article><span>Largest move</span><strong>—</strong></article><article><span>Trigger</span><strong>3.00%</strong></article><article><span>Spread / depth</span><strong>—</strong></article></div></section>
+<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 3 · Market quality</div><h2>Not measured</h2><p>Visible depth, two-sidedness, and candle/book/fill provenance will be reported only from the continuous event capture.</p></div></section>
+<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 4 · Reverb's recommendation</div><h2>REFUSE</h2><p>Deterministic reason: the issuer timestamp and required event-window candles and public order-book interval are not available yet, so no Costco event decision can be produced.</p></div></section>
 <section class="section human-decision"><div class="section-intro"><div class="eyebrow"><b></b> 5 · Your decision</div><h2>Human review only</h2><p>This control records that you reviewed the incomplete brief in this browser. It never places a Costco order; the forward-run configuration explicitly allows no live orders.</p></div><button class="button primary" type="button" data-human-review>Mark brief reviewed</button><span class="small" data-human-review-status>Not reviewed</span></section>'''

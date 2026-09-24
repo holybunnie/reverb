@@ -90,12 +90,11 @@ scheduled trade. BlackBerry's issuer site lists the FY2027 Q2 results event for
 1. Reality book/fills access: the latest sanitized live check says the loaded
    read credential has `uta_trade=true`, `uta_mgt=true`; the account-scoped
    Reality book and fills routes still return `40025`, which is consistent with
-   a separate Reality-data whitelist or protected-route requirement. The check
-   and Costco recorder prefer the optional `BITGET_READ_*` variables
-   (`BITGET_DATA_*` is also accepted for compatibility) and fall back to
-   `BITGET_*` only when all three data-key fields are unset. Do not bypass the
-   whitelist. Public market-book/fills routes are diagnostics only; keep Costco
-   `INCOMPLETE` if the required raw Reality book is unavailable.
+   a separate whitelist. Do not bypass it. EXNIGHT proved the public UTA v3
+   SPOT order book for Reality-token depth, so the Costco recorder requires
+   candles plus that public book. Protected book/fills and generic public fills
+   are optional, separately labelled provenance; their failure alone does not
+   make a slot incomplete.
 2. Exact account-specific fee rate: requires a successful account fee-rate
    response. For now the published schedule plus the single fill are recorded
    separately and no fee-sensitive earnings order is allowed.
@@ -107,8 +106,8 @@ scheduled trade. BlackBerry's issuer site lists the FY2027 Q2 results event for
    `evidence/costco/frozen_thesis.json` with hash
    `8f28dd5f4bb4e4fbf70df5a97dd50d1de39fad1a2ab25498720a708c4d45743f`; the
    15:30–20:00 ET capture, issuer timestamp, reconciliation, and market-quality
-   finding still need to be recorded. The raw Reality book is required, so a
-   `40025` response keeps the run `INCOMPLETE` even when public diagnostics work.
+   finding still need to be recorded. A missing candle or public UTA book slot
+   keeps the run `INCOMPLETE`; a protected-route `40025` response does not.
 5. Submission surface: rerun GitHub Pages after local changes are finalized,
    inspect the deployed `/demo`, and record video. Do not publish private
    ledger data, `.env`, or this local handoff.

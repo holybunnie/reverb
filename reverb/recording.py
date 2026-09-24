@@ -17,12 +17,12 @@ from .errors import BitgetAPIError
 from .ledger import Ledger
 
 
-# The Costco specification requires the raw Reality order book for every
-# required capture slot. Public UTA v3 SPOT books and generic public fills are
-# retained as separately labelled diagnostics; they cannot substitute for the
-# raw Reality book. Reality platform fills are an optional provenance extra.
-REQUIRED_ENDPOINTS = ("candles", "reality_orderbook")
-OPTIONAL_ENDPOINTS = ("public_orderbook", "public_fills", "reality_fills")
+# The public UTA v3 SPOT order-book route is the proven Reality-token depth
+# source used by the successful EXNIGHT capture. The account-scoped Reality
+# routes remain useful provenance when the account is whitelisted, but a 40025
+# response from them must not invalidate an otherwise complete market capture.
+REQUIRED_ENDPOINTS = ("candles", "public_orderbook")
+OPTIONAL_ENDPOINTS = ("public_fills", "reality_orderbook", "reality_fills")
 
 
 def utc_now() -> datetime:

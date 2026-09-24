@@ -73,7 +73,7 @@ class RecordingTests(unittest.TestCase):
         self.assertTrue(all(row["body"] and row["body_sha256"] for row in attempts))
         self.assertNotIn("local-test-secret", str(records))
 
-    def test_private_reality_book_error_keeps_slot_incomplete(self):
+    def test_private_reality_book_error_is_optional_when_public_depth_arrives(self):
         with TemporaryDirectory() as temp:
             directory = Path(temp) / "capture"
             client, trace = self._client(blocked=True)
@@ -87,10 +87,32 @@ class RecordingTests(unittest.TestCase):
             finally:
                 client.close()
         reality = next(row for row in attempts if row["endpoint"] == "reality_orderbook")
-        self.assertFalse(result["complete"])
+        self.assertTrue(result["complete"])
         self.assertEqual(reality["http_status"], 400)
         self.assertEqual(reality["bitget_code"], "40014")
         self.assertIsNotNone(reality["body_sha256"])
+
+    def test_public_orderbook_error_keeps_slot_incomplete(self):
+        with TemporaryDirectory() as temp:
+            directory = Path(temp) / "capture"
+            client, trace = self._client()
+            original_request = client._request
+
+            def with_required_book_blocked(method, path, *args, **kwargs):
+                if path.endswith("/market/orderbook"):
+                    from reverb.errors import BitgetAPIError
+                    raise BitgetAPIError(400, "40014", "not authorized")
+                return original_request(method, path, *args, **kwargs)
+
+            client._request = with_required_book_blocked
+            recorder = EventRecorder(directory=directory, config={"symbol": "RCOSTUSDT"},
+                                     config_bytes=b'{"symbol":"RCOSTUSDT"}\n', client=client,
+                                     trace=trace, symbol="RCOSTUSDT")
+            try:
+                result = recorder.capture_slot(NOW)
+            finally:
+                client.close()
+        self.assertFalse(result["complete"])
 
     def test_private_fills_access_is_optional(self):
         with TemporaryDirectory() as temp:

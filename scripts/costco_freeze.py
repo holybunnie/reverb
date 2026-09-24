@@ -161,7 +161,7 @@ def latest_qwen_attempt() -> dict | None:
     return None
 
 
-def freeze(frozen_at: datetime, *, require_clean: bool) -> int:
+def freeze(frozen_at: datetime, *, require_clean: bool, revision: str | None = None) -> int:
     config = read_json(ROOT / "config" / "costco_run.json")
     review = read_json(ROOT / "config" / "costco_claims.json")
     claims = tuple(ThesisClaim.model_validate(row) for row in review["claims"])
@@ -188,8 +188,9 @@ def freeze(frozen_at: datetime, *, require_clean: bool) -> int:
     )
     if not verify_frozen_thesis(frozen):
         raise ValueError("new frozen thesis failed its own hash check")
-    destination = ROOT / "evidence" / "costco" / "frozen_thesis.json"
-    manifest_path = ROOT / "evidence" / "costco" / "registration_manifest.json"
+    suffix = f"_{revision}" if revision else ""
+    destination = ROOT / "evidence" / "costco" / f"frozen_thesis{suffix}.json"
+    manifest_path = ROOT / "evidence" / "costco" / f"registration_manifest{suffix}.json"
     if destination.exists() or manifest_path.exists():
         print("COSTCO FREEZE HALTED: frozen artifacts already exist; refusing overwrite.", file=sys.stderr)
         return 2
@@ -214,6 +215,12 @@ def freeze(frozen_at: datetime, *, require_clean: bool) -> int:
         ],
         "source_documents_with_claim_evidence": len(evidence),
     }
+    if revision:
+        registration["supersedes"] = {
+            "frozen_thesis_path": config.get("supersedes_frozen_thesis_path"),
+            "frozen_thesis_sha256": config.get("supersedes_frozen_thesis_sha256"),
+            "reason": config.get("supersession_reason"),
+        }
     manifest_path.write_text(json.dumps(registration, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Frozen thesis: {destination.relative_to(ROOT)}")
     print(f"Thesis hash: {frozen.sha256}")
@@ -231,6 +238,8 @@ def main() -> int:
     parser.add_argument("--frozen-at", help="aware ISO timestamp; defaults to the current UTC time")
     parser.add_argument("--allow-dirty", action="store_true",
                         help="allow local changes while recording the already committed code HEAD")
+    parser.add_argument("--revision", choices=("v2",),
+                        help="write a versioned registration while preserving the original freeze")
     args = parser.parse_args()
     if args.capture_sources:
         return capture_sources()
@@ -241,7 +250,7 @@ def main() -> int:
     frozen_at = datetime.fromisoformat(args.frozen_at.replace("Z", "+00:00")) if args.frozen_at else datetime.now(timezone.utc)
     if frozen_at.tzinfo is None:
         parser.error("--frozen-at must include a timezone")
-    return freeze(frozen_at, require_clean=not args.allow_dirty)
+    return freeze(frozen_at, require_clean=not args.allow_dirty, revision=args.revision)
 
 
 if __name__ == "__main__":
