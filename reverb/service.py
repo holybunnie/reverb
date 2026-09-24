@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .adapters import parse_option_quote, parse_rtoken_ticker, parse_stock_quote
 from .bitget import BitgetClient
-from .calendar import EarningsCalendar
+from .calendar import EarningsCalendar, EarningsEvent
 from .chooser import paired_symbols, parse_chain, select_at_the_money, select_contract, select_expiry
 from .config import EngineConfig
 from .errors import BitgetAPIError, ConfigurationError, DataUnavailable
@@ -19,6 +19,7 @@ from .math import straddle_implied_move
 from .models import DecisionStatus, ReasonCode, Thesis, ToolDecision, View
 from .reaction import baseline_price, evaluate_reaction, parse_candle, select_reaction_observation
 from .sessions import Session, session_at
+from .spot import calculate_long_limit_plan
 from .universe import reality_instruments, rtoken_for_underlying
 
 
@@ -431,10 +432,12 @@ class DecisionService:
                         option_status = "unverified_or_not_entitled"
                 items.append({
                     "symbol": event.symbol,
+                    "company_name": event.company_name or event.symbol,
                     "event_date": event.event_date.isoformat(),
                     "event_at_utc": event.event_at.isoformat() if event.event_at is not None else "unresolved",
                     "event_at_local": (event.event_at.astimezone(ZoneInfo(user_timezone)).isoformat()
                                        if event.event_at is not None else "unresolved"),
+                    "token_symbol": market_symbol,
                     "token_status": token_status,
                     "options_status": option_status,
                     "calendar_source": event.source,
@@ -454,6 +457,203 @@ class DecisionService:
         finally:
             if owned_calendar and calendar is not None:
                 calendar.close()
+
+    def prepare_spot_position(self, *, event: EarningsEvent, direction: str, expected_move_pct: Decimal | None,
+                              max_loss: Decimal | None, user_timezone: str, view_text: str = "") -> ToolDecision:
+        """Pre-register a local-only spot plan; this method cannot submit an order.
+
+        The amount is sized from the live ask and live instrument precision. Until
+        user-specific fees and the earnings-window book gate are verified, even a
+        valid long plan remains HOLD and explicitly ineligible for execution.
+        """
+        tool = "spot_position"
+        now = datetime.now(timezone.utc)
+        symbol = str(getattr(event, "symbol", "")).upper()
+        event_at = getattr(event, "event_at", None)
+        event_date = getattr(event, "event_date", None)
+        time_basis = str(getattr(event, "time_basis", "unavailable"))
+        event_id = str(getattr(event, "source_id", "unavailable"))
+        event_name = getattr(event, "company_name", None) or symbol
+        try:
+            direction = direction.strip().lower()
+            try:
+                zone = ZoneInfo(user_timezone)
+            except (ZoneInfoNotFoundError, ValueError) as exc:
+                raise ConfigurationError(f"unknown user timezone: {user_timezone}") from exc
+            if not symbol or not symbol.replace(".", "").isalnum():
+                raise ConfigurationError("event symbol is invalid")
+            if direction not in {"beat", "miss", "watch"}:
+                raise ConfigurationError("direction must be beat, miss, or watch")
+            if direction != "watch" and (expected_move_pct is None or max_loss is None
+                    or not expected_move_pct.is_finite() or expected_move_pct <= 0 or expected_move_pct >= 1
+                    or not max_loss.is_finite() or max_loss <= 0):
+                raise ConfigurationError("expected move and risk budget must be positive finite values")
+
+            thesis = {
+                "symbol": symbol,
+                "company_name": event_name,
+                "event_date": event_date.isoformat() if event_date is not None else "unavailable",
+                "event_at_utc": event_at.isoformat() if event_at is not None else "unresolved",
+                "event_at_local": event_at.astimezone(zone).isoformat() if event_at is not None else "unresolved",
+                "event_time_basis": time_basis,
+                "calendar_source": str(getattr(event, "source", "unavailable")),
+                "calendar_event_id": event_id,
+                "user_timezone": user_timezone,
+                "direction": direction,
+                "expected_move_pct": str(expected_move_pct) if expected_move_pct is not None else "not_provided",
+                "risk_budget": str(max_loss) if max_loss is not None else "not_provided",
+                "view_text": view_text,
+                "paper_only": True,
+                "orders_submitted": False,
+                "execution_allowed": False,
+            }
+            arithmetic = {
+                "expected_move_pct": str(expected_move_pct) if expected_move_pct is not None else "not_provided",
+                "risk_budget": str(max_loss) if max_loss is not None else "not_provided",
+                "event_time_basis": time_basis,
+                "execution_allowed": "false",
+                "orders_submitted": "false",
+            }
+            if event_at is None:
+                return self._spot_pre_registration(
+                    symbol, DecisionStatus.REFUSE, (ReasonCode.EVENT_TIME_UNRESOLVED,), thesis, arithmetic,
+                    "Reverb saved the thesis but refused to schedule it because the earnings time is unresolved.", now,
+                )
+            if event_at.tzinfo is None:
+                raise ConfigurationError("calendar event time has no timezone")
+            event_at = event_at.astimezone(timezone.utc)
+            if event_at <= now:
+                return self._spot_pre_registration(
+                    symbol, DecisionStatus.REFUSE, (ReasonCode.EVENT_ALREADY_PASSED,), thesis,
+                    {**arithmetic, "now_utc": now.isoformat()},
+                    "Reverb refused to create a pre-event position after the scheduled event time.", now,
+                )
+            if direction == "watch":
+                return self._spot_pre_registration(
+                    symbol, DecisionStatus.HOLD, (), {**thesis, "action": "watch_only"}, arithmetic,
+                    "Watch-only was recorded. Reverb will not create a position intent for this view.", now,
+                )
+            if direction == "miss":
+                return self._spot_pre_registration(
+                    symbol, DecisionStatus.REFUSE, (ReasonCode.SPOT_SHORT_UNSUPPORTED,),
+                    {**thesis, "action": "none"}, arithmetic,
+                    "Reverb refused the bearish position: the verified fallback is long-only Reality spot and this account's tested path does not support a short sale.", now,
+                )
+            if expected_move_pct is None or max_loss is None:
+                raise ConfigurationError("directional spot views need an expected move and risk budget")
+
+            underlying_symbol = _underlying(symbol)
+            token = rtoken_for_underlying(underlying_symbol)
+            market_symbol = f"{token}USDT"
+            instrument = self.client.instrument(market_symbol)
+            if (instrument.get("symbol") != market_symbol or instrument.get("status") != "online"
+                    or instrument.get("isReality") != "yes" or instrument.get("symbolType") != "stock"
+                    or str(instrument.get("baseCoin", "")).upper() != token
+                    or instrument.get("quoteCoin") != "USDT"):
+                return self._spot_pre_registration(
+                    symbol, DecisionStatus.REFUSE, (ReasonCode.INSTRUMENT_UNAVAILABLE,),
+                    {**thesis, "action": "none"}, {**arithmetic, "market_symbol": market_symbol},
+                    "Reverb refused because current Bitget instrument metadata does not verify this as an online Reality stock token.", now,
+                )
+            session_rows = self.client.reality_stock_info(market_symbol)
+            matching_sessions = [row for row in session_rows if row.get("symbol") == market_symbol]
+            if len(matching_sessions) != 1:
+                return self._spot_pre_registration(
+                    symbol, DecisionStatus.REFUSE, (ReasonCode.INSTRUMENT_UNAVAILABLE,),
+                    {**thesis, "action": "none"}, {**arithmetic, "market_symbol": market_symbol,
+                                                     "session_metadata_rows": str(len(matching_sessions))},
+                    "Reverb refused because Bitget did not return one matching Reality session record.", now,
+                )
+            metadata = matching_sessions[0]
+            periods = metadata.get("tradingPeriod")
+            if (metadata.get("weekendTradable") != "yes" or not isinstance(periods, list)
+                    or "after_hours" not in periods):
+                return self._spot_pre_registration(
+                    symbol, DecisionStatus.REFUSE, (ReasonCode.SESSION_UNAVAILABLE,),
+                    {**thesis, "action": "none"}, {**arithmetic, "market_symbol": market_symbol,
+                                                     "trading_periods": str(periods),
+                                                     "weekend_tradable": str(metadata.get("weekendTradable"))},
+                    "Reverb refused because the live Reality session metadata does not verify trading through the post-close event window.", now,
+                )
+
+            quote = parse_rtoken_ticker(self.client.ticker(market_symbol), observed_at=now)
+            age_ms = int((now - quote.source_timestamp).total_seconds() * 1000)
+            if age_ms < 0 or age_ms > self.engine.max_quote_age_ms:
+                return self._spot_pre_registration(
+                    symbol, DecisionStatus.REFUSE, (ReasonCode.STALE_UNDERLYING,),
+                    {**thesis, "action": "none"}, {**arithmetic, "market_symbol": market_symbol,
+                                                     "quote_age_ms": str(age_ms),
+                                                     "max_quote_age_ms": str(self.engine.max_quote_age_ms)},
+                    "Reverb refused because the token quote is stale or its timestamp is ahead of the local UTC clock.", now,
+                )
+            if quote.bid is None or quote.ask is None or quote.ask < quote.bid:
+                return self._spot_pre_registration(
+                    symbol, DecisionStatus.REFUSE, (ReasonCode.PAIR_BID_ASK_UNAVAILABLE,),
+                    {**thesis, "action": "none"}, {**arithmetic, "market_symbol": market_symbol,
+                                                     "bid": str(quote.bid), "ask": str(quote.ask)},
+                    "Reverb refused because a valid live Reality bid and ask are required to size a limit-buy proposal.", now,
+                )
+
+            plan = calculate_long_limit_plan(risk_budget=max_loss, quote=quote, instrument=instrument)
+            if not plan.meets_exchange_minimum:
+                return self._spot_pre_registration(
+                    symbol, DecisionStatus.REFUSE, (ReasonCode.MAX_LOSS_EXCEEDED,),
+                    {**thesis, "action": "none"},
+                    {**arithmetic, "market_symbol": market_symbol, "live_ask": str(quote.ask),
+                     "minimum_order_quantity": str(plan.minimum_quantity), "minimum_order_notional": str(plan.minimum_notional),
+                     "estimated_quantity": str(plan.quantity), "estimated_principal": str(plan.principal_notional),
+                     "instrument_minimum_exceeds_budget": "true"},
+                    "Reverb refused because the risk budget cannot meet Bitget's current live minimum order after applying the instrument's quantity precision.", now,
+                )
+            details = {
+                **thesis,
+                "action": "long_spot_limit_proposal",
+                "market_symbol": market_symbol,
+                "side": "buy",
+                "quantity": str(plan.quantity),
+                "limit_price": str(plan.limit_price),
+                "principal_notional": str(plan.principal_notional),
+                "execution_allowed": False,
+                "orders_submitted": False,
+                "fee_included": False,
+            }
+            return self._spot_pre_registration(
+                symbol, DecisionStatus.HOLD,
+                (ReasonCode.ACCOUNT_FEE_RATE_UNAVAILABLE, ReasonCode.EVENT_BOOK_UNMEASURED),
+                details,
+                {**arithmetic, "market_symbol": market_symbol, "quote_source_timestamp": quote.source_timestamp.isoformat(),
+                 "quote_age_ms": str(age_ms), "max_quote_age_ms": str(self.engine.max_quote_age_ms),
+                 "live_bid": str(quote.bid), "live_ask": str(quote.ask),
+                 "current_spread_bps": str(plan.spread_bps), "quantity_precision": str(plan.quantity_precision),
+                 "price_precision": str(plan.price_precision), "minimum_order_quantity": str(plan.minimum_quantity),
+                 "minimum_order_notional": str(plan.minimum_notional), "proposed_quantity": str(plan.quantity),
+                 "proposed_limit_price": str(plan.limit_price), "principal_notional": str(plan.principal_notional),
+                 "spot_fee_schedule": "documented; see linked first-party policy",
+                 "account_fee_rate": "unavailable; UTA Management read permission required",
+                 "earnings_time_spread": "not_measured"},
+                "The current quote supports an indicative long-only spot limit proposal within the principal budget. Reverb holds it: the published fee schedule is documented but this account's exact rate is unavailable, and this event's book has not been measured. This is not an order approval.", now,
+            )
+        except (BitgetAPIError, ConfigurationError, DataUnavailable, ValueError, ArithmeticError) as exc:
+            reason = _failure_reason(exc)
+            return self._spot_pre_registration(
+                symbol, DecisionStatus.REFUSE, (reason,),
+                {"thesis": thesis if "thesis" in locals() else {"symbol": symbol, "direction": direction},
+                 "action": "none"},
+                {"error_type": type(exc).__name__, "error": str(exc), "execution_allowed": "false",
+                 "orders_submitted": "false"},
+                "Reverb refused because a required live input or validated thesis value was unavailable.", now,
+            )
+
+    def _spot_pre_registration(self, symbol: str, status: DecisionStatus,
+                               reason_codes: tuple[ReasonCode, ...], decision: dict[str, Any],
+                               arithmetic: dict[str, str], explanation: str,
+                               created_at: datetime) -> ToolDecision:
+        result = ToolDecision(
+            decision_id=str(uuid4()), tool="spot_position", status=status, symbol=symbol or None,
+            reason_codes=reason_codes, decision=decision, arithmetic=arithmetic,
+            explanation=explanation, created_at=created_at,
+        )
+        return self._record(result, kind="pre_registration")
 
     def my_positions(self) -> ToolDecision:
         """Return positions known to Reverb's ledger with outcome attribution."""

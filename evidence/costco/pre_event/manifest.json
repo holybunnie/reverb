@@ -1,0 +1,13 @@
+[
+  {
+    "body_path": "evidence/costco/pre_event/august_sales.body",
+    "body_sha256": "680a0b6852b32bd8353e93431117ed0d92c79ffa397ecdb5676eb4572b2c3bf5",
+    "bytes": 1080,
+    "capture_mode": "normalized_web_extract",
+    "captured_at": "2026-09-24T05:20:37.735739Z",
+    "raw_http_capture": false,
+    "source_id": "august_sales",
+    "source_url": "https://investor.costco.com/news/news-details/2026/Costco-Wholesale-Corporation-Reports-August-Sales-Results/default.aspx",
+    "text_sha256": "680a0b6852b32bd8353e93431117ed0d92c79ffa397ecdb5676eb4572b2c3bf5"
+  }
+]

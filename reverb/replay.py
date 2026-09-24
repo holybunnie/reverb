@@ -23,6 +23,7 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from .errors import DataUnavailable, LedgerError
+from .config import EngineConfig
 from .ledger import Ledger
 from .models import ReactionDecision
 from .reaction import baseline_price, evaluate_reaction, parse_candle, select_reaction_observation
@@ -236,6 +237,7 @@ def _record_body(directory: Path, ledger: Ledger, name: str, body: bytes, status
 def capture_replay(root: Path, config_path: Path | None = None) -> Path:
     config_path = config_path or root / REPLAY_CONFIG
     config, config_bytes, config_hash = _config(config_path)
+    _assert_production_trigger(root, config)
     event_at, start_at, end_at = _validate_config(config)
     event_url = str(config.get("event_source_url", ""))
     timing_url = str(config.get("timing_source_url", ""))
@@ -343,6 +345,7 @@ def load_replay_snapshot(root: Path) -> ReplaySnapshot:
             if complete is None:
                 raise DataUnavailable("replay capture is incomplete")
             config, config_bytes, config_hash = _config(directory / "config.json")
+            _assert_production_trigger(root, config)
             starts = [row for row in records if row.get("kind") == "replay_start"]
             if len(starts) != 1 or starts[0]["payload"].get("config_sha256") != config_hash:
                 raise LedgerError("replay configuration checksum is not verified")
@@ -385,6 +388,19 @@ def load_replay_snapshot(root: Path) -> ReplaySnapshot:
     raise DataUnavailable("no complete verified earnings replay exists: " + "; ".join(failures))
 
 
+def _assert_production_trigger(root: Path, replay_config: dict[str, Any]) -> None:
+    try:
+        engine = EngineConfig.model_validate_json((root / "config" / "engine.json").read_bytes())
+        replay_trigger = _decimal(replay_config, "trigger_pct")
+    except (OSError, ValueError, KeyError) as exc:
+        raise DataUnavailable("production reaction trigger could not be verified") from exc
+    if replay_trigger != engine.reaction_trigger_pct:
+        raise DataUnavailable(
+            f"replay trigger {replay_trigger} differs from production trigger "
+            f"{engine.reaction_trigger_pct}; regenerate the replay with production settings"
+        )
+
+
 def _pct(value: Any) -> str:
     try:
         return f"{Decimal(str(value)) * 100:.2f}%"
@@ -407,10 +423,13 @@ def _decision_card(title: str, decision: dict[str, Any], *, refusal: bool = Fals
         for key, value in arithmetic.items()
     )
     status = html.escape(str(decision.get("status", "unknown")).upper())
-    color = "refusal" if refusal else "action"
+    color = "refusal" if refusal else ("action" if status == "ACT" else "hold")
+    fallback = ("Signal crossed the configured trigger." if status == "ACT"
+                else "Trigger not reached; no reaction was taken." if status == "HOLD"
+                else "No trade.")
     return (
         f"<article class=\"decision {color}\"><div class=\"decision-head\"><strong>{status}</strong>"
-        f"<span>{html.escape(title)}</span></div><p>{html.escape(reasons or ('Signal crossed the configured trigger.' if not refusal else 'No trade.'))}</p>"
+        f"<span>{html.escape(title)}</span></div><p>{html.escape(reasons or fallback)}</p>"
         f"<p class=\"small\"><strong>Arithmetic recorded before the decision</strong></p><ul class=\"small\">{items}</ul></article>"
     )
 
@@ -421,6 +440,8 @@ def render_replay_html(snapshot: ReplaySnapshot) -> str:
     lagos = event.astimezone(ZoneInfo("Africa/Lagos"))
     action = snapshot.action
     refusal = snapshot.refusal
+    reaction_status = str(action.get("status", "unknown")).upper()
+    reaction_conclusion = "Reverb did not act." if reaction_status == "HOLD" else "Reverb recorded a threshold crossing."
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Reverb — historical earnings replay</title>
@@ -438,9 +459,9 @@ def render_replay_html(snapshot: ReplaySnapshot) -> str:
 <div class="card"><div class="label">Baseline</div><div class="value">{_money(snapshot.arithmetic.get('baseline'))}</div><div class="small">60 contiguous one-minute candles</div></div>
 <div class="card"><div class="label">Observed reaction</div><div class="value">{_pct(snapshot.arithmetic.get('move_pct'))}</div><div class="small">{html.escape(snapshot.arithmetic.get('observed_at', ''))}</div></div>
 <div class="card"><div class="label">Risk budget</div><div class="value">{_money(snapshot.arithmetic.get('risk_budget'))}</div><div class="small">Declared replay budget, not a recommendation</div></div></div>
-<section class="section"><h2>Before the close / after the release</h2><p>The release notice says results were announced at approximately 1:20 p.m. Pacific. The replay maps that to 20:20 UTC and watches the Reality token after the regular US session. The observed move crossed the configured {html.escape(snapshot.arithmetic.get('trigger_pct', ''))} trigger at {html.escape(snapshot.arithmetic.get('observed_at', ''))}.</p></section>
-<section class="section"><h2>One action and one refusal</h2><div class="decisions">{_decision_card('paper reaction signal', action)}{_decision_card('same signal, oversized intent', refusal, refusal=True)}</div></section>
-<section class="section"><h2>Morning report</h2><p>The report carries both outcomes. The small intent fits the declared budget; the one-unit intent is refused because its notional exceeds that same budget. Neither is a fill.</p><div class="card"><ul class="small"><li><span>Action notional</span>: {_money(snapshot.arithmetic.get('action_order_notional'))}</li><li><span>Refusal notional</span>: {_money(snapshot.arithmetic.get('refusal_order_notional'))}</li><li><span>Risk budget</span>: {_money(snapshot.arithmetic.get('risk_budget'))}</li><li><span>Orders submitted</span>: no</li></ul></div></section>
+<section class="section"><h2>After the release</h2><p>The release notice says results were announced at approximately 1:20 p.m. Pacific. The replay maps that to 20:20 UTC and watches the Reality token after the regular US session. At the production {html.escape(snapshot.arithmetic.get('trigger_pct', ''))} trigger, the selected {reaction_status} observation was {html.escape(_pct(action.get('move_pct', snapshot.arithmetic.get('move_pct'))))} at {html.escape(snapshot.arithmetic.get('observed_at', ''))}. {reaction_conclusion}</p></section>
+<section class="section"><h2>The reaction and the budget check</h2><div class="decisions">{_decision_card('production reaction decision', action)}{_decision_card('same observation, oversized intent', refusal, refusal=True)}</div></section>
+<section class="section"><h2>Morning report</h2><p>The production trigger determines whether Reverb would consider a reaction. Both quantities are paper-only and no live order is attempted; when the signal is below threshold, the oversized intent is not presented as a trade refusal.</p><div class="card"><ul class="small"><li><span>Small intent notional</span>: {_money(snapshot.arithmetic.get('action_order_notional'))}</li><li><span>Larger intent notional</span>: {_money(snapshot.arithmetic.get('refusal_order_notional'))}</li><li><span>Risk budget</span>: {_money(snapshot.arithmetic.get('risk_budget'))}</li><li><span>Orders submitted</span>: no</li></ul></div></section>
 <section class="section"><h2>Evidence and limits</h2><p><a href="{html.escape(snapshot.event_source_url)}">Issuer release</a> · <a href="https://www.bitget.com/docs/uta/agent-hub">Bitget Agent Hub documentation</a>. This replay does not prove account eligibility, options access, fills, slippage, or profitability. The current options order schema and account entitlement remain unresolved, so the live path still refuses.</p></section>
 <footer>Replay <code>{html.escape(snapshot.run_id)}</code> · ledger head <code>{html.escape(snapshot.ledger_head[:16])}…</code> · <a href="preview">view live feasibility evidence</a></footer>
 </main></body></html>"""
@@ -457,11 +478,23 @@ def render_replay_report(snapshot: ReplaySnapshot) -> str:
     refusal_notional = _money(refusal_math.get("order_notional", snapshot.arithmetic.get("refusal_order_notional")))
     budget = _money(refusal_math.get("risk_budget", snapshot.arithmetic.get("risk_budget")))
     quantity = html.escape(str(action_math.get("order_quantity", "—")))
+    action_status = str(snapshot.action.get("status", "unknown")).upper()
+    refusal_status = str(snapshot.refusal.get("status", "unknown")).upper()
+    if action_status == "HOLD":
+        action_copy = f"The move ({move}) did not reach the production trigger ({_pct(snapshot.arithmetic.get('trigger_pct'))}); Reverb did not act."
+    else:
+        action_copy = f"The token moved {move} from its pre-event baseline and crossed the production trigger."
+    if refusal_status == "REFUSE":
+        refusal_copy = "The same signal with the larger intent exceeded the declared risk budget."
+    elif refusal_status == "HOLD":
+        refusal_copy = "No reaction order was considered because the production trigger was not crossed."
+    else:
+        refusal_copy = "The larger paper intent passed the deterministic budget check; no order was submitted."
     return f"""
-<article class="decision action"><div class="decision-head"><strong>ACT</strong><span>paper reaction signal</span></div>
-<p>The token moved <b>{move}</b> from its pre-event baseline and crossed the recorded trigger.</p>
-<ul class="small"><li><span>Baseline</span>{baseline}</li><li><span>Observed</span>{observed}</li><li><span>Paper quantity</span>{quantity}</li><li><span>Budget used</span>{action_notional}</li></ul></article>
-<article class="decision refusal"><div class="decision-head"><strong>REFUSE</strong><span>same signal, oversized intent</span></div>
-<p>The direction was identical. The size was not: required capital exceeded the declared limit.</p>
-<ul class="small"><li><span>Required capital</span>{refusal_notional}</li><li><span>Risk budget</span>{budget}</li><li><span>Reason</span>risk budget exceeded</li><li><span>Order submitted</span>no</li></ul></article>
+<article class="decision {'action' if action_status == 'ACT' else 'refusal'}"><div class="decision-head"><strong>{html.escape(action_status)}</strong><span>production reaction signal</span></div>
+<p>{action_copy}</p>
+<ul class="small"><li><span>Baseline</span>{baseline}</li><li><span>Observed</span>{observed}</li><li><span>Paper quantity</span>{quantity}</li><li><span>Budget used if considered</span>{action_notional}</li></ul></article>
+<article class="decision refusal"><div class="decision-head"><strong>{html.escape(refusal_status)}</strong><span>same observation, larger paper intent</span></div>
+<p>{refusal_copy}</p>
+<ul class="small"><li><span>Required capital if considered</span>{refusal_notional}</li><li><span>Risk budget</span>{budget}</li><li><span>Orders submitted</span>no</li></ul></article>
 <p class="small report-note">No order was submitted; this report is a verified historical replay.</p>"""

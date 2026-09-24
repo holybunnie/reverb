@@ -1,0 +1,16 @@
+{
+  "source": "OBSERVED live Bitget API response",
+  "captured_at_utc": "2026-09-23T14:02:01.436429Z",
+  "endpoint": "/api/v3/account/reality-orderbook",
+  "symbol": "RCOSTUSDT",
+  "http_status": 400,
+  "response": {
+    "code": "40014",
+    "msg": "Incorrect permissions, need UTA manage read or UTA manage write permissions",
+    "requestTime": 1790172121989,
+    "data": null
+  },
+  "response_body_sha256": "d1c0fbb46b56111bd6f58867bebb039be0429ae0699df3051560fc500d70816a",
+  "credentials_or_auth_headers_included": false,
+  "interpretation": "The current key lacks a UTA Management permission required by the live response. Reality-specific market-data docs separately state that whitelist access is required."
+}

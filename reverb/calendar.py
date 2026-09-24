@@ -21,6 +21,7 @@ class EarningsEvent:
     source_id: str
     time_basis: str
     timing_category: str | None = None
+    company_name: str | None = None
 
 
 class EarningsCalendar:
@@ -49,7 +50,10 @@ class EarningsCalendar:
         if not self.url:
             raise ConfigurationError("calendar.url is required; no earnings feed is hardcoded")
         now = now or datetime.now(timezone.utc)
-        start = (now.date() - timedelta(days=now.weekday()))
+        if now.tzinfo is None:
+            raise ConfigurationError("calendar reference time must include a timezone")
+        today_et = now.astimezone(ZoneInfo("America/New_York")).date()
+        start = today_et - timedelta(days=today_et.weekday())
         events: list[EarningsEvent] = []
         for offset in range(7):
             event_date = start + timedelta(days=offset)
@@ -90,6 +94,9 @@ class EarningsCalendar:
         if not isinstance(symbol, str) or not symbol.strip() or not isinstance(event_value, str):
             raise DataUnavailable("earnings calendar row is missing symbol or event time")
         timing_category = _timing_category(row)
+        company_name = row.get("companyName") or row.get("company_name") or row.get("name") or row.get("company")
+        if not isinstance(company_name, str) or not company_name.strip():
+            company_name = None
         try:
             if ("T" in event_value or event_value.endswith("Z")
                     or (" " in event_value and ":" in event_value)):
@@ -109,6 +116,7 @@ class EarningsCalendar:
                             symbol=symbol.upper(), event_at=None, event_date=event_date,
                             source="configured-earnings-calendar", source_id=str(source_id),
                             time_basis="unresolved_source_category", timing_category=timing_category,
+                            company_name=company_name,
                         )
                     configured_time = default_event_time_et
                     if not configured_time:
@@ -124,7 +132,8 @@ class EarningsCalendar:
             raise DataUnavailable("earnings calendar event id is invalid")
         return EarningsEvent(symbol=symbol.upper(), event_at=event_at, event_date=event_date,
                              source="configured-earnings-calendar", source_id=str(source_id),
-                             time_basis=time_basis, timing_category=timing_category)
+                             time_basis=time_basis, timing_category=timing_category,
+                             company_name=company_name)
 
 
 def _parse_event_date(value: str) -> date:

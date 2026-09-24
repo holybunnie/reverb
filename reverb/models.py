@@ -55,6 +55,11 @@ class ReasonCode(str, Enum):
     PRECISION_UNVERIFIED = "precision_unverified"
     RISK_BUDGET_EXCEEDED = "risk_budget_exceeded"
     REPLAY_UNAVAILABLE = "replay_unavailable"
+    EVENT_TIME_UNRESOLVED = "event_time_unresolved"
+    EVENT_ALREADY_PASSED = "event_already_passed"
+    SPOT_SHORT_UNSUPPORTED = "spot_short_unsupported"
+    ACCOUNT_FEE_RATE_UNAVAILABLE = "account_fee_rate_unavailable"
+    EVENT_BOOK_UNMEASURED = "event_book_unmeasured"
 
 
 class Thesis(StrictModel):

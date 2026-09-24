@@ -18,13 +18,16 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from reverb.bitget import BitgetClient, Credentials  # noqa: E402
+from reverb.calendar import EarningsCalendar  # noqa: E402
+from reverb.config import EngineConfig, load_config  # noqa: E402
 from reverb.errors import BitgetAPIError, ConfigurationError, DataUnavailable  # noqa: E402
 from reverb.env import load_local_env  # noqa: E402
 from reverb.ledger import Ledger  # noqa: E402
 from reverb.liveness import check_account_liveness  # noqa: E402
-from reverb.models import View  # noqa: E402
+from reverb.models import DecisionStatus, View  # noqa: E402
 from reverb.scheduler import (WakeAction, build_schedule, dispatch_action, due_action,
                               heartbeat_from_ledger)  # noqa: E402
+from reverb.service import DecisionService  # noqa: E402
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -49,25 +52,63 @@ def _decimal(value: str | None, field: str) -> Decimal | None:
     return parsed
 
 
+def _evaluate_spot_position(*, event_id: str, symbol: str, view: View,
+                            expected_move_pct: Decimal, max_loss: Decimal,
+                            event_at: datetime, user_timezone: str, ledger: Ledger) -> dict:
+    """Create a spot-only pre-registration from a freshly checked calendar event.
+
+    This is a public-data paper decision path. It deliberately has no account
+    credentials or order executor; live execution remains a separate action.
+    """
+    loaded = load_config(ROOT / "config" / "engine.json", EngineConfig)
+    calendar = EarningsCalendar()
+    try:
+        matches = [event for event in calendar.this_week()
+                   if event.symbol == symbol.upper()
+                   and event.source_id == event_id
+                   and event.event_at is not None
+                   and event.event_at.astimezone(timezone.utc) == event_at.astimezone(timezone.utc)]
+        if len(matches) != 1:
+            raise DataUnavailable(
+                "scheduler event does not uniquely match a current calendar event with a resolved time"
+            )
+        client = BitgetClient()
+        with DecisionService(client, loaded.value, ledger, calendar=calendar,
+                             engine_config_sha256=loaded.sha256) as service:
+            calendar = None  # DecisionService owns it from here.
+            return service.prepare_spot_position(
+                event=matches[0], direction=view.value,
+                expected_move_pct=expected_move_pct, max_loss=max_loss,
+                user_timezone=user_timezone,
+            ).model_dump(mode="json")
+    finally:
+        if calendar is not None:
+            calendar.close()
+
+
 def _dispatcher(*, symbol: str | None, view: View | None, expected_move_pct: Decimal | None,
                 max_loss: Decimal | None, user_timezone: str, enable_live: bool,
-                ledger: Ledger):
+                ledger: Ledger, spot_evaluator=_evaluate_spot_position):
     def dispatch(action: WakeAction, schedule, current: datetime) -> dict:
         if not symbol:
             raise ConfigurationError("a scheduler dispatch requires --symbol")
         if action is WakeAction.POSITION:
             if view is None or expected_move_pct is None or max_loss is None:
                 raise ConfigurationError("position dispatch requires --view, --expected-move-pct, and --max-loss")
-            from position_once import evaluate
-            result = evaluate(symbol=symbol, view=view, expected_move_pct=expected_move_pct,
-                              max_loss=max_loss, event_at=schedule.event_at_utc,
-                              user_timezone=user_timezone)
-            if result.get("status") == "act":
-                reason = ("--enable-live was not supplied" if not enable_live else
-                          "Stock+ option order schema and entitlement are not verified")
+            result = spot_evaluator(
+                event_id=schedule.event_id, symbol=symbol, view=view,
+                expected_move_pct=expected_move_pct, max_loss=max_loss,
+                event_at=schedule.event_at_utc, user_timezone=user_timezone, ledger=ledger,
+            )
+            # prepare_spot_position is currently HOLD/REFUSE only and explicitly
+            # marks orders_submitted=false. Keep a final guard in the scheduler
+            # in case a future decision type is added accidentally.
+            if result.get("status") == DecisionStatus.ACT.value or result.get("execution_allowed") is True:
+                reason = "scheduled pre-event spot orders are not enabled"
                 ledger.append("execution_blocked", {"decision_id": result.get("decision_id"),
                                                      "reason": reason, "action": action.value})
-                result = {**result, "execution": "blocked", "execution_block_reason": reason}
+                result = {**result, "execution": "blocked", "execution_block_reason": reason,
+                          "execution_allowed": False, "orders_submitted": False}
             return result
         if action is WakeAction.REACT:
             from react_once import run_once as react_run_once
@@ -152,7 +193,7 @@ def main() -> int:
     parser.add_argument("--expected-move-pct")
     parser.add_argument("--max-loss")
     parser.add_argument("--timezone", default="America/New_York")
-    parser.add_argument("--enable-live", action="store_true", help="allow a downstream live write only if every path permits it")
+    parser.add_argument("--enable-live", action="store_true", help="allow the reaction path to attempt a live write only if every path permits it; never enables pre-event spot writes")
     args = parser.parse_args()
     try:
         return run_once(

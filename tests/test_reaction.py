@@ -21,6 +21,19 @@ class ReactionTests(unittest.TestCase):
         self.assertEqual(observed_at, event + timedelta(minutes=1))
         self.assertEqual(observed_price, Decimal("104"))
 
+    def test_completed_window_keeps_largest_excursion_below_threshold(self):
+        event = datetime(2026, 8, 26, 20, 5, tzinfo=timezone.utc)
+        rows = [
+            [str(int((event + timedelta(minutes=i)).timestamp() * 1000)), "100", "100", "100", close]
+            for i, close in enumerate(("101", "97.03", "99.9"))
+        ]
+        observed_at, observed_price = select_reaction_observation(
+            rows=rows, event_at=event, end_at=event + timedelta(minutes=3),
+            baseline=Decimal("100"), trigger_pct=Decimal("0.03"),
+        )
+        self.assertEqual(observed_at, event + timedelta(minutes=1))
+        self.assertEqual(observed_price, Decimal("97.03"))
+
     def test_baseline_requires_contiguous_one_minute_candles(self):
         event = datetime(2026, 9, 19, 16, 5, tzinfo=timezone.utc)
         rows = [[int((event - timedelta(minutes=60 - i)).timestamp() * 1000), "99", "101", "98", str(100 + i / 100), "1"] for i in range(60)]

@@ -30,6 +30,23 @@ def interpret_view_and_record(*, text: str, ledger: Ledger, qwen: QwenClient) ->
     return View(result.view)
 
 
+def extract_thesis_and_record(*, text: str, approved_rule_definitions: dict[str, str],
+                              ledger: Ledger, qwen: QwenClient):
+    """Record a candidate extraction without freezing or grading the thesis."""
+    result = qwen.extract_thesis(text, approved_rule_definitions=approved_rule_definitions)
+    ledger.append("thesis_claim_extraction", {
+        "claims": [claim.model_dump(mode="json") for claim in result.extraction.claims],
+        "input_sha256": result.input_sha256,
+        "output_sha256": result.output_sha256,
+        "provider": result.provider,
+        "model": result.model,
+        "requires_user_confirmation": True,
+        "outcome_statuses_assigned": False,
+        "decision_or_order": False,
+    })
+    return result
+
+
 def decision_with_narration(*, decision: dict[str, Any], ledger: Ledger,
                             qwen: QwenClient | None) -> dict[str, Any]:
     """Attach presentation-only prose without changing the engine decision."""

@@ -26,7 +26,7 @@ def parse_candle(row: list[str | int | float]) -> tuple[datetime, Decimal]:
 def select_reaction_observation(*, rows: list[list[str | int | float]], event_at: datetime,
                                 end_at: datetime, baseline: Decimal,
                                 trigger_pct: Decimal) -> tuple[datetime, Decimal]:
-    """Select the first trigger crossing, or the final candle when none crossed."""
+    """Select first trigger crossing; if none, retain the largest observed excursion."""
     if event_at.tzinfo is None or end_at.tzinfo is None or end_at <= event_at:
         raise DataUnavailable("reaction window bounds must be ordered timezone-aware timestamps")
     if baseline <= 0 or not baseline.is_finite() or trigger_pct <= 0 or trigger_pct >= 1:
@@ -42,7 +42,7 @@ def select_reaction_observation(*, rows: list[list[str | int | float]], event_at
     for observed_at, observed_price in observations:
         if abs((observed_price - baseline) / baseline) >= trigger_pct:
             return observed_at, observed_price
-    return observations[-1]
+    return max(observations, key=lambda item: abs((item[1] - baseline) / baseline))
 
 
 def baseline_price(rows: list[list[str | int | float]], event_at: datetime,

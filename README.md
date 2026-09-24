@@ -1,123 +1,59 @@
 # Reverb
 
-**An earnings-driven trading agent that stays awake after the closing bell.**
+**An overnight earnings desk for Bitget Reality tokens.**
 
-[Live dashboard](https://holybunnie.github.io/reverb/) ·
-[Workspace](https://holybunnie.github.io/reverb/app/) ·
-[Events](https://holybunnie.github.io/reverb/events/) ·
-[Verified earnings replay](https://holybunnie.github.io/reverb/demo/) ·
-[Morning report](https://holybunnie.github.io/reverb/report/) ·
-[Evidence view](https://holybunnie.github.io/reverb/preview/)
+Write down what you believe before the earnings report. Reverb checks it against what the company actually said, measures how the market reacted, and leaves you a sourced brief in the morning. **You make the decision.**
 
-> The market closes. The numbers land. Reverb acts, holds, or refuses—and shows
-> its work in the morning.
+Most earnings tools tell you what happened. Reverb tells you whether your view survived—and does not score you on facts that were already public when you wrote it.
 
-## What it is
+[Open the workspace](https://holybunnie.github.io/reverb/app/) · [See the verified replay](https://holybunnie.github.io/reverb/demo/) · [Browse the evidence](https://holybunnie.github.io/reverb/preview/)
 
-You choose a stock, state what you expect, and set the most you are willing to
-lose. Reverb prepares before the US market closes, watches the stock token after
-the company reports, and records the outcome while you sleep.
+## Costco forward run
 
-The refusal matters as much as the trade. If the data is stale, the market has
-already priced a larger move, or the position exceeds the budget, Reverb stops
-and records why.
+The Costco Q4 FY2026 event is scheduled for 24 September 2026, after the US close. The thesis and capture are **not yet frozen or recorded**; no Costco outcome is claimed here. The run will be reported as incomplete if the required capture has a gap or Costco's actual release time cannot be established from its own publication record. [Costco investor events](https://investor.costco.com/events-and-presentations/default.aspx?lv=true).
 
-The hosted dashboard is credential-free and cannot place an order. Live account
-access is local-only. The Reality-stock transport has been proven through Agent
-Hub; unattended earnings execution remains behind the event gate.
+The approved example thesis is: “I think Costco beats on EPS and membership fee growth stays strong, but margins disappoint because of freight costs. I'd put $100 at risk at most.” For scoring, the agreed operational tests are EPS above a consensus value frozen with its source and timestamp; membership-fee income higher year over year; and gross margin lower year over year. Freight attribution is a separate claim and counts only if Costco explicitly attributes the margin result to freight. These are explicit proxies for this run, not universal definitions of “strong” or “disappointing.”
 
-## One real execution proof
+The pre-event EPS source check is not yet clean enough to freeze a benchmark: [Kiplinger reports $6.53 per share but does not state whether the figure is adjusted or reported](https://www.kiplinger.com/investing/stocks/17494/next-week-earnings-calendar-stocks), while [TipRanks identifies $6.55 as adjusted EPS](https://www.tipranks.com/news/costco-cost-reports-q4-earnings-on-sept-24-heres-what-analysts-expect). Reverb will not compare unlike measures or choose a convenient number; unless a dated estimate with a matching EPS basis is captured before freeze, the EPS claim remains visible and unscored.
 
-OBSERVED on 22 September 2026: Agent Hub submitted and filled a small
-`RCAPRUSDT` Reality-stock limit order from this machine. The checked receipt is
-stored under `evidence/live/20260922T103212Z/`.
+Costco had already published its August sales report on 2 September. The registered thesis does not predict comparable sales, so those previously published sales figures will not be added to or scored against it after the fact. [Costco August sales release](https://investor.costco.com/news/news-details/2026/Costco-Wholesale-Corporation-Reports-August-Sales-Results/default.aspx).
 
-| Receipt field | Recorded value |
-| --- | ---: |
-| Quantity | `0.65 rCAPR` |
-| Limit price | `9.07 USDT` |
-| Average fill | `9.06 USDT` |
-| Executed value | `5.88978 USDT` |
-| Fee | `0.00294489 USDT` |
-| Order ID | `1486234440836431872` |
+## Historical validation
 
-This proves authentication and the Agent Hub Reality-stock write transport. It
-was manually approved before Reverb's pre-registration path was used, so it is
-**not** presented as a Reverb strategy trade, earnings trade, or profitability
-evidence.
+| Evidence | Result |
+| --- | --- |
+| NVIDIA Q2 FY2027 replay, 26 August 2026 | 90 contiguous one-minute Reality candles; pre-event baseline `$210.1765`; largest observed decline `−2.97%` at `16:21 ET` |
+| Production trigger | `3%`; the `−2.97%` move did not cross it, so Reverb held and did not act |
+| Orders in the replay | `0` |
+| Replay verification | Rebuilt from the captured issuer pages and Bitget candles; checked ledger at `evidence/replays/20260923T122959.089784Z-448cf031/` |
+| Qwen live check | Verified on 23 September 2026; sanitized hashes at `evidence/qwen/ledger.jsonl`; no Bitget account or order calls |
+| Live Qwen thesis extraction | Attempted with the configured key; first sandbox call could not connect, and the network-enabled call timed out. No candidate extraction was produced; the sanitized unavailable attempt is recorded in `evidence/qwen/ledger.jsonl` |
+| Costco Reality token | `RCOSTUSDT` appeared in the live Reality instrument list; Bitget `stock-info` returned `tradingPeriod` including after-hours and `weekendTradable: no`, captured at `evidence/runs/20260923T115045.662310Z-11d40a83/` |
 
-## What the demo proves
-
-The public demo replays NVIDIA's 26 August 2026 results from a captured issuer
-release and 90 contiguous one-minute `RNVDAUSDT` candles from Bitget.
-
-| Recorded result | Value |
-| --- | ---: |
-| Pre-event baseline | `$210.1765` |
-| First move through the configured trigger | `-2.97%` |
-| Paper intent within the `$50` budget | `$20.394` |
-| Oversized intent refused | `$203.94` |
-| Orders submitted | `0` |
-
-Every figure above regenerates from the hash-chained replay ledger. This is one
-historical event, not evidence of profitability.
+The NVIDIA result is one historical replay, not a strategy test or profitability evidence. The separate 22 September `RCAPRUSDT` fill proved the human-approved Agent Hub transport only; it was not a Reverb earnings trade. Its receipt is in `evidence/live/20260922T103212Z/`.
 
 ## How it works
 
-1. The user selects an earnings event, states a direction and expected move,
-   and caps the stock-token budget.
-2. Reverb refuses when required inputs are missing, stale, unavailable, or the
-   order exceeds that budget.
-3. After the release, it measures the Reality stock token against the pre-event
-   baseline and creates a session-aware limit-order decision.
-4. The ledger preserves the thesis, pre-registration, arithmetic, action or
-   refusal, and eventual outcome for the morning report.
+Before a report, the user writes a thesis and reviews the claims Reverb extracts. The claims, knowledge snapshot, comparison rules, and capture plan are frozen with a timestamp and hash. After the report, source-grounded facts are reconciled by deterministic code; claims already public at freeze are excluded. Reverb measures the Reality-token reaction and presents a recommendation with its evidence. The user makes the decision, and no order is placed without explicit confirmation.
 
-The language model may interpret a plain-language view and narrate the report.
-It never supplies a price, volatility, strike, expiry, size, or trade decision.
-The Qwen layer is independent of Bitget account authentication: without Qwen,
-Reverb falls back to deterministic report text; without a Bitget key, public
-replay, reaction research, and language features still run.
+## Track and user
 
-## Why Bitget
+**AI Trading Desk → Personalized research workstation.** Reverb analyzes; the human decides. If supported, execution is a separate human-confirmed Agent Hub handoff. The target user is a Bitget Reality-token trader who wants to record a view before an earnings report and review it honestly afterwards.
 
-Bitget exposes tokenized stock markets beyond regular US hours. Reverb uses that
-market for the post-earnings reaction. Bitget also offers stock options, but the
-current account cannot access Stock+ through the API, so the submission ships
-the honest Reality-token path and keeps options as a blocked extension. The
-design does not claim Bitget is the only broker with extended hours.
+## Evidence and known limits
 
-## Current status
+- **OBSERVED:** a small, manually approved Reality-stock limit order filled through Agent Hub. This is transport proof only, not an earnings strategy result.
+- **OBSERVED:** the checked NVIDIA historical event did not reach the production 3% trigger. No order was submitted.
+- **OBSERVED:** Bitget's public instrument and `stock-info` endpoints list `RCOSTUSDT` and show after-hours trading eligibility; `weekendTradable` is `no`.
+- **OBSERVED:** the dedicated read key authenticates as read-only with both UTA Trade and UTA Management enabled. The account-scoped Reality book/fills routes still return `40025`. The raw account-scoped Reality book is required for a complete Costco run; public UTA v3 SPOT book/fills are retained only as separately labelled diagnostics, and platform fills remain optional. [Sanitized access evidence](evidence/reality-access/ledger.jsonl).
+- **OBSERVED, public fallback snapshot:** the 14:14 UTC read-only probe recorded 0 public bid/ask levels and 0 generic public-fill rows for RCOST; RNVDA returned 50/50 levels and 0 public-fill rows. These are timestamped diagnostics in [the access ledger](evidence/reality-access/ledger.jsonl), not event-time measurements or substitutes for Reality's protected raw book/platform fills.
+- **NOT YET MEASURED:** the Costco event capture, actual issuer release timestamp, spread and depth at the event, the historical earnings corpus size, and extraction accuracy on a hand-verified subset.
+- **UNVERIFIED:** Costco claims and the live morning reconciliation. No event result is pre-asserted. The Qwen extraction attempt was unavailable, so the supplied thesis text is carried as explicitly human-approved input; it is not represented as model output.
+- **BLOCKED EXTENSION:** Stock+ options. This account's protected Stock+ routes return `100001` (“U.S. stock trading is not enabled for this account”); the option/token intersection and an Agent Hub options write tool are unverified. Options are not part of the current product path.
 
-| Area | Status |
-| --- | --- |
-| Landing, workspace, events, report, replay, and evidence pages | **Live** |
-| Replay evidence and hash-chain verification | **Verified** |
-| Deterministic valuation, refusal, reaction, and scheduler tests | **Passing** |
-| Public Reality-market discovery and 24/7 metadata | **Working without credentials** |
-| Public earnings calendar and local-time conversion | **Working; 16:05 ET fallback labelled assumed** |
-| Historical/public reaction evaluation | **Working without credentials** |
-| Qwen thesis classification and narration | **Implemented; live key check pending local configuration** |
-| UTC scheduler research/paper mode | **Working without credentials** |
-| UTA Trade authentication and reads | **Verified** |
-| Reality-stock execution through Agent Hub | **Verified with one small fill** |
-| Account-specific Stock+ options access | **Blocked: account returned `100001`** |
-| Options × continuously traded token intersection | **Unverified** |
-| Three-name earnings-time order-book study | **Not measured** |
-| Live option execution through Agent Hub | **Blocked** |
-| Live Reality orders submitted | **One transport-proof fill; not a strategy claim** |
+Reverb does not claim Bitget is the only venue with extended-hours trading, and it makes no profitability claim. See the [feasibility record](docs/m0.md), [readiness matrix](docs/readiness.md), and [specification corrections](docs/corrections.md).
 
-OBSERVED on 22 September 2026: the current HMAC key authenticates to UTA v3,
-exposes read/write `uta_trade`, reads open orders, reports buying power through
-Agent Hub, and placed the checked Reality-stock order above. Protected Stock+
-quote and option-expiry routes return `100001 — U.S. stock trading is not
-enabled for this account`.
-
-See [Milestone 0](docs/m0.md), the executable
-[gate artifact](docs/m0_gate.json), and the
-[specification corrections](docs/corrections.md).
-
-## Run locally
+## Run and verify
 
 Requires Python 3.11+.
 
@@ -129,17 +65,7 @@ python3 -m venv .venv
 ./.venv/bin/python scripts/preview_server.py
 ```
 
-Open:
-
-- `http://127.0.0.1:8000/` — standalone landing page
-- `http://127.0.0.1:8000/app` — dashboard
-- `http://127.0.0.1:8000/events` — search and thesis builder
-- `http://127.0.0.1:8000/report` — morning report
-- `http://127.0.0.1:8000/demo` — verified historical replay
-- `http://127.0.0.1:8000/preview` — public feasibility evidence
-- `http://127.0.0.1:8000/connect` — local connection guide
-
-## Verify the evidence
+Open `/` for the landing page, `/events` for the local event search and thesis desk, `/demo` for the credential-free replay, `/report` for the morning brief, or `/preview` for public feasibility evidence.
 
 ```sh
 ./.venv/bin/python scripts/replay_capture.py check
@@ -147,138 +73,10 @@ Open:
 ./.venv/bin/python -m unittest discover -s tests -v
 ```
 
-Regenerate the complete checked paper lifecycle—thesis, registration, reaction,
-outcome, and report—with:
+The public data probes need no Bitget credentials. Qwen uses the local `QWEN_API_KEY` when configured; the sanitized live check is reproducible with `./.venv/bin/python scripts/qwen_check.py`. Never put credentials in the hosted Pages build.
 
-```sh
-./.venv/bin/python scripts/run_paper_workflow.py
-```
+For authenticated Reality-feed diagnostics and the read-only Costco recorder, set all three optional `BITGET_READ_API_KEY`, `BITGET_READ_SECRET_KEY`, and `BITGET_READ_PASSPHRASE` values in the ignored local `.env`. These workflows prefer that separate key and fall back to `BITGET_*` only when the read-key fields are all unset. The trading key remains separate and unchanged.
 
-To create a new public-data capture:
+## Blocked extension: options
 
-```sh
-./.venv/bin/python scripts/probe.py capture
-./.venv/bin/python scripts/probe.py report
-```
-
-Captures are appended under `evidence/`; existing evidence is never silently
-replaced. The probe has no order-placement capability.
-
-The public probe verifies continuous eligibility from Bitget's live Reality
-`stock-info` response (`tradingPeriod` plus `weekendTradable`), rather than
-copying a hardcoded symbol list or depending on an announcement page.
-
-## Connect Bitget locally
-
-The hosted site never accepts credentials.
-
-1. In Bitget API Management, select **Unified account**. If the interface exposes
-   a read/write choice, live trading requires read and write.
-2. Leave **P2P**, **Wallet**, **Withdraw**, and **Transfer** off. Stock+ is not a
-   separate checkbox on the API-key screen.
-3. Store the API key, secret, and passphrase in the ignored local `.env` using
-   [.env.example](.env.example) as the template.
-4. Run the read-only check:
-
-```sh
-./.venv/bin/python scripts/account_check.py
-```
-
-The command never prints the credential values and never submits an order.
-
-## What works without a Bitget account key
-
-- The hosted dashboard, verified NVIDIA replay, evidence view, and morning-report rendering.
-- Public Reality instruments, live `stock-info` session eligibility, tickers,
-  order books, and current/historical candles.
-- The weekly earnings calendar, timezone conversion, and explicit unresolved/
-  assumed time provenance.
-- Deterministic Black–Scholes checks, refusal arithmetic, reaction evaluation,
-  hash-chained ledger, UTC scheduler research mode, and MCP tools that use only
-  public data or the local ledger.
-- Local Qwen thesis classification and narration after only
-  `QWEN_API_KEY` is configured.
-
-Authenticated Bitget v3 access is required for account liveness, buying power,
-Stock+ quotes/chains, account-specific fees, and guarded live orders.
-
-## Agent interface
-
-Reverb exposes conclusions rather than raw market data:
-
-```text
-earnings_this_week()
-position_for(symbol, view, expected_move_pct, max_loss)
-whats_priced_in(symbol)
-react(symbol)
-my_positions()
-```
-
-Start the local MCP server with:
-
-```sh
-./.venv/bin/python scripts/mcp_server.py
-```
-
-If `QWEN_API_KEY` is configured locally, `position_for` also accepts a
-plain-language view and every MCP decision includes a Qwen-written narration.
-The underlying decision is unchanged and the model output is recorded beside
-it in the ledger. Verify the language endpoint independently with:
-
-```sh
-./.venv/bin/python scripts/qwen_check.py
-```
-
-This check does not call an authenticated Bitget endpoint and cannot place an
-order. Never add the Qwen key to the static GitHub Pages build.
-
-Agent Hub's local `bgc` catalog is available for supported execution paths, but
-the current catalog exposes no verified Stock+ options order tool. Reverb does
-not guess a private payload or silently fall back to another write transport.
-
-## Architecture
-
-```text
-Bitget public data ──► deterministic engine ──► hash-chained ledger
-                              │                         │
-                              ├──► dashboard            ├──► morning report
-                              └──► MCP decisions        └──► evidence replay
-
-UTC scheduler ──► freshness + session gates ──► local Agent Hub execution
-                                                (Reality transport verified)
-```
-
-Key modules:
-
-- `reverb/chooser.py` and `reverb/math.py` — deterministic option valuation
-- `reverb/gate.py` — refusal rules
-- `reverb/reaction.py` — post-release baseline comparison
-- `reverb/ledger.py` — append-only hash chain
-- `reverb/scheduler.py` — UTC wake and missed-window handling
-- `reverb/service.py` — shared decision surface for app and MCP
-- `reverb/web.py` and `reverb/static/` — multi-page consumer product
-
-## Known limits
-
-- The public replay is paper-only; it proves the data and decision path, not a
-  fill or profitable strategy.
-- Account-specific Stock+ eligibility, OPRA API access, executable option books,
-  fees, and the live options/token intersection remain unverified.
-- Historical candles cannot reconstruct a historical order book. The required
-  three-name 16:05 spread and depth study is still outstanding.
-- Post-event volatility, dividends, early exercise, and token/underlying basis
-  are model assumptions until verified against contract and market data.
-- Nasdaq calendar rows often provide only a date or an after-hours category.
-  Reverb displays those at the checksummed `16:05 ET` configured fallback and
-  labels their `event_time_basis` as `configured_default_assumption`; it is not
-  treated as an issuer-confirmed timestamp.
-- Reality-stock transport is verified. Autonomous earnings execution remains
-  disabled while the event-book portion of `docs/m0_gate.json` is unresolved.
-
-## First-party references
-
-- [Bitget Agent Hub](https://www.bitget.com/docs/uta/agent-hub)
-- [Stock+ API launch and eligibility](https://www.bitget.com/support/articles/12560603890720)
-- [Stock+ option quotes and OPRA requirements](https://www.bitget.com/docs/catalog/stock-plus/options-quotes)
-- [Bitget option rules](https://www.bitget.com/support/articles/12560603889520)
-- [NVIDIA result release](https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Announces-Financial-Results-for-Second-Quarter-Fiscal-2027/default.aspx)
+The original options workflow is retained as future work, not as the product's promise. Bitget returned `100001` for this account's protected Stock+ routes; the available options and Reality-token intersection is not verified; and no supported Agent Hub options order operation has been found. Revisit this only after account eligibility, OPRA access, the live contract universe, contract terms, fees, and a supported order path are independently verified. The current research product remains spot-market analysis with a human deciding.

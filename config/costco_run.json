@@ -1,0 +1,19 @@
+{
+  "event": "COST Q4 FY2026",
+  "event_date": "2026-09-24",
+  "token_symbol": "RCOSTUSDT",
+  "event_source_url": "https://investor.costco.com/events-and-presentations/default.aspx?lv=true",
+  "thesis_text": "I think Costco beats on EPS and membership fee growth stays strong, but margins disappoint because of freight costs. I'd put $100 at risk at most.",
+  "risk_budget_usdt": "100",
+  "approved_comparison_rules": {
+    "EPS above consensus": "ABOVE_REFERENCE; human may mark this claim unscored unless a pre-freeze consensus source, value, timestamp, and exact reported/adjusted EPS basis are captured and match the issuer's reported measure.",
+    "membership fee growth stays strong": "UP_YEAR_OVER_YEAR; operational proxy is membership-fee income higher than the comparable prior-year period, not a general definition of strong.",
+    "margins disappoint": "DOWN_YEAR_OVER_YEAR; operational proxy is the same explicitly sourced gross-margin metric lower than the comparable prior-year period; do not derive or substitute a different margin measure after release.",
+    "because of freight costs": "EXPLICIT_ATTRIBUTION as a separate claim; confirm only when the issuer's source text explicitly links freight/shipping/transportation to margin or cost-of-sales impact. A margin decline alone is insufficient."
+  },
+  "reaction_trigger_pct": "0.03",
+  "baseline_method": "Use the declared pre-close window ending at 16:00 ET; do not anchor it to the unknown release timestamp.",
+  "capture_plan": "Capture RCOSTUSDT one-minute market candles and the authenticated raw Reality order book, with exchange and local receipt timestamps, from 15:30 through 20:00 ET on 2026-09-24. Also attempt Reality platform fills if accessible. Capture the public aggregated market order book and generic public SPOT fills only as separately labelled diagnostics; they do not substitute for the raw Reality book or Reality platform fills. If the required raw-book interval is unavailable, any required interval is missing, or the issuer timestamp cannot be verified, mark the run INCOMPLETE.",
+  "live_orders_allowed": false,
+  "status": "DRAFT_NOT_FROZEN"
+}

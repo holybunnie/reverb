@@ -54,8 +54,27 @@ class AppTests(unittest.TestCase):
         events = render_events_html(preview, replay_snapshot=replay, static_demo=True)
         report = render_report_html(preview, replay_snapshot=replay,
                                     morning_report_html=render_replay_report(replay), static_demo=True)
-        self.assertIn("The market closes", landing)
+        self.assertIn("Know what you believed", landing)
+        self.assertIn("COSTCO FORWARD RUN", landing)
+        self.assertIn("RCOSTUSDT", landing)
         self.assertNotIn("THESIS BUILDER", landing)
         self.assertIn("THESIS BUILDER", events)
+        self.assertIn("data-claims-review", events)
+        self.assertIn("does not freeze", events)
         self.assertIn("Morning report", report)
         self.assertIn("Action and refusal", report)
+
+    def test_event_workflow_uses_local_live_api_instead_of_a_replay_card(self):
+        root = Path(__file__).resolve().parents[1]
+        preview = load_preview_snapshot(root)
+        replay = load_replay_snapshot(root)
+        local_page = render_events_html(preview, replay_snapshot=replay)
+        hosted_page = render_events_html(preview, replay_snapshot=replay, static_demo=True)
+        self.assertIn('data-live-events="true"', local_page)
+        self.assertIn("same reported measure year over year", local_page)
+        self.assertIn("matching reported/adjusted basis", local_page)
+        self.assertIn("explicitly links it to margin or cost of sales", local_page)
+        self.assertIn("/api/events", (root / "reverb" / "static" / "app.js").read_text())
+        self.assertNotIn('data-search="nvidia nvda"', local_page.lower())
+        self.assertIn("STATIC PREVIEW", hosted_page)
+        self.assertIn("does not invent upcoming events", hosted_page)

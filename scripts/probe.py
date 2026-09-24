@@ -328,13 +328,32 @@ def measurements(directory):
                 lines.append(f"OBSERVED `{symbol}`: {len(data)} candles returned; {gaps} nonconsecutive timestamp pairs. This is not a validated earnings baseline.")
             except (ValueError, KeyError, TypeError) as exc:
                 lines.append(f"UNAVAILABLE `{symbol}` candles: {exc}")
+    lines += ["", "## Fee-group observation", ""]
+    try:
+        groups = payload(directory, requests["fee-group"])
+        if not isinstance(groups, list) or not groups:
+            raise ValueError("empty or malformed fee-group response")
+        rtoken_groups = [row for row in groups
+                         if any(label.get("label") == "rtoken"
+                                for label in row.get("labelList", [])
+                                if isinstance(label, dict))]
+        if not rtoken_groups:
+            raise ValueError("no rtoken group label was returned")
+        group_summary = []
+        for row in rtoken_groups:
+            tiers = [tier for tier in row.get("tierList", []) if isinstance(tier, dict)]
+            group_summary.append(f"{row.get('group')} ({len(tiers)} group-level tiers)")
+        lines.append("OBSERVED: `fee-group` returned " + "; ".join(group_summary) +
+                     ". These are group schedules, not the account's selected fee rate.")
+    except (ValueError, KeyError, TypeError) as exc:
+        lines.append(f"UNAVAILABLE `fee-group`: {exc}")
     lines += ["", "## Access and collection failures", ""]
     for failure in records[-1]["failures"]:
         lines.append(f"- OBSERVED `{failure['request']}`: {failure['reason']}")
     if not records[-1]["failures"]:
         lines.append("No HTTP/API collection failures; this does not establish account eligibility or gate completion.")
     lines += ["", "The public option expiry request carries no credentials. Its response cannot establish account eligibility.",
-              "`fee-group` records fee-group data only; it is not the user's applicable fee rate.", "",
+              "The authenticated account-specific fee-rate endpoint is not called by this public probe; Bitget documents UTA Management read permission for it.", "",
               "Rebuild: `python3 scripts/probe.py report`. Verify the published table: `python3 scripts/probe.py report --check`.", ""]
     return "\n".join(lines)
 

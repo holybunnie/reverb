@@ -25,11 +25,31 @@ class Credentials:
     passphrase: str
 
     @classmethod
-    def from_env(cls) -> "Credentials":
-        values = {name: os.getenv(name) for name in ("BITGET_API_KEY", "BITGET_SECRET_KEY", "BITGET_PASSPHRASE")}
-        if any(not value for value in values.values()):
-            raise ConfigurationError("BITGET_API_KEY, BITGET_SECRET_KEY, and BITGET_PASSPHRASE are required")
-        return cls(values["BITGET_API_KEY"], values["BITGET_SECRET_KEY"], values["BITGET_PASSPHRASE"])
+    def from_env(cls, prefix: str = "BITGET", *, fallback_prefix: str | None = None) -> "Credentials":
+        prefixes = (prefix, fallback_prefix) if fallback_prefix else (prefix,)
+        return cls.from_env_priority(*prefixes)
+
+    @classmethod
+    def from_env_priority(cls, *prefixes: str) -> "Credentials":
+        if not prefixes:
+            raise ConfigurationError("at least one Bitget credential prefix is required")
+        for prefix in prefixes:
+            names = {
+                "api_key": f"{prefix}_API_KEY",
+                "secret_key": f"{prefix}_SECRET_KEY",
+                "passphrase": f"{prefix}_PASSPHRASE",
+            }
+            values = {field: os.getenv(name) for field, name in names.items()}
+            supplied = [bool(value) for value in values.values()]
+            if all(supplied):
+                return cls(values["api_key"], values["secret_key"], values["passphrase"])
+            if any(supplied):
+                missing = [names[field] for field, value in values.items() if not value]
+                raise ConfigurationError(f"{', '.join(missing)} are required together")
+        first_prefix = prefixes[0]
+        raise ConfigurationError(
+            f"{first_prefix}_API_KEY, {first_prefix}_SECRET_KEY, and {first_prefix}_PASSPHRASE are required"
+        )
 
 
 def signature(timestamp: str, method: str, request_path: str, query_string: str, body: str, secret_key: str) -> str:
@@ -94,6 +114,32 @@ class BitgetClient:
             raise DataUnavailable("Reality stock-info response is not a list")
         return data
 
+    def reality_orderbook(self, symbol: str) -> dict[str, Any]:
+        """Read Bitget's authenticated, whitelist-gated raw Reality order book."""
+        if not symbol or not symbol.endswith("USDT"):
+            raise ConfigurationError("Reality order-book lookup requires a USDT Reality pair")
+        data = self._request("GET", "/api/v3/account/reality-orderbook", {"symbol": symbol}, private=True)["data"]
+        if not isinstance(data, dict) or data.get("symbol") != symbol:
+            raise DataUnavailable(f"Bitget returned an invalid Reality order book for {symbol}")
+        for side in ("a", "b"):
+            if not isinstance(data.get(side), list):
+                raise DataUnavailable(f"Bitget Reality order book has no {side} side for {symbol}")
+        if not data.get("ts"):
+            raise DataUnavailable(f"Bitget Reality order book has no exchange timestamp for {symbol}")
+        return data
+
+    def reality_fills(self, symbol: str, limit: int = 100) -> list[dict[str, Any]]:
+        """Read the latest platform fills when this account is whitelisted."""
+        if not symbol or not symbol.endswith("USDT"):
+            raise ConfigurationError("Reality fills lookup requires a USDT Reality pair")
+        if limit < 1 or limit > 100:
+            raise ConfigurationError("Reality fills limit must be between 1 and 100")
+        data = self._request("GET", "/api/v3/account/reality-fills",
+                             {"symbol": symbol, "limit": limit}, private=True)["data"]
+        if not isinstance(data, list):
+            raise DataUnavailable(f"Bitget Reality fills response is not a list for {symbol}")
+        return data
+
     def instrument(self, symbol: str) -> dict[str, Any]:
         rows = [row for row in self.instruments() if isinstance(row, dict) and row.get("symbol") == symbol]
         if len(rows) != 1:
@@ -125,6 +171,19 @@ class BitgetClient:
 
     def orderbook(self, symbol: str, limit: int = 5) -> dict[str, Any]:
         return self._request("GET", "/api/v3/market/orderbook", {"category": "SPOT", "symbol": symbol, "limit": limit})["data"]
+
+    def public_fills(self, symbol: str, limit: int = 100) -> list[dict[str, Any]]:
+        """Read generic public SPOT prints; this is not the Reality platform-fills endpoint."""
+        if not symbol or not symbol.endswith("USDT"):
+            raise ConfigurationError("public spot fills require a USDT pair")
+        if limit < 1 or limit > 100:
+            raise ConfigurationError("public fills limit must be between 1 and 100")
+        data = self._request("GET", "/api/v3/market/fills", {
+            "category": "SPOT", "symbol": symbol, "limit": limit,
+        })["data"]
+        if not isinstance(data, list):
+            raise DataUnavailable(f"Bitget public fills response is not a list for {symbol}")
+        return data
 
     def candles(self, symbol: str, interval: str = "1m", candle_type: str = "market", limit: int = 100) -> list[list[str]]:
         if candle_type != "market":

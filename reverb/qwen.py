@@ -8,8 +8,10 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
+from pydantic import ValidationError
 
 from .errors import ConfigurationError, DataUnavailable
+from .reconciliation import Comparison, FactExtraction, ThesisExtraction, parse_source_number
 
 
 @dataclass(frozen=True)
@@ -24,7 +26,7 @@ class QwenCredentials:
         if not api_key:
             raise ConfigurationError("QWEN_API_KEY is not set; deterministic narration remains available")
         base_url = os.getenv("BITGET_QWEN_BASE_URL", "https://hackathon.bitgetops.com/v1").rstrip("/")
-        model = os.getenv("BITGET_QWEN_MODEL", "qwen3.6-plus")
+        model = os.getenv("BITGET_QWEN_MODEL", "qwen3.8-max")
         if not base_url or not model:
             raise ConfigurationError("Qwen base URL and model must be non-empty")
         return cls(api_key=api_key, base_url=base_url, model=model)
@@ -48,8 +50,26 @@ class QwenViewInterpretation:
     output_sha256: str
 
 
+@dataclass(frozen=True)
+class QwenThesisExtraction:
+    extraction: ThesisExtraction
+    provider: str
+    model: str
+    input_sha256: str
+    output_sha256: str
+
+
+@dataclass(frozen=True)
+class QwenFactExtraction:
+    extraction: FactExtraction
+    provider: str
+    model: str
+    input_sha256: str
+    output_sha256: str
+
+
 class QwenClient:
-    def __init__(self, credentials: QwenCredentials, timeout: float = 30.0,
+    def __init__(self, credentials: QwenCredentials, timeout: float = 120.0,
                  client: httpx.Client | None = None):
         self.credentials = credentials
         self._client = client or httpx.Client(timeout=timeout)
@@ -147,3 +167,142 @@ class QwenClient:
         return QwenViewInterpretation(view=parsed, provider="bitget-qwen", model=self.credentials.model,
                                       input_sha256=hashlib.sha256(serialized.encode()).hexdigest(),
                                       output_sha256=output_hash)
+
+    def extract_thesis(self, plain_language: str, *,
+                       approved_rule_definitions: dict[str, str] | None = None) -> QwenThesisExtraction:
+        """Extract candidate claims only; users review them before registration.
+
+        The schema deliberately has no outcome status, numerical field,
+        consensus value, risk budget, recommendation, or execution field.
+        """
+        if not isinstance(plain_language, str) or not plain_language.strip() or len(plain_language) > 2000:
+            raise ConfigurationError("thesis text must be non-empty and at most 2000 characters")
+        approved = approved_rule_definitions or {}
+        if any(not isinstance(key, str) or not isinstance(value, str) for key, value in approved.items()):
+            raise ConfigurationError("approved comparison rules must be a string-to-string mapping")
+        serialized = json.dumps({"thesis": plain_language,
+                                 "approved_comparison_rules": approved,
+                                 "allowed_comparisons": [item.value for item in Comparison]},
+                               sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        prompt = (
+            "Extract only distinct factual claims directly stated in the user's thesis. "
+            "Return one JSON object with exactly this key: claims. Each claim "
+            "must have exactly claim_id, text, variable, comparison, claim_type. Use unique "
+            "short ids; claim_type is QUARTER_FACT or FORWARD_EXPECTATION; comparison is one "
+            "of ABOVE_REFERENCE, BELOW_REFERENCE, UP_YEAR_OVER_YEAR, DOWN_YEAR_OVER_YEAR, "
+            "EXPLICIT_ATTRIBUTION. Do not invent claims or infer a reference value. Apply only "
+            "the comparison mappings provided in approved_comparison_rules. For any claim "
+            "without an approved mapping, use ABOVE_REFERENCE only when the user's wording "
+            "explicitly names a comparison reference; otherwise omit the claim for manual "
+            "review rather than guessing its meaning. Do not "
+            "return numbers, source facts, statuses, scores, a budget, advice, or an order. "
+            "No markdown fences.\n\nINPUT JSON:\n" + serialized
+        )
+        body = {
+            "model": self.credentials.model,
+            "messages": [
+                {"role": "system", "content": "You extract candidate claims for a human-reviewed research record. You do not grade them."},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0,
+            "max_tokens": 512,
+        }
+        try:
+            response = self._client.post(
+                self.credentials.base_url + "/chat/completions",
+                headers={"Authorization": "Bearer " + self.credentials.api_key,
+                         "Content-Type": "application/json"},
+                json=body,
+            )
+            response.raise_for_status()
+            document = response.json()
+            raw = document["choices"][0]["message"]["content"]
+        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+            raise DataUnavailable(f"Qwen thesis extraction failed: {type(exc).__name__}") from exc
+        if not isinstance(raw, str) or not raw.strip():
+            raise DataUnavailable("Qwen thesis extraction returned empty content")
+        try:
+            extraction = ThesisExtraction.model_validate_json(raw)
+        except ValidationError as exc:
+            raise DataUnavailable("Qwen returned claims outside the strict review schema") from exc
+        source_numbers = set(re.findall(r"(?<![A-Za-z])[+-]?\d+(?:\.\d+)?(?![A-Za-z])", plain_language))
+        candidate_text = " ".join(f"{claim.text} {claim.variable}" for claim in extraction.claims)
+        extracted_numbers = set(re.findall(r"(?<![A-Za-z])[+-]?\d+(?:\.\d+)?(?![A-Za-z])", candidate_text))
+        if not extracted_numbers.issubset(source_numbers):
+            raise DataUnavailable("Qwen added a numeric claim absent from the user's thesis")
+        return QwenThesisExtraction(
+            extraction=extraction,
+            provider="bitget-qwen",
+            model=self.credentials.model,
+            input_sha256=hashlib.sha256(serialized.encode()).hexdigest(),
+            output_sha256=hashlib.sha256(raw.encode()).hexdigest(),
+        )
+
+    def extract_release_facts(self, *, release_text: str, claims: list[dict[str, Any]]) -> QwenFactExtraction:
+        """Extract verbatim issuer facts; deterministic code assigns all statuses."""
+        if not isinstance(release_text, str) or not release_text.strip() or len(release_text) > 200_000:
+            raise ConfigurationError("release text must be non-empty and at most 200000 characters")
+        if not isinstance(claims, list) or not claims or len(claims) > 20:
+            raise ConfigurationError("registered claims must be a non-empty list of at most 20")
+        serialized = json.dumps({"registered_claims": claims, "issuer_release_text": release_text},
+                                sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        prompt = (
+            "Extract only issuer-reported facts that address the registered claims. "
+            "Return one JSON object with exactly one key, facts. Each fact must have exactly "
+            "claim_id, current_value_text, prior_value_text, current_period_text, "
+            "prior_period_text, attribution_quote, excerpt. Use null for a missing field. "
+            "Copy every value and period label character-for-character from excerpt. The "
+            "excerpt must be copied character-for-character from the release text. Do not "
+            "calculate year-over-year changes, normalize figures, infer causation, add a "
+            "consensus value, or include a status, score, summary, recommendation, or prose. "
+            "Only use claim_id values from registered_claims. Return {\"facts\": []} when no "
+            "claim is addressed. No markdown fences.\n\nSOURCE JSON:\n" + serialized
+        )
+        body = {
+            "model": self.credentials.model,
+            "messages": [
+                {"role": "system", "content": "You copy source-grounded facts for a human research desk. You do not grade claims."},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0,
+            "max_tokens": 1600,
+        }
+        try:
+            response = self._client.post(
+                self.credentials.base_url + "/chat/completions",
+                headers={"Authorization": "Bearer " + self.credentials.api_key,
+                         "Content-Type": "application/json"},
+                json=body,
+            )
+            response.raise_for_status()
+            document = response.json()
+            raw = document["choices"][0]["message"]["content"]
+        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+            raise DataUnavailable(f"Qwen release extraction failed: {type(exc).__name__}") from exc
+        if not isinstance(raw, str) or not raw.strip():
+            raise DataUnavailable("Qwen release extraction returned empty content")
+        try:
+            extraction = FactExtraction.model_validate_json(raw)
+        except ValidationError as exc:
+            raise DataUnavailable("Qwen returned release facts outside the strict extraction schema") from exc
+        claim_ids = {str(item.get("claim_id")) for item in claims if isinstance(item, dict)}
+        if any(fact.claim_id not in claim_ids for fact in extraction.facts):
+            raise DataUnavailable("Qwen returned a fact for an unregistered claim")
+        for fact in extraction.facts:
+            if fact.excerpt not in release_text:
+                raise DataUnavailable("Qwen returned an excerpt absent from the issuer release")
+            for value in (fact.current_value_text, fact.prior_value_text):
+                if value:
+                    if value not in fact.excerpt:
+                        raise DataUnavailable("Qwen returned a figure absent from its source excerpt")
+                    try:
+                        parse_source_number(value)
+                    except ValueError as exc:
+                        raise DataUnavailable("Qwen returned a figure with unsupported source formatting") from exc
+        return QwenFactExtraction(
+            extraction=extraction,
+            provider="bitget-qwen",
+            model=self.credentials.model,
+            input_sha256=hashlib.sha256(serialized.encode()).hexdigest(),
+            output_sha256=hashlib.sha256(raw.encode()).hexdigest(),
+        )

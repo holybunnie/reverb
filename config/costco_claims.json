@@ -1,0 +1,42 @@
+{
+  "approval_basis": "Human-approved from the supplied Costco forward-run thesis. Qwen extraction was attempted but did not return a candidate; these claims are not represented as model output.",
+  "claims": [
+    {
+      "claim_id": "c1",
+      "text": "EPS above consensus",
+      "variable": "adjusted diluted EPS",
+      "comparison": "ABOVE_REFERENCE",
+      "claim_type": "QUARTER_FACT",
+      "unit": null,
+      "scoreable": false,
+      "unscored_reason": "No pre-freeze consensus source with a matching reported-versus-adjusted EPS basis was captured. Keep the claim visible, but do not score unlike measures."
+    },
+    {
+      "claim_id": "c2",
+      "text": "Membership fee growth stays strong",
+      "variable": "membership fee income",
+      "comparison": "UP_YEAR_OVER_YEAR",
+      "claim_type": "QUARTER_FACT",
+      "unit": "usd",
+      "scoreable": true
+    },
+    {
+      "claim_id": "c3",
+      "text": "Margins disappoint",
+      "variable": "gross margin",
+      "comparison": "DOWN_YEAR_OVER_YEAR",
+      "claim_type": "QUARTER_FACT",
+      "unit": "percent",
+      "scoreable": true
+    },
+    {
+      "claim_id": "c4",
+      "text": "Freight costs cause margin pressure",
+      "variable": "freight attribution",
+      "comparison": "EXPLICIT_ATTRIBUTION",
+      "claim_type": "QUARTER_FACT",
+      "unit": null,
+      "scoreable": true
+    }
+  ]
+}
