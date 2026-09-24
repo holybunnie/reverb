@@ -1,6 +1,7 @@
 # Reverb local handoff
 
-This file is intentionally local and uncommitted, per the user's request.
+This file is a repository handoff for the finishing work; it contains no
+credentials or private market capture.
 
 ## Submission-fit note
 
@@ -27,7 +28,7 @@ to this account, so options are a blocked extension rather than a live leg.
 
 The project has a multi-page consumer surface, a credential-free historical
 replay, a live local event flow, and a hash-chained private ledger. The latest
-offline verification passed 85 unit tests, compileall, replay-capture check,
+offline verification passed 119 unit tests, compileall, replay-capture check,
 measurement-report check, and `git diff --check` (rerun after any later edit).
 
 The local event API was smoke-tested against the public calendar and Bitget:
@@ -99,9 +100,12 @@ scheduled trade. BlackBerry's issuer site lists the FY2027 Q2 results event for
    verified 24/7 Reality-token trading. Capture the order book near 16:05 ET and
    compare against that name's regular-hours median. Current off-window books
    are not a substitute.
-4. A real Reverb earnings workflow: requires an event with a validated report
-   timestamp, a continuous Reality token, and enough lead time to capture the
-   event-time book. No such event has yet been proven end to end.
+4. Costco forward run: the thesis is frozen in
+   `evidence/costco/frozen_thesis.json` with hash
+   `8f28dd5f4bb4e4fbf70df5a97dd50d1de39fad1a2ab25498720a708c4d45743f`; the
+   15:30–20:00 ET capture, issuer timestamp, reconciliation, and market-quality
+   finding still need to be recorded. The raw Reality book is required, so a
+   `40025` response keeps the run `INCOMPLETE` even when public diagnostics work.
 5. Submission surface: rerun GitHub Pages after local changes are finalized,
    inspect the deployed `/demo`, and record video. Do not publish private
    ledger data, `.env`, or this local handoff.

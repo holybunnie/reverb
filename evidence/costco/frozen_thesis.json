@@ -1,0 +1,83 @@
+{
+  "baseline_method": "Use the declared pre-close window ending at 16:00 ET; do not anchor it to the unknown release timestamp.",
+  "capture_plan": "Capture RCOSTUSDT one-minute market candles and the authenticated raw Reality order book, with exchange and local receipt timestamps, from 15:30 through 20:00 ET on 2026-09-24. Also attempt Reality platform fills if accessible. Capture the public aggregated market order book and generic public SPOT fills only as separately labelled diagnostics; they do not substitute for the raw Reality book or Reality platform fills. If the required raw-book interval is unavailable, any required interval is missing, or the issuer timestamp cannot be verified, mark the run INCOMPLETE.",
+  "claims": [
+    {
+      "claim_id": "c1",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "ABOVE_REFERENCE",
+      "scoreable": false,
+      "text": "EPS above consensus",
+      "unit": null,
+      "unscored_reason": "No pre-freeze consensus source with a matching reported-versus-adjusted EPS basis was captured. Keep the claim visible, but do not score unlike measures.",
+      "variable": "adjusted diluted EPS"
+    },
+    {
+      "claim_id": "c2",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "UP_YEAR_OVER_YEAR",
+      "scoreable": true,
+      "text": "Membership fee growth stays strong",
+      "unit": "usd",
+      "unscored_reason": null,
+      "variable": "membership fee income"
+    },
+    {
+      "claim_id": "c3",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "DOWN_YEAR_OVER_YEAR",
+      "scoreable": true,
+      "text": "Margins disappoint",
+      "unit": "percent",
+      "unscored_reason": null,
+      "variable": "gross margin"
+    },
+    {
+      "claim_id": "c4",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "EXPLICIT_ATTRIBUTION",
+      "scoreable": true,
+      "text": "Freight costs cause margin pressure",
+      "unit": null,
+      "unscored_reason": null,
+      "variable": "freight attribution"
+    }
+  ],
+  "code_commit": "a69489b2b860879707409f0e62c8263bdcc12706",
+  "event": "COST Q4 FY2026",
+  "frozen_at": "2026-09-24T05:22:56.491163Z",
+  "knowledge_snapshot": {
+    "frozen_at": "2026-09-24T05:22:56.491163Z",
+    "items": [
+      {
+        "claim_id": "c1",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      },
+      {
+        "claim_id": "c2",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      },
+      {
+        "claim_id": "c3",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      },
+      {
+        "claim_id": "c4",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      }
+    ]
+  },
+  "reaction_trigger_pct": "0.03",
+  "references": [],
+  "risk_budget_usdt": "100",
+  "sha256": "8f28dd5f4bb4e4fbf70df5a97dd50d1de39fad1a2ab25498720a708c4d45743f",
+  "thesis_text": "I think Costco beats on EPS and membership fee growth stays strong, but margins disappoint because of freight costs. I'd put $100 at risk at most."
+}

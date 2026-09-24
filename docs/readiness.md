@@ -17,8 +17,8 @@ work. `PUBLIC/LOCAL` paths must remain usable without Bitget credentials.
 | Ticker search, thesis inputs, risk settings, local persistence | Browser + live calendar/public Reality API | IMPLEMENTED; smoke test recorded an unresolved-time refusal; current BB issuer event is pre-market, so no qualifying after-close sample is available yet |
 | Qwen view classification and narration | Local Qwen key only | VERIFIED in live provider call; sanitized hashes in `evidence/qwen/ledger.jsonl` |
 | Thesis-claim and release-fact extraction | Qwen candidate schema + source-grounding code | IMPLEMENTED and unit-tested; live sample timed out with no candidate; unavailable attempt is sanitized in `evidence/qwen/ledger.jsonl` |
-| Deterministic thesis reconciliation and pre-freeze hash | Local deterministic code + cited evidence | IMPLEMENTED core and unit-tested; Costco freeze artifact is still the next explicit pre-event action |
-| Costco event setup | Costco issuer calendar + live `stock-info` | `RCOSTUSDT` observed after-hours eligible, `weekendTradable: no`; thesis claims are human-reviewed draft input pending freeze |
+| Deterministic thesis reconciliation and pre-freeze hash | Local deterministic code + cited evidence | IMPLEMENTED and unit-tested; frozen Costco artifact `8f28dd5f…` committed at `a69489b…` |
+| Costco event setup | Costco issuer calendar + live `stock-info` | `RCOSTUSDT` observed after-hours eligible, `weekendTradable: no`; thesis frozen, capture pending |
 | Qwen model narration | Local Qwen key + Qwen 3.8 Max | VERIFIED; attached to paper decision and hash-recorded in temporary ledger; deterministic fallback also verified |
 | Deterministic report narration fallback | Local ledger | VERIFIED |
 | Account liveness and UTA Trade permission | Bitget protected UTA v3 | VERIFIED |

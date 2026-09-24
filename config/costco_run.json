@@ -15,5 +15,9 @@
   "baseline_method": "Use the declared pre-close window ending at 16:00 ET; do not anchor it to the unknown release timestamp.",
   "capture_plan": "Capture RCOSTUSDT one-minute market candles and the authenticated raw Reality order book, with exchange and local receipt timestamps, from 15:30 through 20:00 ET on 2026-09-24. Also attempt Reality platform fills if accessible. Capture the public aggregated market order book and generic public SPOT fills only as separately labelled diagnostics; they do not substitute for the raw Reality book or Reality platform fills. If the required raw-book interval is unavailable, any required interval is missing, or the issuer timestamp cannot be verified, mark the run INCOMPLETE.",
   "live_orders_allowed": false,
-  "status": "DRAFT_NOT_FROZEN"
+  "status": "FROZEN",
+  "frozen_thesis_path": "evidence/costco/frozen_thesis.json",
+  "frozen_thesis_sha256": "8f28dd5f4bb4e4fbf70df5a97dd50d1de39fad1a2ab25498720a708c4d45743f",
+  "frozen_at": "2026-09-24T05:22:56.491163Z",
+  "code_commit": "a69489b2b860879707409f0e62c8263bdcc12706"
 }

@@ -1,0 +1,25 @@
+{
+  "event": "COST Q4 FY2026",
+  "symbol": "RCOSTUSDT",
+  "window": {
+    "start": "2026-09-24T05:26:00Z",
+    "end": "2026-09-24T05:27:00Z"
+  },
+  "expected_slots": 1,
+  "captured_slots": 1,
+  "complete_slots": 0,
+  "gap_count": 0,
+  "required_endpoints": ["candles", "reality_orderbook"],
+  "optional_endpoints": ["public_orderbook", "public_fills", "reality_fills"],
+  "observed_endpoint_status": {
+    "candles": "ok",
+    "public_orderbook": "ok",
+    "public_fills": "ok",
+    "reality_orderbook": "blocked_40025",
+    "reality_fills": "blocked_40025"
+  },
+  "status": "INCOMPLETE",
+  "orders_submitted": false,
+  "private_ledger": "data/private/costco-recordings/20260924T052553Z-9c159303/ledger.jsonl",
+  "note": "Public book/fills did not substitute for the required raw Reality order book. This one-minute diagnostic demonstrates the completion gate; it is not the Costco event capture."
+}
