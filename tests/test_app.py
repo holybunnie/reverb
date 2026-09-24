@@ -62,7 +62,10 @@ class AppTests(unittest.TestCase):
         self.assertIn("data-claims-review", events)
         self.assertIn("does not freeze", events)
         self.assertIn("Morning report", report)
-        self.assertIn("Action and refusal", report)
+        self.assertIn("COSTCO · Q4 FY2026", report)
+        self.assertIn("REFUSE", report)
+        self.assertIn("data-human-review", report)
+        self.assertNotIn("NVIDIA", report)
 
     def test_event_workflow_uses_local_live_api_instead_of_a_replay_card(self):
         root = Path(__file__).resolve().parents[1]

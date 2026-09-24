@@ -350,6 +350,19 @@
     }
   }
 
+  const humanReview = $("[data-human-review]");
+  humanReview?.addEventListener("click", () => {
+    const status = $("[data-human-review-status]");
+    const reviewedAt = new Date().toISOString();
+    if (safeWrite("reverb.costcoBriefReview", { reviewed_at: reviewedAt, order_submitted: false })) {
+      humanReview.disabled = true;
+      humanReview.textContent = "Brief reviewed";
+      if (status) status.textContent = `Reviewed at ${reviewedAt}`;
+    } else if (status) {
+      status.textContent = "Could not save the review locally.";
+    }
+  });
+
   $$(".magnetic").forEach((element) => {
     element.addEventListener("pointermove", (event) => {
       const rect = element.getBoundingClientRect();

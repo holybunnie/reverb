@@ -3,10 +3,15 @@ from __future__ import annotations
 import html
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .preview import PreviewSnapshot
+from .costco_report import costco_report_summary, render_costco_morning_brief
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def route(path: str, static: bool) -> str:
@@ -132,9 +137,15 @@ def render_events(snapshot: PreviewSnapshot, replay: Any | None, *, static: bool
 
 
 def render_report_page(snapshot: PreviewSnapshot, replay: Any | None, report_html: str | None, *, static: bool = False) -> str:
-    r = {k: html.escape(v) for k, v in replay_view(replay, "Africa/Lagos").items()}
-    report = report_html or '<div class="empty-state">No checked report is available.</div>'
-    body = f'''<section class="inner-hero report-hero reveal"><span class="eyebrow"><b></b> Morning report</span><h1>What happened.<br>What Reverb refused.</h1><p>Action and refusal receive equal space. Every number below regenerates from the verified replay ledger.</p><div class="report-meta"><span>{r['symbol']} · {r['date']}</span><span class="verified-pill">LEDGER VERIFIED</span></div></section><section class="report-summary reveal delay-1"><article><span>Baseline</span><strong>{r['baseline']}</strong></article><article><span>First crossing</span><strong>{r['observed']}</strong></article><article><span>Observed move</span><strong class="negative">{r['move']}</strong></article><article><span>Risk budget</span><strong>{r['budget']}</strong></article></section><section class="report-stage reveal delay-2">{report}</section><section class="report-disclaimer"><strong>Recorded evidence, not performance.</strong><p>This is one historical event replay. It is not a live fill, a backtest, or a profitability claim.</p><a href="{route('preview', static)}">Inspect source evidence →</a></section>'''
+    costco = costco_report_summary(ROOT)
+    if costco is not None:
+        r = {key: html.escape(value) for key, value in costco.items()}
+        report = render_costco_morning_brief(ROOT) or '<div class="empty-state">No Costco brief is available.</div>'
+        body = f'''<section class="inner-hero report-hero reveal"><span class="eyebrow"><b></b> Morning report</span><h1>What survived.<br>What remains unknown.</h1><p>The Costco forward brief keeps the frozen thesis separate from the unrecorded event result. Every populated number must come from the capture ledger.</p><div class="report-meta"><span>{r['symbol']} · {r['token']} · {r['date']}</span><span class="verified-pill">{r['status']}</span></div></section><section class="report-summary reveal delay-1"><article><span>Baseline</span><strong>{r['baseline']}</strong></article><article><span>First crossing</span><strong>{r['observed']}</strong></article><article><span>Observed move</span><strong>{r['move']}</strong></article><article><span>Risk budget</span><strong>{r['budget']}</strong></article></section><section class="report-stage reveal delay-2">{report}</section><section class="report-disclaimer"><strong>Forward evidence, not performance.</strong><p>The Costco event result is still pending. If a required interval or issuer timestamp is missing, the run remains `INCOMPLETE`; no order is submitted.</p><a href="{route('preview', static)}">Inspect source evidence →</a></section>'''
+    else:
+        r = {k: html.escape(v) for k, v in replay_view(replay, "Africa/Lagos").items()}
+        report = report_html or '<div class="empty-state">No checked report is available.</div>'
+        body = f'''<section class="inner-hero report-hero reveal"><span class="eyebrow"><b></b> Morning report</span><h1>What happened.<br>What Reverb refused.</h1><p>Action and refusal receive equal space. Every number below regenerates from the verified replay ledger.</p><div class="report-meta"><span>{r['symbol']} · {r['date']}</span><span class="verified-pill">LEDGER VERIFIED</span></div></section><section class="report-summary reveal delay-1"><article><span>Baseline</span><strong>{r['baseline']}</strong></article><article><span>First crossing</span><strong>{r['observed']}</strong></article><article><span>Observed move</span><strong class="negative">{r['move']}</strong></article><article><span>Risk budget</span><strong>{r['budget']}</strong></article></section><section class="report-stage reveal delay-2">{report}</section><section class="report-disclaimer"><strong>Recorded evidence, not performance.</strong><p>This is one historical event replay. It is not a live fill, a backtest, or a profitability claim.</p><a href="{route('preview', static)}">Inspect source evidence →</a></section>'''
     return layout(title="Morning report", page="report", body=body, static=static)
 
 
