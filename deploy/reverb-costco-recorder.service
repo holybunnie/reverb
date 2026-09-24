@@ -1,0 +1,19 @@
+[Unit]
+Description=Reverb Costco read-only Reality recorder
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/home/ubuntu/reverb/.env
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/reverb
+EnvironmentFile=/home/ubuntu/reverb/.env
+ExecStart=/home/ubuntu/reverb/.venv/bin/python scripts/costco_recorder.py --start-at 2026-09-24T19:30:00Z --end-at 2026-09-25T00:00:00Z
+Restart=no
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target
