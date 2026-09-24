@@ -1,0 +1,32 @@
+{
+  "event": "COST Q4 FY2026 recorder dry run",
+  "symbol": "RCOSTUSDT",
+  "slot_at": "2026-09-24T06:37:00Z",
+  "status": "COMPLETE",
+  "expected_slots": 1,
+  "captured_slots": 1,
+  "complete_slots": 1,
+  "gap_count": 0,
+  "required_endpoints": [
+    "candles",
+    "public_orderbook"
+  ],
+  "optional_endpoints": [
+    "public_fills",
+    "reality_orderbook",
+    "reality_fills"
+  ],
+  "observed": {
+    "candles": "http_200",
+    "public_orderbook": "http_200_empty_two_sided_depth",
+    "public_fills": "http_200_zero_rows",
+    "reality_orderbook": "blocked_40025_optional",
+    "reality_fills": "blocked_40025_optional"
+  },
+  "public_orderbook_exchange_timestamp": "1790231820887",
+  "config_sha256": "d80cfb496bd073f35892bd8bb0787c531eb959400e8bc0ba4f3b53c33dd9cdf3",
+  "ledger_head": "6f7bbf9c4c2027408e8668d329b07d963c1789e65a52627e732b816c60a1e078",
+  "private_ledger_path": "data/private/costco-recordings/20260924T063658Z-aff0e9d2/ledger.jsonl",
+  "orders_submitted": false,
+  "note": "This read-only diagnostic verifies the corrected completion policy. The public UTA order-book request succeeded but showed no visible RCOST bid or ask levels at this off-window instant; that is a measured liquidity state. Protected Reality routes remained optional provenance and returned 40025. This is not the Costco event capture."
+}

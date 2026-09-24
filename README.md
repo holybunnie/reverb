@@ -18,7 +18,7 @@ The pre-event EPS source check is not yet clean enough to freeze a benchmark: [K
 
 Costco had already published its August sales report on 2 September. The registered thesis does not predict comparable sales, so those previously published sales figures will not be added to or scored against it after the fact. [Costco August sales release](https://investor.costco.com/news/news-details/2026/Costco-Wholesale-Corporation-Reports-August-Sales-Results/default.aspx).
 
-The active registration is [frozen_thesis_v2.json](evidence/costco/frozen_thesis_v2.json) with its [registration manifest](evidence/costco/registration_manifest_v2.json). The original [v1 artifact](evidence/costco/frozen_thesis.json) is preserved: it incorrectly promoted a whitelist-blocked account route over the public UTA depth route already proven by EXNIGHT. The one-minute diagnostic that exposed the regression remains in [the sanitized diagnostic](evidence/costco/diagnostic_20260924T052600Z.json); it is a gate check, not the event result.
+The active registration is [frozen_thesis_v2.json](evidence/costco/frozen_thesis_v2.json) with its [registration manifest](evidence/costco/registration_manifest_v2.json). The original [v1 artifact](evidence/costco/frozen_thesis.json) is preserved: it incorrectly promoted a whitelist-blocked account route over the public UTA depth route already proven by EXNIGHT. A live one-minute v2 proof captured its required candle and public-book requests with no gaps and finished `COMPLETE`; the public RCOST book was empty at that off-window instant, while optional protected routes returned `40025`. [Sanitized v2 diagnostic](evidence/costco/diagnostic_v2_20260924T063700Z.json). This is a gate check, not the event result.
 
 ## Historical validation
 
