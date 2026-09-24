@@ -123,6 +123,14 @@ scheduled trade. BlackBerry's issuer site lists the FY2027 Q2 results event for
 git diff --check
 ```
 
+Costco forward capture (read-only, no order path):
+
+```sh
+./.venv/bin/python scripts/costco_recorder.py \
+  --start-at 2026-09-24T19:30:00Z \
+  --end-at 2026-09-25T00:00:00Z
+```
+
 The scheduler's pre-event action now revalidates the event against the configured
 earnings calendar and dispatches `prepare_spot_position` using public Bitget
 Reality data. It has no order executor. Reaction live writes remain separately

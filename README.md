@@ -81,6 +81,16 @@ The public data probes need no Bitget credentials. Qwen uses the local `QWEN_API
 
 For authenticated Reality-feed diagnostics and the read-only Costco recorder, set all three optional `BITGET_READ_API_KEY`, `BITGET_READ_SECRET_KEY`, and `BITGET_READ_PASSPHRASE` values in the ignored local `.env`. These workflows prefer that separate key and fall back to `BITGET_*` only when the read-key fields are all unset. The trading key remains separate and unchanged.
 
+The forward recorder uses the pre-registered UTC window and has no order path:
+
+```sh
+./.venv/bin/python scripts/costco_recorder.py \
+  --start-at 2026-09-24T19:30:00Z \
+  --end-at 2026-09-25T00:00:00Z
+```
+
+Start it before 19:30 UTC / 20:30 WAT. It records 270 required minute slots and reports `INCOMPLETE` rather than backfilling a late or missing slot.
+
 ## Blocked extension: options
 
 The original options workflow is retained as future work, not as the product's promise. Bitget returned `100001` for this account's protected Stock+ routes; the available options and Reality-token intersection is not verified; and no supported Agent Hub options order operation has been found. Revisit this only after account eligibility, OPRA access, the live contract universe, contract terms, fees, and a supported order path are independently verified. The current research product remains spot-market analysis with a human deciding.
