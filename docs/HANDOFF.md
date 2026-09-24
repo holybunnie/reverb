@@ -102,9 +102,10 @@ scheduled trade. BlackBerry's issuer site lists the FY2027 Q2 results event for
    verified 24/7 Reality-token trading. Capture the order book near 16:05 ET and
    compare against that name's regular-hours median. Current off-window books
    are not a substitute.
-4. Costco forward run: the thesis is frozen in
-   `evidence/costco/frozen_thesis.json` with hash
-   `8f28dd5f4bb4e4fbf70df5a97dd50d1de39fad1a2ab25498720a708c4d45743f`; the
+4. Costco forward run: the active corrected registration is frozen in
+   `evidence/costco/frozen_thesis_v2.json` with hash
+   `bcd4e540fa1e2b46d883f6b63734b418cd533641be03f4eed5fc9877666ea4c6`; the
+   original v1 artifact is preserved and explicitly superseded. The
    15:30–20:00 ET capture, issuer timestamp, reconciliation, and market-quality
    finding still need to be recorded. A missing candle or public UTA book slot
    keeps the run `INCOMPLETE`; a protected-route `40025` response does not.

@@ -17,7 +17,7 @@ work. `PUBLIC/LOCAL` paths must remain usable without Bitget credentials.
 | Ticker search, thesis inputs, risk settings, local persistence | Browser + live calendar/public Reality API | IMPLEMENTED; smoke test recorded an unresolved-time refusal; current BB issuer event is pre-market, so no qualifying after-close sample is available yet |
 | Qwen view classification and narration | Local Qwen key only | VERIFIED in live provider call; sanitized hashes in `evidence/qwen/ledger.jsonl` |
 | Thesis-claim and release-fact extraction | Qwen candidate schema + source-grounding code | IMPLEMENTED and unit-tested; live sample timed out with no candidate; unavailable attempt is sanitized in `evidence/qwen/ledger.jsonl` |
-| Deterministic thesis reconciliation and pre-freeze hash | Local deterministic code + cited evidence | IMPLEMENTED and unit-tested; frozen Costco artifact `8f28dd5f…` committed at `a69489b…` |
+| Deterministic thesis reconciliation and pre-freeze hash | Local deterministic code + cited evidence | IMPLEMENTED and unit-tested; corrected Costco v2 artifact `bcd4e540…` frozen against `301ab322…`; v1 preserved as superseded |
 | Costco morning brief and human review control | Frozen thesis + event ledger + local browser | IMPLEMENTED for the pending state; `/report` shows the five required sections, refuses on missing event evidence, and records review locally without an order |
 | Historical corpus and threshold distribution | Committed replay evidence | IMPLEMENTED as an honest inventory: 1 distinct event, insufficient for validation; no extraction-accuracy subset yet |
 | Costco event setup | Costco issuer calendar + live `stock-info` | `RCOSTUSDT` observed after-hours eligible, `weekendTradable: no`; thesis frozen, capture pending |
