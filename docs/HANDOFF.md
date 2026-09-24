@@ -43,6 +43,9 @@ scheduled trade. BlackBerry's issuer site lists the FY2027 Q2 results event for
 
 - Separate landing, workspace/dashboard, events, report, connection, replay,
   and evidence pages with responsive styling and reduced-motion support.
+- The report surface now leads with the frozen Costco brief: thesis status,
+  pending market/capture gate, market-quality placeholder, deterministic
+  `REFUSE`, and a browser-local human-review control that cannot submit an order.
 - Current-week ticker/company search, event selection, local-time conversion,
   and displayed exact/assumed/unresolved timing provenance.
 - Direction, user-entered expected move and risk budget; Qwen may classify

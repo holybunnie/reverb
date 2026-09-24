@@ -18,6 +18,7 @@ work. `PUBLIC/LOCAL` paths must remain usable without Bitget credentials.
 | Qwen view classification and narration | Local Qwen key only | VERIFIED in live provider call; sanitized hashes in `evidence/qwen/ledger.jsonl` |
 | Thesis-claim and release-fact extraction | Qwen candidate schema + source-grounding code | IMPLEMENTED and unit-tested; live sample timed out with no candidate; unavailable attempt is sanitized in `evidence/qwen/ledger.jsonl` |
 | Deterministic thesis reconciliation and pre-freeze hash | Local deterministic code + cited evidence | IMPLEMENTED and unit-tested; frozen Costco artifact `8f28dd5f…` committed at `a69489b…` |
+| Costco morning brief and human review control | Frozen thesis + event ledger + local browser | IMPLEMENTED for the pending state; `/report` shows the five required sections, refuses on missing event evidence, and records review locally without an order |
 | Costco event setup | Costco issuer calendar + live `stock-info` | `RCOSTUSDT` observed after-hours eligible, `weekendTradable: no`; thesis frozen, capture pending |
 | Qwen model narration | Local Qwen key + Qwen 3.8 Max | VERIFIED; attached to paper decision and hash-recorded in temporary ledger; deterministic fallback also verified |
 | Deterministic report narration fallback | Local ledger | VERIFIED |
