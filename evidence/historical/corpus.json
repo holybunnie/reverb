@@ -1,0 +1,42 @@
+{
+  "budget_violations_accepted": 0,
+  "complete_replays": 1,
+  "deterministic_rerun_matches": 1,
+  "events": [
+    {
+      "baseline_window_complete": true,
+      "deterministic_decision": "HOLD",
+      "event": "NVDA 2026-08-26T20:20:00+00:00",
+      "extraction_accuracy": "NOT_MEASURED",
+      "issuer_timestamp_status": "issuer_confirmed",
+      "largest_move_abs_pct": "0.02967267986668347793402211950",
+      "largest_move_pct": "-0.02967267986668347793402211950",
+      "orders_submitted": false,
+      "replay_directory": "20260923T122959.089784Z-448cf031",
+      "rerun_matches_exactly": true,
+      "symbol": "NVDA",
+      "token_symbol": "RNVDAUSDT",
+      "trigger_crossed_at_production_3pct": false,
+      "trigger_pct": "0.03"
+    }
+  ],
+  "events_attempted": 1,
+  "extracted_numbers_not_found_in_source": 0,
+  "extraction_accuracy_on_verified_subset": "NOT_MEASURED",
+  "issuer_confirmed_timestamps": 1,
+  "note": "This is an honest inventory, not profitability validation. Repeated captures of the same event are deduplicated and no events are padded into the corpus.",
+  "production_threshold": "3%",
+  "production_threshold_selected_after_distribution": false,
+  "refused_with_reasons": 0,
+  "scope": "Distinct verified earnings replay events in the committed repository",
+  "stale_data_decisions_accepted": 0,
+  "status": "INSUFFICIENT_FOR_VALIDATION",
+  "target_events": "30-50",
+  "threshold_distribution": {
+    "1%": 1,
+    "2%": 1,
+    "3%": 0,
+    "4%": 0,
+    "5%": 0
+  }
+}

@@ -28,6 +28,8 @@ The frozen registration is [the thesis artifact](evidence/costco/frozen_thesis.j
 | Production trigger | `3%`; the `−2.97%` move did not cross it, so Reverb held and did not act |
 | Orders in the replay | `0` |
 | Replay verification | Rebuilt from the captured issuer pages and Bitget candles; checked ledger at `evidence/replays/20260923T122959.089784Z-448cf031/` |
+| Historical corpus inventory | `1` distinct verified event after deduplication; `INSUFFICIENT_FOR_VALIDATION`. Threshold crossings: 1% `1`, 2% `1`, 3% `0`, 4% `0`, 5% `0`; full report at `evidence/historical/corpus.json` |
+| Extraction accuracy subset | `NOT MEASURED`; no hand-verified multi-event extraction subset exists yet |
 | Qwen live check | Verified on 23 September 2026; sanitized hashes at `evidence/qwen/ledger.jsonl`; no Bitget account or order calls |
 | Live Qwen thesis extraction | Attempted with the configured key; first sandbox call could not connect, and the network-enabled call timed out. No candidate extraction was produced; the sanitized unavailable attempt is recorded in `evidence/qwen/ledger.jsonl`. The frozen claim set is explicitly human-approved, not model-authored |
 | Costco Reality token | `RCOSTUSDT` appeared in the live Reality instrument list; Bitget `stock-info` returned `tradingPeriod` including after-hours and `weekendTradable: no`, captured at `evidence/runs/20260923T115045.662310Z-11d40a83/` |
