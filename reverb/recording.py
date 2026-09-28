@@ -22,7 +22,10 @@ from .ledger import Ledger
 # routes remain useful provenance when the account is whitelisted, but a 40025
 # response from them must not invalidate an otherwise complete market capture.
 REQUIRED_ENDPOINTS = ("candles", "public_orderbook")
-OPTIONAL_ENDPOINTS = ("public_fills", "reality_orderbook", "reality_fills")
+OPTIONAL_ENDPOINTS = ("ticker", "public_fills", "reality_orderbook", "reality_fills")
+# A successful order-book response can still be empty. On 24 September RCOST
+# returned zero public levels in all 270 slots while the ticker carried a live
+# bid1/ask1, so depth visibility is reported separately from slot completeness.
 
 
 def utc_now() -> datetime:
@@ -46,6 +49,8 @@ def exchange_timestamps(endpoint: str, response_body: bytes) -> list[str]:
     data = payload.get("data")
     if endpoint == "candles" and isinstance(data, list):
         return [str(row[0]) for row in data if isinstance(row, list) and row and row[0] not in (None, "")]
+    if endpoint == "ticker" and isinstance(data, list):
+        return [str(row["ts"]) for row in data if isinstance(row, dict) and row.get("ts") not in (None, "")]
     if endpoint in {"public_orderbook", "reality_orderbook"} and isinstance(data, dict):
         value = data.get("ts") or data.get("timestamp")
         return [str(value)] if value not in (None, "") else []
@@ -60,6 +65,15 @@ def exchange_timestamps(endpoint: str, response_body: bytes) -> list[str]:
                 stamps.append(str(value))
         return stamps
     return []
+
+
+def book_levels(result: Any) -> int | None:
+    """Total bid+ask levels in an order-book result; None if not a book."""
+    if not isinstance(result, dict):
+        return None
+    sides = [result.get(key) for key in ("a", "b", "asks", "bids")]
+    lists = [side for side in sides if isinstance(side, list)]
+    return sum(len(side) for side in lists) if lists else None
 
 
 def exchange_response_timestamp(response_body: bytes) -> str | None:
@@ -199,7 +213,8 @@ class EventRecorder:
         return {"endpoint": endpoint, "success": success, "record_hash": record["hash"],
                 "exchange_timestamps": source_stamps,
                 "exchange_response_timestamp": exchange_response_at,
-                "result_present": result is not None}
+                "result_present": result is not None,
+                "book_levels": book_levels(result)}
 
     def capture_slot(self, slot_at: datetime) -> dict[str, Any]:
         outcomes = [
@@ -207,6 +222,8 @@ class EventRecorder:
                        lambda: self.client.candles(self.symbol, interval="1m", candle_type="market", limit=100)),
             self._call("public_orderbook", slot_at,
                        lambda: self.client.orderbook(self.symbol, limit=50)),
+            self._call("ticker", slot_at,
+                       lambda: self.client.ticker(self.symbol)),
             self._call("public_fills", slot_at,
                        lambda: self.client.public_fills(self.symbol, limit=100)),
             self._call("reality_orderbook", slot_at,
@@ -220,9 +237,11 @@ class EventRecorder:
             and bool(row["exchange_timestamps"])
             for row in required
         )
+        book = next(row for row in outcomes if row["endpoint"] == "public_orderbook")
         marker = self.ledger.append("capture_slot", {
             "slot_at": iso_utc(slot_at),
             "complete": complete,
+            "public_book_levels": book["book_levels"],
             "required_endpoints": list(REQUIRED_ENDPOINTS),
             "optional_endpoints": list(OPTIONAL_ENDPOINTS),
             "endpoint_results": outcomes,
@@ -235,6 +254,9 @@ class EventRecorder:
         slots = [row["payload"] for row in rows if row["kind"] == "capture_slot"]
         gaps = [row["payload"] for row in rows if row["kind"] == "capture_gap"]
         complete_slots = sum(bool(row["complete"]) for row in slots)
+        visible_depth_slots = sum(bool(row.get("public_book_levels")) for row in slots)
+        depth_status = ("MEASURED" if slots and visible_depth_slots == len(slots)
+                        else "PARTIAL" if visible_depth_slots else "NOT_VISIBLE")
         status = "COMPLETE" if (
             not interrupted and len(slots) == expected_slots and complete_slots == expected_slots and not gaps
         ) else "INCOMPLETE"
@@ -246,9 +268,12 @@ class EventRecorder:
             "captured_slots": len(slots),
             "complete_slots": complete_slots,
             "gap_count": len(gaps),
+            "visible_depth_slots": visible_depth_slots,
+            "depth_status": depth_status,
             "interrupted": interrupted,
             "ledger_head_before_completion": rows[-1]["hash"] if rows else None,
         })
         return {"status": status, "expected_slots": expected_slots,
                 "captured_slots": len(slots), "complete_slots": complete_slots,
-                "gap_count": len(gaps), "ledger_head": end["hash"]}
+                "gap_count": len(gaps), "visible_depth_slots": visible_depth_slots,
+                "depth_status": depth_status, "ledger_head": end["hash"]}

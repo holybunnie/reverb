@@ -16,9 +16,13 @@ STAMP = "1790278200000"
 
 
 class RecordingTests(unittest.TestCase):
-    def _client(self, *, blocked=False):
+    def _client(self, *, blocked=False, empty_book=False):
         candle = {"code": "00000", "requestTime": STAMP, "data": [[STAMP, "900", "901", "899", "900", "1", "900", "1", "1"]]}
-        book = {"code": "00000", "requestTime": STAMP, "data": {"ts": STAMP, "bids": [["899", "2"]], "asks": [["901", "3"]]}}
+        levels = {"bids": [], "asks": []} if empty_book else {"bids": [["899", "2"]], "asks": [["901", "3"]]}
+        book = {"code": "00000", "requestTime": STAMP, "data": {"ts": STAMP, **levels}}
+        ticker = {"code": "00000", "requestTime": STAMP, "data": [
+            {"symbol": "RCOSTUSDT", "ts": STAMP, "bid1Price": "899", "ask1Price": "901"},
+        ]}
         reality = {"code": "00000", "requestTime": STAMP, "data": {
             "symbol": "RCOSTUSDT", "ts": STAMP, "b": [["899", "2"]], "a": [["901", "3"]],
         }}
@@ -31,6 +35,8 @@ class RecordingTests(unittest.TestCase):
                 return httpx.Response(200, json=candle)
             if request.url.path.endswith("/market/orderbook"):
                 return httpx.Response(200, json=book)
+            if request.url.path.endswith("/market/tickers"):
+                return httpx.Response(200, json=ticker)
             if request.url.path.endswith("/market/fills"):
                 return httpx.Response(200, json=fills)
             if request.url.path.endswith("/account/reality-orderbook") and blocked:
@@ -64,10 +70,10 @@ class RecordingTests(unittest.TestCase):
                 client.close()
         self.assertTrue(result["complete"])
         self.assertEqual({row["endpoint"] for row in result["endpoint_results"]}, {
-            "candles", "public_orderbook", "public_fills", "reality_orderbook", "reality_fills",
+            "candles", "public_orderbook", "ticker", "public_fills", "reality_orderbook", "reality_fills",
         })
         attempts = [row["payload"] for row in records if row["kind"] == "capture_attempt"]
-        self.assertEqual(len(attempts), 5)
+        self.assertEqual(len(attempts), 6)
         self.assertTrue(all(row["request_sent_at"] and row["response_received_at"] for row in attempts))
         self.assertTrue(all(row["exchange_response_timestamp"] == STAMP for row in attempts))
         self.assertTrue(all(row["body"] and row["body_sha256"] for row in attempts))
@@ -158,6 +164,25 @@ class RecordingTests(unittest.TestCase):
                 client.close()
         self.assertEqual(summary["status"], "INCOMPLETE")
         self.assertEqual(summary["captured_slots"], 1)
+
+    def test_empty_public_book_is_complete_but_depth_not_visible(self):
+        with TemporaryDirectory() as temp:
+            directory = Path(temp) / "capture"
+            client, trace = self._client(empty_book=True)
+            recorder = EventRecorder(directory=directory, config={"symbol": "RCOSTUSDT"},
+                                     config_bytes=b'{"symbol":"RCOSTUSDT"}\n', client=client,
+                                     trace=trace, symbol="RCOSTUSDT")
+            try:
+                slot = recorder.capture_slot(NOW)
+                summary = recorder.finish(expected_slots=1, end_at=NOW, interrupted=False)
+            finally:
+                client.close()
+        self.assertTrue(slot["complete"])
+        self.assertEqual(summary["status"], "COMPLETE")
+        self.assertEqual(summary["visible_depth_slots"], 0)
+        self.assertEqual(summary["depth_status"], "NOT_VISIBLE")
+        ticker = next(row for row in slot["endpoint_results"] if row["endpoint"] == "ticker")
+        self.assertTrue(ticker["success"])
 
 
 if __name__ == "__main__":
