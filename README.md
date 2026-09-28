@@ -14,10 +14,12 @@ On 24 September 2026, Reverb froze a Costco thesis about 14 hours before Q4 resu
 | --- | --- |
 | **Thesis frozen** | `06:30 UTC`, hash `bcd4e540…`, before any result was public |
 | **Market captured** | `270/270` one-minute RCOSTUSDT slots, `0` gaps, hash-chained ledger |
-| **Claims scored** | Membership fees up year over year: **confirmed** (`$1,850M` vs `$1,724M`, [8-K Exhibit 99.1](https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9918-k92426.htm)) |
-| **Refused to guess** | EPS, margin, and freight stayed visible but unscored, because no fair benchmark or verbatim figure existed |
+| **Claims scored** | Frozen rules: `1/1` confirmed, membership fees `$1,850M` vs `$1,724M` ([8-K Exhibit 99.1](https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9918-k92426.htm)). With one disclosed post-release rule: `2/2`, adding margin, which Costco itself states as `11.02%, -11 bps vs Q4 FY'25` ([Exhibit 99.2](https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9928-k92426.htm)) |
+| **Freight** | **Not attributed.** Costco's release and deck never link the margin change to freight, so that part of the thesis did not survive |
+| **EPS** | **No fair benchmark.** Reported `$6.75` includes a stated `$0.15` one-off; no consensus on a matching basis was frozen in advance, so Reverb declines to grade it rather than pick a number after the fact |
 | **Market reaction** | Peak `+1.17%` at 16:15 ET, under the `3%` trigger |
 | **Decision** | **HOLD**, with `0` orders. The human decides |
+| **Model, measured** | Live Qwen thesis extraction matched the human claim set on variable and comparison `4/4`. On the release, `4/5` live runs returned valid facts but `0/5` chose the quarter: every run cited 52-week fees. The code caught it, which is why the model never scores |
 
 Everything above regenerates from committed evidence. Where the evidence was missing, the brief says so: the exact release time and event-time depth are marked not measured, and the run is honestly labelled `INCOMPLETE`.
 
@@ -36,8 +38,8 @@ The Costco Q4 FY2026 event ran on 24 September 2026, after the US close, against
 | Capture | `270` of `270` one-minute slots, `0` gaps; recorder status `COMPLETE` ([summary](evidence/costco/capture_summary.json)) |
 | Reaction | Baseline `$896.48` (candle ending 16:00 ET); peak `+1.17%` at `16:15 ET`, low `−0.30%`, last `+0.17%` at `19:58 ET` |
 | Decision | The `3%` trigger was not crossed, so Reverb held; orders `0` |
-| Thesis | `1` of `1` scoreable claims confirmed: membership fees `$1,850M` vs `$1,724M` ([reconciliation](evidence/costco/post_event/reconciliation.json)) |
-| Unscored | EPS (no matching-basis consensus frozen); margin (release states no margin figure verbatim; derived gross margin fell from `11.13%` to `11.02%`); freight (not mentioned in the release) |
+| Thesis | Frozen rules: `1` of `1` scoreable claims confirmed (membership fees `$1,850M` vs `$1,724M`). Disclosed addendum `ISSUER_STATED_CHANGE`, added 28 Sep after the release and reported separately: `2` of `2`, margin `-11 bps` per Exhibit 99.2 ([reconciliation](evidence/costco/post_event/reconciliation.json)) |
+| Not graded | EPS: no fair benchmark was frozen (reported `$6.75` includes a stated `$0.15` one-off). Freight: not attributed by Costco in the release or deck |
 | Release time | Costco's [8-K Exhibit 99.1](https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9918-k92426.htm) was accepted by EDGAR at `16:17:37 ET`, an upper bound only |
 | Depth | All `270` public order-book snapshots returned `0` levels while RCOST traded, so event-time spread and depth are **not measured** |
 
@@ -49,7 +51,7 @@ The pre-event EPS source check is not yet clean enough to freeze a benchmark: [K
 
 Costco had already published its August sales report on 2 September. The registered thesis does not predict comparable sales, so those previously published sales figures will not be added to or scored against it after the fact. [Costco August sales release](https://investor.costco.com/news/news-details/2026/Costco-Wholesale-Corporation-Reports-August-Sales-Results/default.aspx).
 
-The active registration is [frozen_thesis_v2.json](evidence/costco/frozen_thesis_v2.json) with its [registration manifest](evidence/costco/registration_manifest_v2.json). The original [v1 artifact](evidence/costco/frozen_thesis.json) is preserved: it incorrectly promoted a whitelist-blocked account route over the public UTA depth route already proven by EXNIGHT. A live one-minute v2 proof captured its required candle and public-book requests with no gaps and finished `COMPLETE`; the public RCOST book was empty at that off-window instant, while optional protected routes returned `40025`. [Sanitized v2 diagnostic](evidence/costco/diagnostic_v2_20260924T063700Z.json). This is a gate check, not the event result.
+The active registration is [frozen_thesis_v2.json](evidence/costco/frozen_thesis_v2.json) with its [registration manifest](evidence/costco/registration_manifest_v2.json). The original [v1 artifact](evidence/costco/frozen_thesis.json) is preserved: it incorrectly promoted a whitelist-blocked account route over the public UTA depth route. The capture route was chosen from prior testing of Bitget's public order-book endpoint. A live one-minute v2 proof captured its required candle and public-book requests with no gaps and finished `COMPLETE`; the public RCOST book was empty at that off-window instant, while optional protected routes returned `40025`. [Sanitized v2 diagnostic](evidence/costco/diagnostic_v2_20260924T063700Z.json). This is a gate check, not the event result.
 
 ## Historical validation
 
@@ -62,7 +64,7 @@ The active registration is [frozen_thesis_v2.json](evidence/costco/frozen_thesis
 | Historical corpus inventory | `1` distinct verified event after deduplication; `INSUFFICIENT_FOR_VALIDATION`. Threshold crossings: 1% `1`, 2% `1`, 3% `0`, 4% `0`, 5% `0`; full report at `evidence/historical/corpus.json` |
 | Extraction accuracy subset | `NOT MEASURED`; no hand-verified multi-event extraction subset exists yet |
 | Qwen live check | Verified on 23 September 2026; sanitized hashes at `evidence/qwen/ledger.jsonl`; no Bitget account or order calls |
-| Live Qwen thesis extraction | Attempted with the configured key; first sandbox call could not connect, and the network-enabled call timed out. No candidate extraction was produced; the sanitized unavailable attempt is recorded in `evidence/qwen/ledger.jsonl`. The frozen claim set is explicitly human-approved, not model-authored |
+| Live Qwen thesis extraction | Verified on 28 September 2026 after disabling the reasoning trace for schema-bound calls (it had caused the earlier timeouts). Candidates matched the approved claims on variable and comparison `4/4`; claim type differed (`FORWARD_EXPECTATION` vs approved `QUARTER_FACT`). Sanitized hashes in `evidence/qwen/ledger.jsonl`; the frozen claims remain human-approved |
 | Costco Reality token | `RCOSTUSDT` appeared in the live Reality instrument list; Bitget `stock-info` returned `tradingPeriod` including after-hours and `weekendTradable: no`, captured at `evidence/runs/20260923T115045.662310Z-11d40a83/` |
 
 The NVIDIA result is one historical replay, not a strategy test or profitability evidence. The separate 22 September `RCAPRUSDT` fill proved the human-approved Agent Hub transport only; it was not a Reverb earnings trade. Its receipt is in `evidence/live/20260922T103212Z/`.
@@ -80,11 +82,11 @@ Before a report, the user writes a thesis and reviews the claims Reverb extracts
 - **OBSERVED:** a small, manually approved Reality-stock limit order filled through Agent Hub. This is transport proof only, not an earnings strategy result.
 - **OBSERVED:** the checked NVIDIA historical event did not reach the production 3% trigger. No order was submitted.
 - **OBSERVED:** Bitget's public instrument and `stock-info` endpoints list `RCOSTUSDT` and show after-hours trading eligibility; `weekendTradable` is `no`.
-- **OBSERVED:** the dedicated read key authenticates as read-only with both UTA Trade and UTA Management enabled, but the account-scoped Reality book/fills routes return `40025`. The successful EXNIGHT build established Bitget's public UTA v3 SPOT order book as the working Reality-token depth route, so candles plus that public book are required; protected book/fills and generic public fills are optional, separately labelled provenance. [Sanitized access evidence](evidence/reality-access/ledger.jsonl).
+- **OBSERVED:** the dedicated read key authenticates as read-only with both UTA Trade and UTA Management enabled, but the account-scoped Reality book/fills routes return `40025`. Reverb's own probe returned a 50-by-50 two-sided RNVDA book from Bitget's public UTA v3 SPOT order book, establishing it as the working Reality-token depth route, so candles plus that public book are required; protected book/fills and generic public fills are optional, separately labelled provenance. [Sanitized access evidence](evidence/reality-access/ledger.jsonl).
 - **OBSERVED, public depth snapshot:** the 14:14 UTC read-only probe recorded 0 public bid/ask levels for RCOST and 50/50 levels for RNVDA. An empty successful RCOST response is a measured no-visible-depth state, not an authentication failure. These are off-window diagnostics in [the access ledger](evidence/reality-access/ledger.jsonl), not event-time measurements.
-- **NOT MEASURED:** the exact Costco release timestamp (only the 16:17:37 ET 8-K upper bound is verified) and Costco event-time spread and depth: the public RCOST book returned no levels in any of the 270 slots even though the ticker carries a live best bid/ask. The recorder now also captures the ticker and reports depth visibility separately from slot completeness.
+- **NOT MEASURED:** the exact Costco release timestamp (the 16:17:37 ET 8-K acceptance is an upper bound) and event-time depth on the public book route, which returned no RCOST levels. The recorder now captures the ticker's best bid/ask and has been verified live.
 - **NOT YET MEASURED:** the historical earnings corpus size, and extraction accuracy on a hand-verified subset.
-- **OBSERVED:** the Costco reconciliation against the issuer's 8-K release confirms the one scoreable claim (membership fees up year over year). EPS, margin, and freight claims remain unscored under the frozen rules; the August comparable-sales context is not a registered claim and is not scored.
+- **OBSERVED:** the Costco reconciliation confirms the one claim scoreable under the frozen rules (membership fees). A disclosed post-release addendum also confirms margin from Costco's own Exhibit 99.2 statement; it is reported separately and never overwrites a frozen result. EPS stays unscored and freight is not attributed; the August comparable-sales context is not a registered claim and is not scored.
 - **BLOCKED EXTENSION:** Stock+ options. This account's protected Stock+ routes return `100001` (“U.S. stock trading is not enabled for this account”); the option/token intersection and an Agent Hub options write tool are unverified. Options are not part of the current product path.
 
 Reverb does not claim Bitget is the only venue with extended-hours trading, and it makes no profitability claim. See the [feasibility record](docs/m0.md), [readiness matrix](docs/readiness.md), and [specification corrections](docs/corrections.md).

@@ -17,8 +17,8 @@ from .errors import BitgetAPIError
 from .ledger import Ledger
 
 
-# The public UTA v3 SPOT order-book route is the proven Reality-token depth
-# source used by the successful EXNIGHT capture. The account-scoped Reality
+# The public UTA v3 SPOT order-book route is the Reality-token depth source
+# (it returned a two-sided RNVDA book in the access probe). The account-scoped Reality
 # routes remain useful provenance when the account is whitelisted, but a 40025
 # response from them must not invalidate an otherwise complete market capture.
 REQUIRED_ENDPOINTS = ("candles", "public_orderbook")
