@@ -135,3 +135,7 @@ After the event, derive the sanitized summary and reconcile against the issuer f
 ## Blocked extension: options
 
 The original options workflow is retained as future work, not as the product's promise. Bitget returned `100001` for this account's protected Stock+ routes; the available options and Reality-token intersection is not verified; and no supported Agent Hub options order operation has been found. Revisit this only after account eligibility, OPRA access, the live contract universe, contract terms, fees, and a supported order path are independently verified. The current research product remains spot-market analysis with a human deciding.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
