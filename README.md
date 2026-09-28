@@ -6,7 +6,26 @@ Write down what you believe before the earnings report. Reverb checks it against
 
 Most earnings tools tell you what happened. Reverb tells you whether your view survived—and does not score you on facts that were already public when you wrote it.
 
-[Open the workspace](https://holybunnie.github.io/reverb/app/) · [See the verified replay](https://holybunnie.github.io/reverb/demo/) · [Browse the evidence](https://holybunnie.github.io/reverb/preview/)
+### It ran on a live earnings report
+
+On 24 September 2026, Reverb froze a Costco thesis about 14 hours before Q4 results and hashed it. Then it recorded the Reality-token market through the release and scored the thesis against Costco's own SEC filing.
+
+| | |
+| --- | --- |
+| **Thesis frozen** | `06:30 UTC`, hash `bcd4e540…`, before any result was public |
+| **Market captured** | `270/270` one-minute RCOSTUSDT slots, `0` gaps, hash-chained ledger |
+| **Claims scored** | Membership fees up year over year: **confirmed** (`$1,850M` vs `$1,724M`, [8-K Exhibit 99.1](https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9918-k92426.htm)) |
+| **Refused to guess** | EPS, margin, and freight stayed visible but unscored, because no fair benchmark or verbatim figure existed |
+| **Market reaction** | Peak `+1.17%` at 16:15 ET, under the `3%` trigger |
+| **Decision** | **HOLD**, with `0` orders. The human decides |
+
+Everything above regenerates from committed evidence. Where the evidence was missing, the brief says so: the exact release time and event-time depth are marked not measured, and the run is honestly labelled `INCOMPLETE`.
+
+[Read the Costco morning brief](https://holybunnie.github.io/reverb/report/) · [Open the workspace](https://holybunnie.github.io/reverb/app/) · [See the verified replay](https://holybunnie.github.io/reverb/demo/) · [Browse the evidence](https://holybunnie.github.io/reverb/preview/)
+
+### Why this design
+
+The language model reads and explains; it never supplies a number or picks a trade. Every score comes from deterministic code checking verbatim issuer text, so the brief can't invent a result. For a desk that will eventually touch real orders, that boundary is the feature.
 
 ## Costco forward run
 
