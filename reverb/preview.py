@@ -196,7 +196,7 @@ h1 {{ max-width:760px; font-size:clamp(38px,7vw,76px); line-height:.98; letter-s
 <div class="notice"><strong>Honest status:</strong> option eligibility, the options/Reality intersection, earnings-window measurements, and fills are not verified yet. Reverb will not turn this capture into a fake trade.</div>
 <section class="section"><h2>What the capture observed</h2><p>Live order-book diagnostics selected from the runtime Reality universe. Displayed depth is not a guaranteed fill.</p>
 <table><thead><tr><th>Symbol</th><th>Spread</th><th>Displayed bid / ask value</th><th>Book age</th><th>Freshness</th></tr></thead><tbody>{rows}</tbody></table></section>
-<section class="section"><h2>What was refused</h2><ul>{failures}</ul><p>The refusal is part of the product: missing eligibility or incomplete event evidence is a halt, not an invitation to guess.</p></section>
+<section class="section"><h2>What was refused</h2><ul>{failures}</ul><p>The refusal is part of the product: missing eligibility or missing event evidence is a halt, not an invitation to guess.</p></section>
 <section class="section"><h2>Reproduce it</h2><p>From the repository, run <code>python3 scripts/probe.py report --check</code> to verify the published table against the hash-chained capture, or start this page with <code>./.venv/bin/python scripts/preview_server.py</code>.</p></section>
 <footer>Capture <code>{html.escape(snapshot.run_id)}</code> · ledger head <code>{html.escape(snapshot.ledger_head[:16])}…</code> · completed {html.escape(snapshot.captured_at)}</footer>
 </main></body></html>"""

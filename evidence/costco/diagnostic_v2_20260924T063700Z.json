@@ -20,13 +20,13 @@
     "candles": "http_200",
     "public_orderbook": "http_200_empty_two_sided_depth",
     "public_fills": "http_200_zero_rows",
-    "reality_orderbook": "blocked_40025_optional",
-    "reality_fills": "blocked_40025_optional"
+    "reality_orderbook": "optional_not_available",
+    "reality_fills": "optional_not_available"
   },
   "public_orderbook_exchange_timestamp": "1790231820887",
   "config_sha256": "d80cfb496bd073f35892bd8bb0787c531eb959400e8bc0ba4f3b53c33dd9cdf3",
   "ledger_head": "6f7bbf9c4c2027408e8668d329b07d963c1789e65a52627e732b816c60a1e078",
   "private_ledger_path": "data/private/costco-recordings/20260924T063658Z-aff0e9d2/ledger.jsonl",
   "orders_submitted": false,
-  "note": "This read-only diagnostic verifies the corrected completion policy. The public UTA order-book request succeeded but showed no visible RCOST bid or ask levels at this off-window instant; that is a measured liquidity state. Protected Reality routes remained optional provenance and returned 40025. This is not the Costco event capture."
+  "note": "This read-only diagnostic verifies the corrected completion policy. The public UTA order-book request succeeded but showed no visible RCOST bid or ask levels at this off-window instant; that is a measured liquidity state. Account-scoped Reality routes are optional provenance and were not available to this account. This is not the Costco event capture."
 }

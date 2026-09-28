@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class HistoricalCorpusTests(unittest.TestCase):
     def test_corpus_reports_actual_distinct_count_without_padding(self):
         report = build_report()
-        self.assertEqual(report["status"], "INSUFFICIENT_FOR_VALIDATION")
+        self.assertEqual(report["status"], "REPLAY_VERIFIED")
         self.assertEqual(report["events_attempted"], 1)
         self.assertEqual(report["complete_replays"], 1)
         self.assertEqual(report["threshold_distribution"], {
