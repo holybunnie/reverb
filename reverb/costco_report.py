@@ -23,6 +23,9 @@ def load_costco_thesis(root: Path) -> FrozenThesis | None:
     return thesis
 
 
+CONFIRMED_ATTR = ' data-s="c"'
+
+
 def _evidence(root: Path, name: str) -> dict | None:
     path = root / "evidence" / "costco" / name
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
@@ -30,6 +33,27 @@ def _evidence(root: Path, name: str) -> dict | None:
 
 def _pct(value: float) -> str:
     return f"{value:+.2f}%".replace("-", "−")
+
+
+def costco_headline(root: Path) -> dict | None:
+    """Landing-page facts for the recorded Costco run, or None while pending."""
+    capture = _evidence(root, "capture_summary.json")
+    reconciliation = _evidence(root, "post_event/reconciliation.json")
+    if not capture or not reconciliation:
+        return None
+    tally = reconciliation["reconciliation"]
+    return {
+        "peak": _pct(capture["reaction"]["max_pct"]),
+        "trigger": f"{capture['reaction']['trigger_pct']:.0f}%",
+        "decision": "HOLD" if not capture["reaction"]["trigger_crossed"] else "REVIEW",
+        "slots": f"{capture['slots']['complete']}/{capture['slots']['expected']}",
+        "scored": f"{tally['scored_confirmed']} of {tally['scored_total']}",
+        "orders": str(capture["orders"]),
+        "run_status": capture["run_status"],
+        "hash": reconciliation["frozen_thesis_sha256"][:8],
+        "claims": [(row["text"], row["status"] if row["scored"] else "UNSCORED")
+                   for row in tally["claims"]],
+    }
 
 
 def costco_report_summary(root: Path) -> dict[str, str] | None:
@@ -74,7 +98,7 @@ def render_costco_morning_brief(root: Path) -> str | None:
         rows.append(
             "<tr>"
             f"<td>{html.escape(claim.text)}</td>"
-            f"<td><strong>{html.escape(status)}</strong></td>"
+            f"<td><strong{CONFIRMED_ATTR if status == 'CONFIRMED' else ''}>{html.escape(status)}</strong></td>"
             f"<td>{html.escape(detail)}</td>"
             "</tr>"
         )

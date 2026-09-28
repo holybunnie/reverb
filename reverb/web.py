@@ -8,7 +8,7 @@ from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .preview import PreviewSnapshot
-from .costco_report import costco_report_summary, render_costco_morning_brief
+from .costco_report import costco_headline, costco_report_summary, render_costco_morning_brief
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,35 +77,126 @@ def replay_view(replay: Any | None, timezone_name: str | None = None) -> dict[st
             "risk_fill": f"{fill:.1f}"}
 
 
-def layout(*, title: str, page: str, body: str, static: bool = False, description: str = "Write down what you believe before earnings. Reverb checks it against the release and market reaction; you decide.") -> str:
-    nav = [("How it works", "#how" if page == "home" else route("", static) + "#how"), ("Workspace", route("app", static)),
-           ("Events", route("events", static)), ("Report", route("report", static)), ("Evidence", route("preview", static))]
-    links = "".join(f'<a class="nav-link {"active" if page == key else ""}" href="{href}">{label}</a>'
-                    for (label, href), key in zip(nav, ["how", "app", "events", "report", "preview"]))
+APP_NAV = (
+    ("Desk", (("app", "Overview"), ("events", "Thesis desk"), ("report", "Morning brief"))),
+    ("Proof", (("demo", "Verified replay"), ("preview", "Evidence"))),
+    ("Setup", (("connect", "Connect locally"),)),
+)
+CURRENT = ' aria-current="page"'
+DESCRIPTION = "Write down what you believe before earnings. Reverb checks it against the release and market reaction; you decide."
+
+
+def _head(title: str, static: bool, description: str) -> str:
     return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#07110f"><meta name="description" content="{html.escape(description)}"><meta name="color-scheme" content="dark">
-<title>{html.escape(title)} · Reverb</title><link rel="stylesheet" href="{route('assets/styles.css', static)}"></head>
-<body data-page="{page}"><div class="noise" aria-hidden="true"></div><header class="site-header"><a class="brand" href="{route('', static)}"><span class="brand-signal"><i></i><i></i><i></i></span><span>reverb</span></a><nav>{links}</nav><a class="header-cta" href="{route('app', static)}">Open workspace <span>↗</span></a><button class="menu" aria-label="Open navigation">Menu</button></header>
-<main>{body}</main><footer><a class="brand footer-brand" href="{route('', static)}"><span class="brand-signal"><i></i><i></i><i></i></span><span>reverb</span></a><p>After-bell decisions with receipts.</p><div><a href="{route('demo', static)}">Verified replay</a><a href="{route('connect', static)}">Connect locally</a><a href="https://github.com/holybunnie/reverb">GitHub</a></div></footer>
+<meta name="theme-color" content="#0a0b0d"><meta name="description" content="{html.escape(description)}"><meta name="color-scheme" content="dark">
+<title>{html.escape(title)} · Reverb</title><link rel="stylesheet" href="{route('assets/styles.css', static)}"></head>'''
+
+
+def _brand(static: bool, extra: str = "") -> str:
+    return (f'<a class="brand {extra}" href="{route("", static)}"><span class="brand-signal"><i></i><i></i><i></i></span>'
+            '<span>reverb</span></a>')
+
+
+def layout(*, title: str, page: str, body: str, static: bool = False, description: str = DESCRIPTION) -> str:
+    if page == "home":
+        return landing_layout(title=title, body=body, static=static, description=description)
+    return app_layout(title=title, page=page, body=body, static=static, description=description)
+
+
+def landing_layout(*, title: str, body: str, static: bool = False, description: str = DESCRIPTION) -> str:
+    """Standalone marketing shell: no product navigation, one way into the desk."""
+    return f'''{_head(title, static, description)}
+<body data-page="home" class="landing"><div class="noise" aria-hidden="true"></div><header class="site-header lp-header">{_brand(static)}<nav><a class="nav-link" href="#how">How it works</a><a class="nav-link" href="#proof">Costco run</a><a class="nav-link" href="https://github.com/holybunnie/reverb">GitHub</a></nav><a class="header-cta" href="{route('app', static)}">Enter the desk <span>→</span></a><button class="menu" aria-label="Open navigation">Menu</button></header>
+<main>{body}</main><footer class="lp-footer">{_brand(static, "footer-brand")}<p>After-bell decisions with receipts.</p><div><a href="{route('report', static)}">Morning brief</a><a href="{route('demo', static)}">Verified replay</a><a href="https://github.com/holybunnie/reverb">GitHub</a></div></footer>
 <script src="{route('assets/app.js', static)}" defer></script></body></html>'''
+
+
+def app_layout(*, title: str, page: str, body: str, static: bool = False, description: str = DESCRIPTION,
+               head_extra: str = "") -> str:
+    """Product shell: every page after the landing lives inside the desk."""
+    groups = "".join(
+        f'<div class="rail-group"><span class="rail-label">{label}</span>'
+        + "".join(f'<a class="rail-link{" active" if page == key else ""}" href="{route(key, static)}"'
+                  f'{CURRENT if page == key else ""}>{name}</a>' for key, name in items)
+        + "</div>"
+        for label, items in APP_NAV
+    )
+    headline = costco_headline(ROOT)
+    status = (f'<a class="rail-status" href="{route("report", static)}"><span class="rail-label">Latest run</span>'
+              f'<strong>COST · {html.escape(headline["decision"])}</strong>'
+              f'<small>{html.escape(headline["peak"])} peak · {html.escape(headline["scored"])} confirmed</small></a>'
+              if headline else "")
+    crumb = next((name for _, items in APP_NAV for key, name in items if key == page), html.escape(title))
+    return f'''{_head(title, static, description)}{head_extra}
+<body data-page="{page}" class="app"><div class="app-shell"><aside class="app-rail">{_brand(static)}<nav class="rail-nav" aria-label="Desk">{groups}</nav>{status}</aside>
+<div class="app-main"><header class="app-top"><div class="crumb"><span>Desk</span><b>/</b><strong>{crumb}</strong></div><div class="app-top-meta"><span class="mode-pill"><i class="live-dot"></i> Research mode · no orders</span><a class="back-link" href="{route("", static)}">← Site</a></div></header>
+<main class="app-content">{body}</main></div></div>
+<script src="{route('assets/app.js', static)}" defer></script></body></html>'''
+
+
+def _scope_css(css: str, scope: str) -> str:
+    """Prefix a standalone page's rules so they only apply inside its embed."""
+    out, depth, buf = [], 0, ""
+    for char in css:
+        if char == "{":
+            selector = buf.strip()
+            if selector.startswith("@"):
+                out.append(selector + "{"); depth += 1
+            else:
+                parts = []
+                for item in selector.split(","):
+                    item = item.strip()
+                    item = item.replace(":root", "").replace("body", "").replace("html", "").strip()
+                    parts.append(f"{scope} {item}".strip() if item else scope)
+                out.append(",".join(parts) + "{")
+            buf = ""
+        elif char == "}":
+            out.append(buf + "}"); buf = ""
+        else:
+            buf += char
+    return "".join(out)
+
+
+def embed_standalone(page_html: str, *, page: str, title: str, static: bool = False) -> str:
+    """Move a standalone evidence page into the product shell, keeping its content."""
+    import re
+    styles = "".join(re.findall(r"<style>(.*?)</style>", page_html, re.S))
+    body = re.search(r"<body[^>]*>(.*)</body>", page_html, re.S)
+    inner = body.group(1) if body else page_html
+    scoped = _scope_css(styles.replace("{{", "{").replace("}}", "}"), ".embedded")
+    return app_layout(title=title, page=page, body=f'<div class="embedded">{inner}</div>', static=static,
+                      head_extra=f"<style>{scoped}</style>")
 
 
 def render_landing(snapshot: PreviewSnapshot, replay: Any | None, *, static: bool = False) -> str:
     r = {k: html.escape(v) for k, v in replay_view(replay, "Africa/Lagos").items()}
+    headline = costco_headline(ROOT) or {}
+    c = {k: html.escape(v) for k, v in headline.items() if isinstance(v, str)}
+    if c:
+        lines = "".join(
+            f'<li><span>{html.escape(text)}</span><b class="{"ok" if status == "CONFIRMED" else "skip"}">{html.escape(status.title())}</b></li>'
+            for text, status in headline["claims"])
+        receipt = f'''<div class="receipt-card"><div class="receipt-top"><span>COSTCO FORWARD RUN</span><span>24 SEP 2026</span></div><div class="event-symbol">COST</div><p>RCOSTUSDT · Q4 FY2026 · thesis {c['hash']}…</p><ul class="receipt-lines"><li><span>Frozen before release</span><b>06:30 UTC</b></li><li><span>Minutes captured</span><b>{c['slots']}</b></li>{lines}<li><span>Peak move / trigger</span><b>{c['peak']} / {c['trigger']}</b></li><li><span>Orders</span><b>{c['orders']}</b></li></ul><div class="receipt-total"><span>Decision</span><strong>{c['decision']}</strong></div></div>'''
+        orbit = f'''<div class="event-move"><span>Largest move after the release</span><strong>{c['peak']}</strong></div><div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="event-foot"><span>Trigger {c['trigger']} · {c['decision']}</span><span>{c['scored']} scored claims confirmed</span></div>'''
+        strip = f'''<div><strong>{c['slots']}</strong><span>Costco event minutes captured, 0 gaps</span></div><div><strong>{c['scored']}</strong><span>scoreable claims confirmed by Costco's SEC filing</span></div><div><strong>{c['orders']}</strong><span>orders: the move stayed under the {c['trigger']} trigger</span></div>'''
+        card = f'''<div class="decision-stamp">{c['decision']}</div><span>Costco · 24 Sep 2026 · run {c['run_status'].lower()}</span><strong>RCOSTUSDT</strong><p>Thesis frozen about 14 hours before the report. Membership fees rose, as registered; the peak move of {c['peak']} stayed under the {c['trigger']} trigger, so Reverb held. Unscorable claims stay visible instead of being guessed.</p>'''
+    else:
+        orbit = '''<div class="event-move"><span>Registered thesis</span><strong>$100 max risk</strong></div><div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="event-foot"><span>Trigger 3.00%</span><span>Human confirmation only</span></div>'''
+        strip = '''<div><strong>RCOSTUSDT</strong><span>forward event under observation</span></div><div><strong>3%</strong><span>production reaction threshold</span></div>'''
+        card = '''<div class="decision-stamp">FORWARD</div><span>Costco · event capture pending</span><strong>RCOSTUSDT</strong><p>The Costco workflow records the issuer timestamp, public UTA order book, reaction, and thesis reconciliation. A required capture gap stays incomplete.</p>'''
     body = f'''
 <section class="landing-hero"><div class="orbital" aria-hidden="true"><span></span><span></span><span></span></div><div class="hero-copy reveal"><div class="eyebrow"><b></b> Overnight earnings desk</div><h1>Know what you believed.<br><em>See what survived.</em></h1><p>Write down your view before the report. Reverb checks it against what the company said, measures the token-market reaction, and leaves you a sourced morning brief. You make the decision.</p><div class="hero-actions"><a class="button primary magnetic" href="{route('events', static)}">Prepare a thesis <span>↗</span></a><a class="button ghost" href="{route('demo', static)}"><span class="play">▶</span> Open verified replay</a></div><div class="trust-row"><span><i class="live-dot"></i> Claims frozen before scoring</span><span>Source-linked facts</span><span>Human decides</span></div></div>
-<aside class="event-orbit reveal delay-1"><div class="glass event-preview"><div class="event-preview-top"><span>COSTCO FORWARD RUN</span><span class="verified-pill">24 SEP · READ ONLY</span></div><div class="event-symbol">COST</div><p>RCOSTUSDT · Q4 FY2026</p><div class="event-move"><span>Registered thesis</span><strong>$100 max risk</strong></div><div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="event-foot"><span>Trigger 3.00%</span><span>Human confirmation only</span></div></div></aside></section>
-<section class="proof-strip"><div><strong>{snapshot.online_reality}</strong><span>online Reality pairs in latest checked capture</span></div><div><strong>RCOSTUSDT</strong><span>forward event under observation</span></div><div><strong>3%</strong><span>production reaction threshold</span></div><div><strong>YOU</strong><span>make the final decision</span></div></section>
+<aside class="event-orbit reveal delay-1">{receipt if c else ""}<div class="glass event-preview"{" hidden" if c else ""}><div class="event-preview-top"><span>COSTCO FORWARD RUN</span><span class="verified-pill">24 SEP · RECORDED</span></div><div class="event-symbol">COST</div><p>RCOSTUSDT · Q4 FY2026</p>{orbit}</div></aside></section>
+<section class="proof-strip" id="proof"><div><strong>{snapshot.online_reality}</strong><span>online Reality pairs in latest checked capture</span></div>{strip}<div><strong>YOU</strong><span>make the final decision</span></div></section>
 <section class="story" id="how"><div class="section-intro reveal"><div class="eyebrow"><b></b> Your overnight research desk</div><h2>Most tools report the quarter. Reverb remembers your view before it.</h2><p>A post-mortem is useful only when the thesis was frozen first—and when public facts are not mistaken for a prediction.</p></div><div class="steps"><article class="step reveal"><span>01</span><div class="step-icon target"></div><h3>Write it down</h3><p>Put your earnings view into plain language. Review and confirm the extracted claims before the timestamped record is frozen.</p></article><article class="step reveal delay-1"><span>02</span><div class="step-icon pulse-icon"></div><h3>Check what changed</h3><p>Facts already public are marked known and excluded. New release facts must match their cited source; deterministic code reconciles the claims.</p></article><article class="step reveal delay-2"><span>03</span><div class="step-icon receipt"></div><h3>Decide with receipts</h3><p>See the measured market reaction, market quality, and Reverb's recommendation in the morning. No order without your explicit confirmation.</p></article></div></section>
-<section class="refusal-section"><div class="refusal-copy reveal"><div class="eyebrow"><b></b> Human-confirmed, never automatic</div><h2>Analysis is not an order.</h2><p>Reverb presents a deterministic recommendation with its arithmetic and source evidence. The final action stays with you; any supported execution is a separate, explicit Agent Hub handoff.</p><a class="text-link" href="{route('report', static)}">Inspect the morning brief <span>→</span></a></div><div class="refusal-card glass reveal delay-1"><div class="decision-stamp">FORWARD</div><span>Costco · event capture pending</span><strong>RCOSTUSDT</strong><p>The Costco workflow records the issuer timestamp, public UTA order book, reaction, and thesis reconciliation. A required capture gap stays incomplete.</p><div class="math-line"><i style="--w:72%"></i><i style="--w:48%"></i></div><small>NVIDIA's 3% replay remains the secondary verification</small></div></section>
+<section class="refusal-section"><div class="refusal-copy reveal"><div class="eyebrow"><b></b> Human-confirmed, never automatic</div><h2>Analysis is not an order.</h2><p>Reverb presents a deterministic recommendation with its arithmetic and source evidence. The final action stays with you; any supported execution is a separate, explicit Agent Hub handoff.</p><a class="text-link" href="{route('report', static)}">Inspect the morning brief <span>→</span></a></div><div class="refusal-card glass reveal delay-1">{card}<div class="math-line"><i style="--w:72%"></i><i style="--w:48%"></i></div><small>NVIDIA's 3% replay remains the secondary verification</small></div></section>
 <section class="closing-cta reveal"><div><span class="eyebrow"><b></b> Before the next report</span><h2>Make your view testable. Keep the decision yours.</h2></div><a class="button primary magnetic" href="{route('events', static)}">Open the thesis desk <span>↗</span></a></section>'''
     return layout(title="Overnight earnings desk", page="home", body=body, static=static)
 
 
 def render_workspace(snapshot: PreviewSnapshot, replay: Any | None, *, static: bool = False, risk: str | None = None, timezone_name: str | None = None) -> str:
     r = {k: html.escape(v) for k, v in replay_view(replay, timezone_name).items()}
-    body = f'''<section class="product-shell"><aside class="side-nav"><span class="side-label">CONTROL ROOM</span><a class="active" href="{route('app', static)}">Overview</a><a href="{route('events', static)}">Events</a><a href="{route('report', static)}">Reports</a><a href="{route('connect', static)}">Connection</a><div class="side-status"><i class="live-dot"></i><div><strong>Agent online</strong><span>Research mode</span></div></div></aside>
-<div class="workspace"><div class="workspace-head reveal"><div><span class="eyebrow"><b></b> Control room</span><h1>Good evening.</h1><p>Live event decisions are stored locally. No order is sent from this dashboard.</p></div><div class="clock" data-clock data-zone="{html.escape(timezone_label(timezone_name))}">--:--:--<small>{html.escape(timezone_label(timezone_name))}</small></div></div>
+    body = f'''<section class="product-shell"><div class="workspace"><div class="workspace-head reveal"><div><span class="eyebrow"><b></b> Control room</span><h1>Good evening.</h1><p>Live event decisions are stored locally. No order is sent from this dashboard.</p></div><div class="clock" data-clock data-zone="{html.escape(timezone_label(timezone_name))}">--:--:--<small>{html.escape(timezone_label(timezone_name))}</small></div></div>
 <div class="status-grid reveal delay-1"><article class="mini-stat"><span>Reality universe</span><strong>{snapshot.online_reality}</strong><small>from checked public evidence</small></article><article class="mini-stat"><span>Spot transport</span><strong class="green">VERIFIED</strong><small>one manually approved fill</small></article><article class="mini-stat"><span>Options path</span><strong class="amber">BLOCKED</strong><small>account entitlement</small></article><article class="mini-stat"><span>Risk cap</span><strong data-risk-label>{html.escape(risk or r['budget'])}</strong><small>stored locally</small></article></div>
 <section class="workspace-card waiting-card reveal delay-2" data-waiting-state><div class="card-heading"><div><span class="overline">YOUR NEXT EVENT</span><h2 data-waiting-title>No event selected</h2></div><span class="verified-pill" data-waiting-status>LOCAL WORKSPACE</span></div><p class="waiting-empty" data-waiting-empty>Choose a company from the current earnings week to save a thesis and start a countdown.</p><div data-waiting-details hidden><div class="event-columns"><div><span>Event time</span><strong data-waiting-local>—</strong></div><div><span>New York</span><strong data-waiting-ny>—</strong></div><div><span>Time source</span><strong data-waiting-basis>—</strong></div><div><span>Risk budget</span><strong data-waiting-budget>—</strong></div></div><div class="countdown-row"><span>Time to event</span><strong data-countdown>—</strong></div><div class="waiting-actions"><button class="button ghost" type="button" data-monitor-reaction>Check price reaction</button><a class="button primary" href="{route('report', static)}">Open morning report</a></div><p class="monitor-result" data-monitor-result aria-live="polite"></p></div></section>
 <section class="workspace-card event-focus reveal"><div class="card-heading"><div><span class="overline">VERIFIED HISTORICAL EVENT</span><h2>{r['symbol']} <small>{r['token']}</small></h2></div><span class="verified-pill">LEDGER VERIFIED</span></div><div class="event-columns"><div><span>Event date</span><strong>{r['date']}</strong></div><div><span>New York</span><strong>{r['ny']}</strong></div><div><span>Your time</span><strong>{r['local']}</strong></div><div><span>Observed move</span><strong class="negative">{r['move']}</strong></div></div><div class="signal-track"><i></i><span>Close</span><span>Results</span><span>First crossing</span></div><div class="card-actions"><a class="button primary" href="{route('demo', static)}">Open full replay</a><a class="button ghost" href="{route('events', static)}">Find an upcoming event</a></div></section>

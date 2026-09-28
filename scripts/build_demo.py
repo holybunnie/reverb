@@ -16,6 +16,9 @@ from reverb.preview import load_preview_snapshot, render_preview_html  # noqa: E
 from reverb.replay import load_replay_snapshot, render_replay_html, render_replay_report  # noqa: E402
 
 
+from reverb.web import embed_standalone  # noqa: E402
+
+
 def main() -> int:
     try:
         replay = load_replay_snapshot(ROOT)
@@ -48,13 +51,11 @@ def main() -> int:
     (site / "connect" / "index.html").write_text(
         render_connection_html(static_demo=True), encoding="utf-8")
     (site / "demo").mkdir(exist_ok=True)
-    page = render_replay_html(replay)
+    page = render_replay_html(replay).replace('href="preview"', 'href="../preview/"')
     (site / "demo" / "index.html").write_text(
-        page.replace('href="preview"', 'href="../preview"'),
-        encoding="utf-8",
-    )
+        embed_standalone(page, page="demo", title="Verified replay", static=True), encoding="utf-8")
     (site / "preview").mkdir(exist_ok=True)
-    (site / "preview" / "index.html").write_text(render_preview_html(preview), encoding="utf-8")
+    (site / "preview" / "index.html").write_text(embed_standalone(render_preview_html(preview), page="preview", title="Evidence", static=True), encoding="utf-8")
     assets = site / "assets"
     assets.mkdir(exist_ok=True)
     source_assets = ROOT / "reverb" / "static"

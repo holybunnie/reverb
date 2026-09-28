@@ -28,6 +28,7 @@ from reverb.language import (extract_thesis_and_record, interpret_view_and_recor
 from reverb.ledger import Ledger  # noqa: E402
 from reverb.preview import load_preview_snapshot, render_preview_html  # noqa: E402
 from reverb.report import morning_report  # noqa: E402
+from reverb.web import embed_standalone  # noqa: E402
 from reverb.replay import load_replay_snapshot, render_replay_html, render_replay_report  # noqa: E402
 from reverb.service import DecisionService  # noqa: E402
 
@@ -113,7 +114,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if route == "/demo":
                 replay = load_replay_snapshot(ROOT)
-                self._send(200, "text/html; charset=utf-8", render_replay_html(replay).encode())
+                self._send(200, "text/html; charset=utf-8", embed_standalone(render_replay_html(replay), page="demo", title="Verified replay").encode())
                 return
             if route == "/api/events":
                 if not self._local_request():
@@ -134,7 +135,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             snapshot = load_preview_snapshot(ROOT)
             if route == "/preview":
-                self._send(200, "text/html; charset=utf-8", render_preview_html(snapshot).encode())
+                self._send(200, "text/html; charset=utf-8", embed_standalone(render_preview_html(snapshot), page="preview", title="Evidence").encode())
                 return
             replay = None
             try:
