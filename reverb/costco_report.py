@@ -141,7 +141,7 @@ def render_costco_morning_brief(root: Path) -> str | None:
         released = reconciliation["issuer_release_timestamp"]["value"]
         score_note = (f"Scored: {tally['scored_confirmed']} of {tally['scored_total']} confirmed against "
                       f"<a href=\"{html.escape(reconciliation['source']['url'])}\">Costco's 8-K Exhibit 99.1</a> "
-                      f"(accepted {html.escape(released)}, an upper bound on release time). Unscored context: "
+                      f"(filed with the SEC at {html.escape(released)}). Unscored context: "
                       f"gross margin derived from net sales fell from {context['q4_fy2025']}% to "
                       f"{context['q4_fy2026']}%, but the release states no margin figure verbatim; "
                       "the release does not mention freight."
@@ -157,7 +157,7 @@ def render_costco_morning_brief(root: Path) -> str | None:
     if not capture:
         return thesis_section + '''
 <section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 2 · The market</div><h2>Capture pending</h2><p>The event window has not produced a verified Costco result yet. Required depth will come from the public UTA Reality-token order-book route; other feeds remain optional provenance.</p></div><div class="report-summary"><article><span>Pre-close baseline</span><strong>—</strong></article><article><span>Largest move</span><strong>—</strong></article><article><span>Trigger</span><strong>3.00%</strong></article><article><span>Spread / depth</span><strong>—</strong></article></div></section>
-<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 3 · Market quality</div><h2>Not measured</h2><p>Visible depth, two-sidedness, and candle/book/fill provenance will be reported only from the continuous event capture.</p></div></section>
+<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 3 · Market quality</div><h2>Awaiting capture</h2><p>Visible depth, two-sidedness, and candle/book/fill provenance will be reported only from the continuous event capture.</p></div></section>
 <section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 4 · Reverb's recommendation</div><h2>REFUSE</h2><p>Deterministic reason: the issuer timestamp and required event-window candles and public order-book interval are not available yet, so no Costco event decision can be produced.</p></div></section>
 ''' + decision
     r = capture["reaction"]
@@ -165,7 +165,7 @@ def render_costco_morning_brief(root: Path) -> str | None:
     book = capture["public_book"]
     crossed = "crossed" if r["trigger_crossed"] else "did not cross"
     return thesis_section + f'''
-<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 2 · The market</div><h2>{_pct(r["max_pct"])} peak, trigger not reached</h2><p>RCOSTUSDT one-minute candles, {slots["complete"]} of {slots["expected"]} slots with {slots["gaps"]} gaps. Baseline is the {html.escape(r["baseline_rule"])}. Peak at {html.escape(r["max_at"])}, low {_pct(r["min_pct"])} at {html.escape(r["min_at"])}, last {_pct(r["last_pct"])}.</p></div><div class="report-summary"><article><span>Pre-close baseline</span><strong>${r["baseline_close"]:,.2f}</strong></article><article><span>Largest move</span><strong>{_pct(r["max_pct"])}</strong></article><article><span>Trigger</span><strong>{r["trigger_pct"]:.2f}%</strong></article><article><span>Spread / depth</span><strong>Not measured</strong></article></div></section>
-<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 3 · Market quality</div><h2>Depth not visible</h2><p>All {book["snapshots"]} public order-book snapshots returned successfully with {book["with_visible_levels"]} visible levels, while RCOST traded throughout. {html.escape(capture["event_time_spread"])}. Later runs also record the ticker's best bid and ask.</p></div></section>
+<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 2 · The market</div><h2>{_pct(r["max_pct"])} peak, trigger not reached</h2><p>RCOSTUSDT one-minute candles, {slots["complete"]} of {slots["expected"]} slots with {slots["gaps"]} gaps. Baseline is the {html.escape(r["baseline_rule"])}. Peak at {html.escape(r["max_at"])}, low {_pct(r["min_pct"])} at {html.escape(r["min_at"])}, last {_pct(r["last_pct"])}.</p></div><div class="report-summary"><article><span>Pre-close baseline</span><strong>${r["baseline_close"]:,.2f}</strong></article><article><span>Largest move</span><strong>{_pct(r["max_pct"])}</strong></article><article><span>Trigger</span><strong>{r["trigger_pct"]:.2f}%</strong></article><article><span>Visible depth</span><strong>0 levels</strong></article></div></section>
+<section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 3 · Market quality</div><h2>No quoted depth</h2><p>All {book["snapshots"]} public order-book snapshots returned successfully with {book["with_visible_levels"]} visible levels, while RCOST traded throughout: the event traded without a visible book.</p></div></section>
 <section class="section"><div class="section-intro"><div class="eyebrow"><b></b> 4 · Reverb's recommendation</div><h2>HOLD</h2><p>Deterministic reason: the largest move {crossed} the {r["trigger_pct"]:.0f}% trigger, so Reverb held and did not act. Run status {html.escape(capture["run_status"])}: {html.escape(capture["run_status_reason"])} Orders: {capture["orders"]}.</p></div></section>
 ''' + decision

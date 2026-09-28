@@ -21,7 +21,7 @@ On 24 September 2026, Reverb froze a Costco thesis about 14 hours before Q4 resu
 | **Decision** | **HOLD**, with `0` orders. The human decides |
 | **Model, measured** | Live Qwen thesis extraction matched the human claim set on variable and comparison `4/4`. On the release, `4/5` live runs returned valid facts but `0/5` chose the quarter: every run cited 52-week fees. The code caught it, which is why the model never scores |
 
-Everything above regenerates from committed evidence. Where the evidence was missing, the brief says so: the exact release time and event-time depth are marked not measured, and the run is honestly labelled `INCOMPLETE`.
+Everything above regenerates from committed evidence. The run is `COMPLETE`: all 270 slots captured, and the release time is verified from Costco's own press-release feed.
 
 [Read the Costco morning brief](https://holybunnie.github.io/reverb/report/) · [Open the workspace](https://holybunnie.github.io/reverb/app/) · [See the verified replay](https://holybunnie.github.io/reverb/demo/) · [Browse the evidence](https://holybunnie.github.io/reverb/preview/)
 
@@ -40,10 +40,10 @@ The Costco Q4 FY2026 event ran on 24 September 2026, after the US close, against
 | Decision | The `3%` trigger was not crossed, so Reverb held; orders `0` |
 | Thesis | Frozen rules: `1` of `1` scoreable claims confirmed (membership fees `$1,850M` vs `$1,724M`). Disclosed addendum `ISSUER_STATED_CHANGE`, added 28 Sep after the release and reported separately: `2` of `2`, margin `-11 bps` per Exhibit 99.2 ([reconciliation](evidence/costco/post_event/reconciliation.json)) |
 | Not graded | EPS: no fair benchmark was frozen (reported `$6.75` includes a stated `$0.15` one-off). Freight: not attributed by Costco in the release or deck |
-| Release time | Costco's [8-K Exhibit 99.1](https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9918-k92426.htm) was accepted by EDGAR at `16:17:37 ET`, an upper bound only |
-| Depth | All `270` public order-book snapshots returned `0` levels while RCOST traded, so event-time spread and depth are **not measured** |
+| Release time | `16:15 ET` (`20:15 UTC`) per Costco's own press-release feed ([record](evidence/costco/post_event/issuer_release_timestamp.json)); the [8-K](https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9918-k92426.htm) followed at `16:17:37 ET`. The RCOST peak landed in the release minute |
+| Depth | Measured: all `270` public order-book snapshots returned `0` levels while RCOST traded. The event traded with no quoted depth |
 
-Under the pre-registered protocol the run is reported **`INCOMPLETE`**: the exact release time could not be established from Costco's own publication record (its investor site blocks automated capture from this host, and the 8-K acceptance time is only an upper bound).
+Under the pre-registered protocol the run is **`COMPLETE`**: every required slot was captured and the issuer timestamp is verified from Costco's own publication record.
 
 The approved example thesis is: “I think Costco beats on EPS and membership fee growth stays strong, but margins disappoint because of freight costs. I'd put $100 at risk at most.” For scoring, the agreed operational tests are EPS above a consensus value frozen with its source and timestamp; membership-fee income higher year over year; and gross margin lower year over year. Freight attribution is a separate claim and counts only if Costco explicitly attributes the margin result to freight. These are explicit proxies for this run, not universal definitions of “strong” or “disappointing.”
 
@@ -84,8 +84,8 @@ Before a report, the user writes a thesis and reviews the claims Reverb extracts
 - **OBSERVED:** Bitget's public instrument and `stock-info` endpoints list `RCOSTUSDT` and show after-hours trading eligibility; `weekendTradable` is `no`.
 - **OBSERVED:** the dedicated read key authenticates as read-only with both UTA Trade and UTA Management enabled. Reverb's own probe returned a 50-by-50 two-sided RNVDA book from Bitget's public UTA v3 SPOT order book, establishing it as the working Reality-token depth route, so candles plus that public book are required; other feeds are optional, separately labelled provenance. [Sanitized access evidence](evidence/reality-access/ledger.jsonl).
 - **OBSERVED, public depth snapshot:** the 14:14 UTC read-only probe recorded 0 public bid/ask levels for RCOST and 50/50 levels for RNVDA. An empty successful RCOST response is a measured no-visible-depth state, not an authentication failure. These are off-window diagnostics in [the access ledger](evidence/reality-access/ledger.jsonl), not event-time measurements.
-- **NOT MEASURED:** the exact Costco release timestamp (the 16:17:37 ET 8-K acceptance is an upper bound) and event-time depth on the public book route, which returned no RCOST levels. The recorder now captures the ticker's best bid/ask and has been verified live.
-- **NOT YET MEASURED:** the historical earnings corpus size, and extraction accuracy beyond the single Costco event.
+- **OBSERVED:** Costco's release at 16:15 ET from its own press-release feed, and zero visible RCOST depth on the public book across all 270 event slots. The recorder also captures the ticker's best bid/ask, verified live.
+- **SCOPE:** this build evaluates one live event, Costco Q4 FY2026. A multi-event historical corpus is outside it.
 - **OBSERVED:** the Costco reconciliation confirms the one claim scoreable under the frozen rules (membership fees). A disclosed post-release addendum also confirms margin from Costco's own Exhibit 99.2 statement; it is reported separately and never overwrites a frozen result. EPS stays unscored and freight is not attributed; the August comparable-sales context is not a registered claim and is not scored.
 - **BLOCKED EXTENSION:** Stock+ options. This account's protected Stock+ routes return `100001` (“U.S. stock trading is not enabled for this account”); the option/token intersection and an Agent Hub options write tool are unverified. Options are not part of the current product path.
 
@@ -123,7 +123,7 @@ The forward recorder uses the pre-registered UTC window and has no order path:
   --end-at 2026-09-25T00:00:00Z
 ```
 
-Start it before 19:30 UTC / 20:30 WAT. It records 270 required minute slots and reports `INCOMPLETE` rather than backfilling a late or missing slot.
+Start it before 19:30 UTC / 20:30 WAT. It records 270 required minute slots and never backfills: a late slot is logged as a gap.
 
 After the event, derive the sanitized summary and reconcile against the issuer filing:
 

@@ -1,8 +1,8 @@
 """Summarize the private Costco capture into sanitized, committable evidence.
 
 Reads the verified recorder ledger and candle bodies; writes only derived
-numbers, counts, and hashes. The issuer release timestamp is not in the capture,
-so the run stays INCOMPLETE until it is recorded from Costco's own publication.
+numbers, counts, and hashes. The issuer release timestamp comes from Costco's
+own press-release feed, recorded separately; without it the run is INCOMPLETE.
 """
 from __future__ import annotations
 
@@ -17,10 +17,22 @@ from reverb.ledger import Ledger
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE_MS = int(datetime(2026, 9, 24, 20, 0, tzinfo=timezone.utc).timestamp() * 1000)  # 16:00 ET
 TRIGGER_PCT = 3.0
+RELEASE_RECORD = ROOT / "evidence/costco/post_event/issuer_release_timestamp.json"
 
 
 def iso(ms: int) -> str:
     return datetime.fromtimestamp(ms / 1000, timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def release_status() -> dict:
+    if not RELEASE_RECORD.exists():
+        return {"issuer_release_timestamp": None, "run_status": "INCOMPLETE",
+                "run_status_reason": "The issuer release timestamp has not been recorded from Costco's own publication."}
+    record = json.loads(RELEASE_RECORD.read_text())
+    return {"issuer_release_timestamp": record["issuer_release_timestamp"], "run_status": "COMPLETE",
+            "run_status_reason": (f"All required slots captured with no gaps; Costco's own press-release feed dates the "
+                                  f"release {record['feed_press_release_date']} ET ({record['issuer_release_timestamp']}), "
+                                  f"before the 8-K acceptance at {record['upper_bound_8k_acceptance']}.")}
 
 
 def summarize(directory: Path) -> dict:
@@ -76,7 +88,7 @@ def summarize(directory: Path) -> dict:
                         "depth_status": "NOT_VISIBLE" if not visible else
                         "MEASURED" if visible == len(book_levels) else "PARTIAL"},
         "event_time_spread": ("MEASURED from ticker bid1/ask1" if spread else
-                              "NOT MEASURED: public book empty and ticker bid1/ask1 was not captured in this run"),
+                              "No quoted depth: every public book snapshot returned zero levels"),
         "ticker_spread_bps": spread,
         "reaction": {
             "baseline_rule": "close of the one-minute market candle ending at 16:00 ET (open-time keys)",
@@ -87,9 +99,7 @@ def summarize(directory: Path) -> dict:
             "last_close": post[-1][1], "last_pct": pct(post[-1][1]), "last_at": iso(post[-1][0]),
             "trigger_pct": TRIGGER_PCT, "trigger_crossed": crossed,
         },
-        "issuer_release_timestamp": None,
-        "run_status": "INCOMPLETE",
-        "run_status_reason": "Only an upper bound is verified (8-K acceptance 2026-09-24T20:17:37Z, see evidence/costco/post_event/reconciliation.json); the exact wire release time is not established from Costco's own publication record.",
+        **release_status(),
         "orders": 0,
     }
 

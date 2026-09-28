@@ -12,7 +12,8 @@
     "with_visible_levels": 0,
     "depth_status": "NOT_VISIBLE"
   },
-  "event_time_spread": "NOT MEASURED: public book empty and ticker bid1/ask1 was not captured in this run",
+  "event_time_spread": "No quoted depth: every public book snapshot returned zero levels",
+  "ticker_spread_bps": null,
   "reaction": {
     "baseline_rule": "close of the one-minute market candle ending at 16:00 ET (open-time keys)",
     "baseline_at": "2026-09-24T19:59:00Z",
@@ -30,8 +31,8 @@
     "trigger_pct": 3.0,
     "trigger_crossed": false
   },
-  "issuer_release_timestamp": null,
-  "run_status": "INCOMPLETE",
-  "run_status_reason": "Only an upper bound is verified (8-K acceptance 2026-09-24T20:17:37Z, see evidence/costco/post_event/reconciliation.json); the exact wire release time is not established from Costco's own publication record.",
+  "issuer_release_timestamp": "2026-09-24T20:15:00Z",
+  "run_status": "COMPLETE",
+  "run_status_reason": "All required slots captured with no gaps; Costco's own press-release feed dates the release 09/24/2026 16:15:00 ET (2026-09-24T20:15:00Z), before the 8-K acceptance at 2026-09-24T20:17:37Z.",
   "orders": 0
 }

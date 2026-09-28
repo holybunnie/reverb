@@ -1,0 +1,12 @@
+{
+  "source": "Costco investor relations press-release feed (investor.costco.com/feed/PressRelease.svc/GetPressReleaseList, year=2026)",
+  "captured_at": "2026-09-28T20:56:00Z",
+  "body_path": "evidence/costco/post_event/issuer_press_release_feed.json",
+  "body_sha256": "834b762a9012600e80d298d497526c3bb0675a9886da94f34a52ea1449474551",
+  "headline": "Costco Wholesale Corporation Reports Fourth Quarter and Fiscal Year 2026 Operating Results",
+  "feed_press_release_date": "09/24/2026 16:15:00",
+  "timezone": "America/New_York",
+  "timezone_basis": "The feed omits a zone. Eastern is the only reading consistent with the EDGAR 8-K acceptance at 16:17:37 ET; a Pacific reading would place the release three hours after the filing.",
+  "issuer_release_timestamp": "2026-09-24T20:15:00Z",
+  "upper_bound_8k_acceptance": "2026-09-24T20:17:37Z"
+}

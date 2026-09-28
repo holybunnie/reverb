@@ -14,7 +14,7 @@ class CostcoReportTests(unittest.TestCase):
         self.assertIsNotNone(summary)
         self.assertIsNotNone(page)
         self.assertEqual(summary["token"], "RCOSTUSDT")
-        self.assertEqual(summary["status"], "RUN INCOMPLETE · HELD")
+        self.assertEqual(summary["status"], "RUN COMPLETE · HELD")
         self.assertEqual(summary["move"], "+1.17%")
         self.assertIn("EPS above consensus", page)
         self.assertIn("NO FAIR BENCHMARK", page)
@@ -23,7 +23,7 @@ class CostcoReportTests(unittest.TestCase):
         self.assertIn("Scored: 1 of 1", page)
         self.assertIn("HOLD", page)
         self.assertIn("did not cross", page)
-        self.assertIn("Depth not visible", page)
+        self.assertIn("No quoted depth", page)
         self.assertIn("data-human-review", page)
         self.assertNotIn("NVIDIA", page)
 
