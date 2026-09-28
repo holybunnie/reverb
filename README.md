@@ -10,7 +10,19 @@ Most earnings tools tell you what happened. Reverb tells you whether your view s
 
 ## Costco forward run
 
-The Costco Q4 FY2026 event is scheduled for 24 September 2026, after the US close. The corrected thesis and capture protocol are frozen before the event; the market capture and reconciliation are not yet recorded, and no Costco outcome is claimed here. Frozen at `2026-09-24T06:30:01Z` with thesis hash `bcd4e540fa1e2b46d883f6b63734b418cd533641be03f4eed5fc9877666ea4c6`, code commit `301ab3225dc0cbe1cd806e76e92f206db88f5a89`. The run will be reported as incomplete if the required capture has a gap or Costco's actual release time cannot be established from its own publication record. [Costco investor events](https://investor.costco.com/events-and-presentations/default.aspx?lv=true).
+The Costco Q4 FY2026 event ran on 24 September 2026, after the US close, against a thesis frozen at `2026-09-24T06:30:01Z` with hash `bcd4e540fa1e2b46d883f6b63734b418cd533641be03f4eed5fc9877666ea4c6`, code commit `301ab3225dc0cbe1cd806e76e92f206db88f5a89`.
+
+| Result | Evidence |
+| --- | --- |
+| Capture | `270` of `270` one-minute slots, `0` gaps; recorder status `COMPLETE` ([summary](evidence/costco/capture_summary.json)) |
+| Reaction | Baseline `$896.48` (candle ending 16:00 ET); peak `+1.17%` at `16:15 ET`, low `−0.30%`, last `+0.17%` at `19:58 ET` |
+| Decision | The `3%` trigger was not crossed, so Reverb held; orders `0` |
+| Thesis | `1` of `1` scoreable claims confirmed: membership fees `$1,850M` vs `$1,724M` ([reconciliation](evidence/costco/post_event/reconciliation.json)) |
+| Unscored | EPS (no matching-basis consensus frozen); margin (release states no margin figure verbatim; derived gross margin fell from `11.13%` to `11.02%`); freight (not mentioned in the release) |
+| Release time | Costco's [8-K Exhibit 99.1](https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9918-k92426.htm) was accepted by EDGAR at `16:17:37 ET`, an upper bound only |
+| Depth | All `270` public order-book snapshots returned `0` levels while RCOST traded, so event-time spread and depth are **not measured** |
+
+Under the pre-registered protocol the run is reported **`INCOMPLETE`**: the exact release time could not be established from Costco's own publication record (its investor site blocks automated capture from this host, and the 8-K acceptance time is only an upper bound).
 
 The approved example thesis is: “I think Costco beats on EPS and membership fee growth stays strong, but margins disappoint because of freight costs. I'd put $100 at risk at most.” For scoring, the agreed operational tests are EPS above a consensus value frozen with its source and timestamp; membership-fee income higher year over year; and gross margin lower year over year. Freight attribution is a separate claim and counts only if Costco explicitly attributes the margin result to freight. These are explicit proxies for this run, not universal definitions of “strong” or “disappointing.”
 
@@ -51,8 +63,9 @@ Before a report, the user writes a thesis and reviews the claims Reverb extracts
 - **OBSERVED:** Bitget's public instrument and `stock-info` endpoints list `RCOSTUSDT` and show after-hours trading eligibility; `weekendTradable` is `no`.
 - **OBSERVED:** the dedicated read key authenticates as read-only with both UTA Trade and UTA Management enabled, but the account-scoped Reality book/fills routes return `40025`. The successful EXNIGHT build established Bitget's public UTA v3 SPOT order book as the working Reality-token depth route, so candles plus that public book are required; protected book/fills and generic public fills are optional, separately labelled provenance. [Sanitized access evidence](evidence/reality-access/ledger.jsonl).
 - **OBSERVED, public depth snapshot:** the 14:14 UTC read-only probe recorded 0 public bid/ask levels for RCOST and 50/50 levels for RNVDA. An empty successful RCOST response is a measured no-visible-depth state, not an authentication failure. These are off-window diagnostics in [the access ledger](evidence/reality-access/ledger.jsonl), not event-time measurements.
-- **NOT YET MEASURED:** the Costco event capture, actual issuer release timestamp, spread and depth at the event, the historical earnings corpus size, and extraction accuracy on a hand-verified subset.
-- **UNVERIFIED:** Costco claims and the live morning reconciliation. No event result is pre-asserted. The frozen knowledge snapshot marks all four registered claims `UNKNOWN`; the August comparable-sales context is not one of the registered claims and is not scored.
+- **NOT MEASURED:** the exact Costco release timestamp (only the 16:17:37 ET 8-K upper bound is verified) and Costco event-time spread and depth: the public RCOST book returned no levels in any of the 270 slots even though the ticker carries a live best bid/ask. The recorder now also captures the ticker and reports depth visibility separately from slot completeness.
+- **NOT YET MEASURED:** the historical earnings corpus size, and extraction accuracy on a hand-verified subset.
+- **OBSERVED:** the Costco reconciliation against the issuer's 8-K release confirms the one scoreable claim (membership fees up year over year). EPS, margin, and freight claims remain unscored under the frozen rules; the August comparable-sales context is not a registered claim and is not scored.
 - **BLOCKED EXTENSION:** Stock+ options. This account's protected Stock+ routes return `100001` (“U.S. stock trading is not enabled for this account”); the option/token intersection and an Agent Hub options write tool are unverified. Options are not part of the current product path.
 
 Reverb does not claim Bitget is the only venue with extended-hours trading, and it makes no profitability claim. See the [feasibility record](docs/m0.md), [readiness matrix](docs/readiness.md), and [specification corrections](docs/corrections.md).
@@ -90,6 +103,13 @@ The forward recorder uses the pre-registered UTC window and has no order path:
 ```
 
 Start it before 19:30 UTC / 20:30 WAT. It records 270 required minute slots and reports `INCOMPLETE` rather than backfilling a late or missing slot.
+
+After the event, derive the sanitized summary and reconcile against the issuer filing:
+
+```sh
+./.venv/bin/python scripts/costco_capture_summary.py data/private/costco-recordings/<run-id>
+./.venv/bin/python scripts/costco_reconcile.py
+```
 
 ## Blocked extension: options
 

@@ -1,0 +1,78 @@
+{
+  "frozen_thesis_sha256": "bcd4e540fa1e2b46d883f6b63734b418cd533641be03f4eed5fc9877666ea4c6",
+  "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9918-k92426.htm",
+    "filing_index": "https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/",
+    "text_path": "evidence/costco/post_event/q4_release.txt",
+    "text_sha256": "3623e887120fe20153baa276b49cf769375e5cb1afd6aed628470dd4ea919315",
+    "captured_at": "2026-09-28T18:53:47.451074Z"
+  },
+  "issuer_release_timestamp": {
+    "value": "2026-09-24T20:17:37Z",
+    "kind": "UPPER_BOUND_8K_ACCEPTANCE",
+    "note": "SEC acceptance of the 8-K carrying the release; the wire release may be earlier."
+  },
+  "reconciliation": {
+    "claims": [
+      {
+        "claim_id": "c1",
+        "text": "EPS above consensus",
+        "status": "NOT_ADDRESSED",
+        "scored": false,
+        "reason": "No pre-freeze consensus source with a matching reported-versus-adjusted EPS basis was captured. Keep the claim visible, but do not score unlike measures.",
+        "current_value_text": null,
+        "comparison_value_text": null,
+        "citation": null
+      },
+      {
+        "claim_id": "c2",
+        "text": "Membership fee growth stays strong",
+        "status": "CONFIRMED",
+        "scored": true,
+        "reason": "current value is higher than the cited prior-year value",
+        "current_value_text": "1,850",
+        "comparison_value_text": "1,724",
+        "citation": {
+          "source_url": "https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9918-k92426.htm",
+          "published_at": "2026-09-24T20:17:37Z",
+          "captured_at": "2026-09-28T18:53:47.451074Z",
+          "source_sha256": "3623e887120fe20153baa276b49cf769375e5cb1afd6aed628470dd4ea919315",
+          "location": "normalized exhibit text offsets 4680:4857",
+          "excerpt": "16 Weeks Ended 52 Weeks Ended August 30, 2026 August 31, 2025 August 30, 2026 August 31, 2025 REVENUE Net sales $ 93,873 $ 84,432 $ 297,247 $ 269,912 Membership fees 1,850 1,724"
+        }
+      },
+      {
+        "claim_id": "c3",
+        "text": "Margins disappoint",
+        "status": "NOT_ADDRESSED",
+        "scored": false,
+        "reason": "the issuer release supplied no grounded fact for this claim",
+        "current_value_text": null,
+        "comparison_value_text": null,
+        "citation": null
+      },
+      {
+        "claim_id": "c4",
+        "text": "Freight costs cause margin pressure",
+        "status": "NOT_ADDRESSED",
+        "scored": false,
+        "reason": "the issuer release supplied no grounded fact for this claim",
+        "current_value_text": null,
+        "comparison_value_text": null,
+        "citation": null
+      }
+    ],
+    "scored_confirmed": 1,
+    "scored_total": 1
+  },
+  "unscored_context": {
+    "derived_gross_margin_pct_of_net_sales": {
+      "q4_fy2026": 11.017,
+      "q4_fy2025": 11.127,
+      "note": "Derived as (net sales - merchandise costs) / net sales; not stated verbatim, so c3 is not scored."
+    },
+    "diluted_eps": "$6.75 reported, including a stated non-recurring $0.15 IEEPA tariff-refund benefit; c1 stays unscored (no matching-basis consensus frozen).",
+    "freight_mentioned_in_release": false,
+    "conference_call": "Not captured; any freight attribution on the call is not evidence here."
+  }
+}

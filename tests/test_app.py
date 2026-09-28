@@ -63,7 +63,7 @@ class AppTests(unittest.TestCase):
         self.assertIn("does not freeze", events)
         self.assertIn("Morning report", report)
         self.assertIn("COSTCO · Q4 FY2026", report)
-        self.assertIn("REFUSE", report)
+        self.assertIn("HOLD", report)
         self.assertIn("data-human-review", report)
         self.assertNotIn("NVIDIA", report)
 

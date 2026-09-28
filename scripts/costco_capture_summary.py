@@ -1,0 +1,90 @@
+"""Summarize the private Costco capture into sanitized, committable evidence.
+
+Reads the verified recorder ledger and candle bodies; writes only derived
+numbers, counts, and hashes. The issuer release timestamp is not in the capture,
+so the run stays INCOMPLETE until it is recorded from Costco's own publication.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+from reverb.ledger import Ledger
+
+ROOT = Path(__file__).resolve().parents[1]
+BASELINE_MS = int(datetime(2026, 9, 24, 20, 0, tzinfo=timezone.utc).timestamp() * 1000)  # 16:00 ET
+TRIGGER_PCT = 3.0
+
+
+def iso(ms: int) -> str:
+    return datetime.fromtimestamp(ms / 1000, timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def summarize(directory: Path) -> dict:
+    rows = Ledger(directory / "ledger.jsonl").verify()
+    slots = [row["payload"] for row in rows if row["kind"] == "capture_slot"]
+    final = next(row["payload"] for row in reversed(rows) if row["kind"] == "recording_complete")
+    candles: dict[int, list] = {}
+    book_levels = []
+    for slot in slots:
+        for result in slot["endpoint_results"]:
+            attempt = next(row["payload"] for row in rows if row["hash"] == result["record_hash"])
+            if not attempt.get("body") or not result["success"]:
+                continue
+            data = json.loads((directory / Path(attempt["body"]).name).read_text())["data"]
+            if result["endpoint"] == "candles":
+                for candle in data:
+                    candles[int(candle[0])] = candle
+            elif result["endpoint"] == "public_orderbook":
+                book_levels.append(len(data.get("a", [])) + len(data.get("b", [])))
+    before = [key for key in candles if key < BASELINE_MS]  # candle keys are open times
+    if not before:
+        raise SystemExit("no candle at or before the 16:00 ET baseline")
+    base_key = max(before)
+    baseline = float(candles[base_key][4])
+    post = sorted((key, float(candles[key][4])) for key in candles if key >= BASELINE_MS)
+    high = max(post, key=lambda row: row[1])
+    low = min(post, key=lambda row: row[1])
+    pct = lambda value: round((value / baseline - 1) * 100, 3)
+    crossed = any(abs(pct(value)) >= TRIGGER_PCT for _, value in post)
+    visible = sum(1 for levels in book_levels if levels)
+    return {
+        "symbol": "RCOSTUSDT",
+        "ledger_head": rows[-1]["hash"],
+        "recorder_status": final["status"],
+        "slots": {"expected": final["expected_slots"], "complete": final["complete_slots"],
+                  "gaps": final["gap_count"]},
+        "public_book": {"snapshots": len(book_levels), "with_visible_levels": visible,
+                        "depth_status": "NOT_VISIBLE" if not visible else
+                        "MEASURED" if visible == len(book_levels) else "PARTIAL"},
+        "event_time_spread": "NOT MEASURED: public book empty and ticker bid1/ask1 was not captured in this run",
+        "reaction": {
+            "baseline_rule": "close of the one-minute market candle ending at 16:00 ET (open-time keys)",
+            "baseline_at": iso(base_key), "baseline_close": baseline,
+            "post_candles": len(post),
+            "max_close": high[1], "max_pct": pct(high[1]), "max_at": iso(high[0]),
+            "min_close": low[1], "min_pct": pct(low[1]), "min_at": iso(low[0]),
+            "last_close": post[-1][1], "last_pct": pct(post[-1][1]), "last_at": iso(post[-1][0]),
+            "trigger_pct": TRIGGER_PCT, "trigger_crossed": crossed,
+        },
+        "issuer_release_timestamp": None,
+        "run_status": "INCOMPLETE",
+        "run_status_reason": "Only an upper bound is verified (8-K acceptance 2026-09-24T20:17:37Z, see evidence/costco/post_event/reconciliation.json); the exact wire release time is not established from Costco's own publication record.",
+        "orders": 0,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("capture_dir", type=Path)
+    parser.add_argument("--out", type=Path, default=ROOT / "evidence/costco/capture_summary.json")
+    args = parser.parse_args()
+    summary = summarize(args.capture_dir)
+    args.out.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(summary, indent=2))
+
+
+if __name__ == "__main__":
+    main()

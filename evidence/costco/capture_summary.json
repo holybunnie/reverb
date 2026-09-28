@@ -1,0 +1,37 @@
+{
+  "symbol": "RCOSTUSDT",
+  "ledger_head": "b31b026a5f64b2f1f21542fff5f17885cb6c20703ccb66e81a677cca351b8416",
+  "recorder_status": "COMPLETE",
+  "slots": {
+    "expected": 270,
+    "complete": 270,
+    "gaps": 0
+  },
+  "public_book": {
+    "snapshots": 270,
+    "with_visible_levels": 0,
+    "depth_status": "NOT_VISIBLE"
+  },
+  "event_time_spread": "NOT MEASURED: public book empty and ticker bid1/ask1 was not captured in this run",
+  "reaction": {
+    "baseline_rule": "close of the one-minute market candle ending at 16:00 ET (open-time keys)",
+    "baseline_at": "2026-09-24T19:59:00Z",
+    "baseline_close": 896.48,
+    "post_candles": 239,
+    "max_close": 906.95,
+    "max_pct": 1.168,
+    "max_at": "2026-09-24T20:15:00Z",
+    "min_close": 893.75,
+    "min_pct": -0.305,
+    "min_at": "2026-09-24T20:47:00Z",
+    "last_close": 898.0,
+    "last_pct": 0.17,
+    "last_at": "2026-09-24T23:58:00Z",
+    "trigger_pct": 3.0,
+    "trigger_crossed": false
+  },
+  "issuer_release_timestamp": null,
+  "run_status": "INCOMPLETE",
+  "run_status_reason": "Only an upper bound is verified (8-K acceptance 2026-09-24T20:17:37Z, see evidence/costco/post_event/reconciliation.json); the exact wire release time is not established from Costco's own publication record.",
+  "orders": 0
+}

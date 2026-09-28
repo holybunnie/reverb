@@ -8,17 +8,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CostcoReportTests(unittest.TestCase):
-    def test_frozen_costco_brief_is_integrated_and_incomplete_until_capture(self):
+    def test_costco_brief_reports_recorded_capture_and_reconciliation(self):
         summary = costco_report_summary(ROOT)
         page = render_costco_morning_brief(ROOT)
         self.assertIsNotNone(summary)
         self.assertIsNotNone(page)
         self.assertEqual(summary["token"], "RCOSTUSDT")
-        self.assertEqual(summary["status"], "THESIS FROZEN · CAPTURE PENDING")
+        self.assertEqual(summary["status"], "RUN INCOMPLETE · HELD")
+        self.assertEqual(summary["move"], "+1.17%")
         self.assertIn("EPS above consensus", page)
         self.assertIn("UNSCORED", page)
-        self.assertIn("REFUSE", page)
-        self.assertIn("public order-book interval", page)
+        self.assertIn("CONFIRMED", page)
+        self.assertIn("Scored: 1 of 1", page)
+        self.assertIn("HOLD", page)
+        self.assertIn("did not cross", page)
+        self.assertIn("Depth not visible", page)
         self.assertIn("data-human-review", page)
         self.assertNotIn("NVIDIA", page)
 
