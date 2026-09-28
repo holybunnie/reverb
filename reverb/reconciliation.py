@@ -570,3 +570,73 @@ def verify_frozen_thesis(thesis: FrozenThesis) -> bool:
     """Check the immutable pre-registration hash before use or publication."""
     body = thesis.model_dump(mode="json", exclude={"sha256"})
     return hashlib.sha256(_canonical(body)).hexdigest() == thesis.sha256
+
+
+# ---------------------------------------------------------------------------
+# Post-release addendum rule (added 2026-09-28, after the Costco release).
+#
+# The frozen YoY rule needs a current and a prior value in one excerpt. Issuers
+# often state only the signed change ("-11 bps vs Q4 FY'25"). This rule scores
+# that statement for YoY claims the frozen rules left NOT_ADDRESSED. It never
+# replaces a frozen result and is always reported separately as an addendum.
+# ---------------------------------------------------------------------------
+ADDENDUM_RULE_ID = "ISSUER_STATED_CHANGE"
+ADDENDUM_RULE_ADDED = "2026-09-28"
+_STATED_CHANGE = re.compile(r"^\s*([+-])\s*\d+(?:\.\d+)?\s*(?:bps|%|percent|basis points)\s*$", re.IGNORECASE)
+_FISCAL_SHORT = re.compile(r"\bFY\s*['’]?\s*(\d{2}|\d{4})\b", re.IGNORECASE)
+
+
+class StatedChangeFact(StrictModel):
+    claim_id: str = Field(min_length=1, max_length=32)
+    change_text: str = Field(min_length=1, max_length=40)
+    current_period_text: str = Field(min_length=1, max_length=120)
+    prior_period_text: str = Field(min_length=1, max_length=120)
+    citation: Citation
+
+
+def _fiscal_year(value: str) -> int | None:
+    match = _FISCAL_SHORT.search(value)
+    if not match:
+        return None
+    year = int(match.group(1))
+    return year + 2000 if year < 100 else year
+
+
+def reconcile_stated_changes(*, claims: tuple[ThesisClaim, ...], frozen: ReconciliationResult,
+                             facts: tuple[StatedChangeFact, ...], frozen_at: datetime,
+                             source_documents: dict[str, str]) -> tuple[ClaimResult, ...]:
+    """Score only frozen NOT_ADDRESSED YoY claims from a verbatim issuer-stated change."""
+    by_id = {result.claim_id: result for result in frozen.claims}
+    claim_by_id = {claim.claim_id: claim for claim in claims}
+    out: list[ClaimResult] = []
+    for fact in facts:
+        claim = claim_by_id.get(fact.claim_id)
+        prior_result = by_id.get(fact.claim_id)
+        if claim is None or prior_result is None:
+            raise ValueError("addendum fact must refer to a registered claim")
+        if prior_result.status is not ClaimStatus.NOT_ADDRESSED or not claim.scoreable:
+            continue
+        if claim.comparison not in {Comparison.UP_YEAR_OVER_YEAR, Comparison.DOWN_YEAR_OVER_YEAR}:
+            continue
+        verify_citation(fact.citation, source_documents)
+        for text in (fact.change_text, fact.current_period_text, fact.prior_period_text):
+            if text not in fact.citation.excerpt:
+                raise ValueError("addendum values must appear verbatim in the cited excerpt")
+        if _aware(fact.citation.published_at, "fact published_at") <= _aware(frozen_at, "frozen_at"):
+            out.append(_result(claim, ClaimStatus.ALREADY_KNOWN,
+                               "the cited change predates the freeze and is excluded", None))
+            continue
+        sign = _STATED_CHANGE.match(fact.change_text)
+        current_year, prior_year = _fiscal_year(fact.current_period_text), _fiscal_year(fact.prior_period_text)
+        if not sign or current_year is None or prior_year is None or current_year - prior_year != 1:
+            out.append(_result(claim, ClaimStatus.NOT_ADDRESSED,
+                               "stated change or fiscal periods do not prove a one-year comparison", None))
+            continue
+        down = sign.group(1) == "-"
+        satisfied = down if claim.comparison is Comparison.DOWN_YEAR_OVER_YEAR else not down
+        result = _result(claim, ClaimStatus.CONFIRMED if satisfied else ClaimStatus.CONTRADICTED,
+                         f"issuer states {fact.change_text} {fact.prior_period_text} "
+                         f"(rule {ADDENDUM_RULE_ID}, added {ADDENDUM_RULE_ADDED} after the release)",
+                         None, fact.change_text, fact.prior_period_text)
+        out.append(result.model_copy(update={"citation": fact.citation}))
+    return tuple(out)

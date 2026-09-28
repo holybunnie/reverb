@@ -91,3 +91,4 @@ body.app:before{mask-image:none;-webkit-mask-image:none;opacity:.5}
 @media(max-width:1100px){.proof-strip{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:600px){.proof-strip{grid-template-columns:1fr}.app .section{width:calc(100% - 32px)}.claim-table td:first-child{width:auto}.claim-table th:nth-child(3),.claim-table td:nth-child(3){display:none}}
 .app .report-stage .section{width:100%}
+.receipt-note{margin:10px 0 0;color:var(--muted);font-size:10px;line-height:1.5}

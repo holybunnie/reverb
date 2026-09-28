@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import statistics
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -28,6 +29,7 @@ def summarize(directory: Path) -> dict:
     final = next(row["payload"] for row in reversed(rows) if row["kind"] == "recording_complete")
     candles: dict[int, list] = {}
     book_levels = []
+    spreads_bps: list[float] = []
     for slot in slots:
         for result in slot["endpoint_results"]:
             attempt = next(row["payload"] for row in rows if row["hash"] == result["record_hash"])
@@ -37,11 +39,25 @@ def summarize(directory: Path) -> dict:
             if result["endpoint"] == "candles":
                 for candle in data:
                     candles[int(candle[0])] = candle
+            elif result["endpoint"] == "ticker" and data:
+                bid, ask = float(data[0]["bid1Price"]), float(data[0]["ask1Price"])
+                if bid > 0 and ask >= bid:
+                    spreads_bps.append((ask - bid) / ((ask + bid) / 2) * 10_000)
             elif result["endpoint"] == "public_orderbook":
                 book_levels.append(len(data.get("a", [])) + len(data.get("b", [])))
     before = [key for key in candles if key < BASELINE_MS]  # candle keys are open times
+    spread = ({"samples": len(spreads_bps), "median": round(statistics.median(spreads_bps), 2),
+               "min": round(min(spreads_bps), 2), "max": round(max(spreads_bps), 2),
+               "source": "ticker bid1Price/ask1Price, one sample per slot"} if spreads_bps else None)
     if not before:
-        raise SystemExit("no candle at or before the 16:00 ET baseline")
+        # Not an event capture: report capture quality and spread only.
+        return {"symbol": "RCOSTUSDT", "ledger_head": rows[-1]["hash"], "recorder_status": final["status"],
+                "window": [slots[0]["slot_at"], slots[-1]["slot_at"]] if slots else None,
+                "slots": {"expected": final["expected_slots"], "complete": final["complete_slots"],
+                          "gaps": final["gap_count"]},
+                "public_book": {"snapshots": len(book_levels),
+                                "with_visible_levels": sum(1 for levels in book_levels if levels)},
+                "ticker_spread_bps": spread, "event": False, "orders": 0}
     base_key = max(before)
     baseline = float(candles[base_key][4])
     post = sorted((key, float(candles[key][4])) for key in candles if key >= BASELINE_MS)
@@ -59,7 +75,9 @@ def summarize(directory: Path) -> dict:
         "public_book": {"snapshots": len(book_levels), "with_visible_levels": visible,
                         "depth_status": "NOT_VISIBLE" if not visible else
                         "MEASURED" if visible == len(book_levels) else "PARTIAL"},
-        "event_time_spread": "NOT MEASURED: public book empty and ticker bid1/ask1 was not captured in this run",
+        "event_time_spread": ("MEASURED from ticker bid1/ask1" if spread else
+                              "NOT MEASURED: public book empty and ticker bid1/ask1 was not captured in this run"),
+        "ticker_spread_bps": spread,
         "reaction": {
             "baseline_rule": "close of the one-minute market candle ending at 16:00 ET (open-time keys)",
             "baseline_at": iso(base_key), "baseline_close": baseline,

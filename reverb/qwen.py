@@ -206,6 +206,9 @@ class QwenClient:
             ],
             "temperature": 0,
             "max_tokens": 512,
+            # Schema-bound extraction needs no reasoning trace; with it the
+            # hackathon endpoint ran past the 120 s read timeout.
+            "enable_thinking": False,
         }
         try:
             response = self._client.post(
@@ -252,7 +255,9 @@ class QwenClient:
             "claim_id, current_value_text, prior_value_text, current_period_text, "
             "prior_period_text, attribution_quote, excerpt. Use null for a missing field. "
             "Copy every value and period label character-for-character from excerpt. The "
-            "excerpt must be copied character-for-character from the release text. Do not "
+            "excerpt must be copied character-for-character from the release text. For a value "
+            "in a table, the excerpt must run contiguously from the column header that carries "
+            "the period labels through the row that carries the values. Do not "
             "calculate year-over-year changes, normalize figures, infer causation, add a "
             "consensus value, or include a status, score, summary, recommendation, or prose. "
             "Only use claim_id values from registered_claims. Return {\"facts\": []} when no "
@@ -266,6 +271,7 @@ class QwenClient:
             ],
             "temperature": 0,
             "max_tokens": 1600,
+            "enable_thinking": False,
         }
         try:
             response = self._client.post(

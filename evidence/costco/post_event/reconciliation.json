@@ -5,7 +5,7 @@
     "filing_index": "https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/",
     "text_path": "evidence/costco/post_event/q4_release.txt",
     "text_sha256": "3623e887120fe20153baa276b49cf769375e5cb1afd6aed628470dd4ea919315",
-    "captured_at": "2026-09-28T18:53:47.451074Z"
+    "captured_at": "2026-09-28T19:59:30.910105Z"
   },
   "issuer_release_timestamp": {
     "value": "2026-09-24T20:17:37Z",
@@ -35,7 +35,7 @@
         "citation": {
           "source_url": "https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9918-k92426.htm",
           "published_at": "2026-09-24T20:17:37Z",
-          "captured_at": "2026-09-28T18:53:47.451074Z",
+          "captured_at": "2026-09-28T19:59:30.910105Z",
           "source_sha256": "3623e887120fe20153baa276b49cf769375e5cb1afd6aed628470dd4ea919315",
           "location": "normalized exhibit text offsets 4680:4857",
           "excerpt": "16 Weeks Ended 52 Weeks Ended August 30, 2026 August 31, 2025 August 30, 2026 August 31, 2025 REVENUE Net sales $ 93,873 $ 84,432 $ 297,247 $ 269,912 Membership fees 1,850 1,724"
@@ -64,6 +64,116 @@
     ],
     "scored_confirmed": 1,
     "scored_total": 1
+  },
+  "addendum": {
+    "rule": "ISSUER_STATED_CHANGE",
+    "added": "2026-09-28",
+    "disclosure": "Added after the release. Scores a YoY claim the frozen rules left NOT_ADDRESSED when the issuer states the signed change verbatim. Frozen results are unchanged.",
+    "source": {
+      "url": "https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9928-k92426.htm",
+      "text_path": "evidence/costco/post_event/q4_supplement.txt",
+      "text_sha256": "1b41b878dca9e4047d233def9867b959242aee323ede092f319cc6ba48acd8b6"
+    },
+    "claims": [
+      {
+        "claim_id": "c3",
+        "text": "Margins disappoint",
+        "status": "CONFIRMED",
+        "scored": true,
+        "reason": "issuer states -11 bps Q4 FY\u201925 (rule ISSUER_STATED_CHANGE, added 2026-09-28 after the release)",
+        "current_value_text": "-11 bps",
+        "comparison_value_text": "Q4 FY\u201925",
+        "citation": {
+          "source_url": "https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9928-k92426.htm",
+          "published_at": "2026-09-24T20:17:37Z",
+          "captured_at": "2026-09-28T19:59:30.910105Z",
+          "source_sha256": "1b41b878dca9e4047d233def9867b959242aee323ede092f319cc6ba48acd8b6",
+          "location": "normalized exhibit text offsets 83:1356",
+          "excerpt": "Fourth Quarter FY 2026 Exhibit 99.2 $93.9B +11.2% Comparable Sales +9.4% Adjusted Comparable Sales1 +6.7% Comparable Traffic +3.3% Comparable Ticket +5.9% Adjusted Comparable Ticket1 +3.3% Digitally-Enabled Comparable Sales +19.5% Adjusted Digitally- Enabled Comparable Sales2 +19.8% Net Sales Growth Sales | Q4 Highlights 1 - Excluding impacts from changes in gasoline prices and foreign exchange 2 - Excluding impacts from changes in foreign exchange rates Segment Reporting - Sales | Q4 Highlights Comp Sales US Canada Other International Total Company Sales +10.7% +5.0% +7.0% +9.4% Ticket +7.3% +2.5% +2.4% +5.9% Traffic +3.2% +2.5% +4.5% +3.3% 1 - Excluding impacts from changes in gasoline prices and foreign exchange Adjusted Comp Sales1 US Canada Other International Total Company Sales +7.2% +4.6% +6.2% +6.7% Ticket +3.9% +2.1% +1.7% +3.3% Traffic +3.2% +2.5% +4.5% +3.3% 89.8% Worldwide Membership Renewal Rate 150.4MM Total Cardholders +3.6% Growth 42.3MM Executive Memberships Membership | Q4 Highlights +7.7% Membership Income Growth ex-FX +7.3% Membership Income Growth 92.3% US/CN Renewal Rate 84.1MM Paid Memberships +3.8% Growth 75.6% Penetration of Sales to Executive Members Financial Performance | Q4 Highlights Gross Margin 11.02% -11 bps vs Q4 FY\u201925"
+        }
+      }
+    ],
+    "scored_confirmed": 2,
+    "scored_total": 2
+  },
+  "qwen_release_check": {
+    "provider": "bitget-qwen",
+    "model": "qwen3.8-max",
+    "runs": 5,
+    "schema_valid_runs": 4,
+    "runs_matching_human_selection": 0,
+    "attempts": [
+      {
+        "status": "returned",
+        "output_sha256": "e6e2406d10621df834ea655f7c9373ae3ecc00d2cd6d4907aeaba64b09c9589b",
+        "grounded_facts": [
+          {
+            "claim_id": "c2",
+            "current": "5,907",
+            "prior": "5,323",
+            "current_period": "52 Weeks Ended August 30, 2026",
+            "prior_period": "August 31, 2025",
+            "attribution_quote": null
+          }
+        ],
+        "rejected_candidates": [],
+        "matches_human_selection": false
+      },
+      {
+        "status": "returned",
+        "output_sha256": "e6e2406d10621df834ea655f7c9373ae3ecc00d2cd6d4907aeaba64b09c9589b",
+        "grounded_facts": [
+          {
+            "claim_id": "c2",
+            "current": "5,907",
+            "prior": "5,323",
+            "current_period": "52 Weeks Ended August 30, 2026",
+            "prior_period": "August 31, 2025",
+            "attribution_quote": null
+          }
+        ],
+        "rejected_candidates": [],
+        "matches_human_selection": false
+      },
+      {
+        "status": "returned",
+        "output_sha256": "e6e2406d10621df834ea655f7c9373ae3ecc00d2cd6d4907aeaba64b09c9589b",
+        "grounded_facts": [
+          {
+            "claim_id": "c2",
+            "current": "5,907",
+            "prior": "5,323",
+            "current_period": "52 Weeks Ended August 30, 2026",
+            "prior_period": "August 31, 2025",
+            "attribution_quote": null
+          }
+        ],
+        "rejected_candidates": [],
+        "matches_human_selection": false
+      },
+      {
+        "status": "rejected_or_unavailable",
+        "error_type": "DataUnavailable",
+        "reason": "Qwen returned an excerpt absent from the issuer release"
+      },
+      {
+        "status": "returned",
+        "output_sha256": "e6e2406d10621df834ea655f7c9373ae3ecc00d2cd6d4907aeaba64b09c9589b",
+        "grounded_facts": [
+          {
+            "claim_id": "c2",
+            "current": "5,907",
+            "prior": "5,323",
+            "current_period": "52 Weeks Ended August 30, 2026",
+            "prior_period": "August 31, 2025",
+            "attribution_quote": null
+          }
+        ],
+        "rejected_candidates": [],
+        "matches_human_selection": false
+      }
+    ],
+    "role": "candidate cross-check only; scores come from the human-selected verbatim facts"
   },
   "unscored_context": {
     "derived_gross_margin_pct_of_net_sales": {
