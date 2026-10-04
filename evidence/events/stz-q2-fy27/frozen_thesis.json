@@ -1,0 +1,97 @@
+{
+  "baseline_method": "Use the declared pre-close window ending at 16:00 ET; do not anchor it to the unknown release timestamp.",
+  "capture_plan": "Capture RSTZUSDT one-minute market candles, the public UTA v3 SPOT order book and ticker, with exchange and local receipt timestamps, from 15:30 through 20:00 ET on 2026-10-06. Also attempt public SPOT fills and the account-scoped Reality order book and fills as separately labelled provenance. A protected-route 40025 response does not invalidate a slot when the required candles and public order book were captured. If either required interval is missing, or the issuer release time cannot be verified from the issuer's own publication, mark the run INCOMPLETE.",
+  "claims": [
+    {
+      "claim_id": "c1",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "UP_YEAR_OVER_YEAR",
+      "scoreable": true,
+      "text": "Beer net sales grow year over year",
+      "unit": "usd",
+      "unscored_reason": null,
+      "variable": "beer net sales"
+    },
+    {
+      "claim_id": "c2",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "STATED_INCREASE",
+      "scoreable": true,
+      "text": "Beer depletions turn positive",
+      "unit": "percent",
+      "unscored_reason": null,
+      "variable": "beer depletions"
+    },
+    {
+      "claim_id": "c3",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "BELOW_REFERENCE",
+      "scoreable": true,
+      "text": "Beer operating margin below last year's 40.6%",
+      "unit": "percent",
+      "unscored_reason": null,
+      "variable": "beer operating margin"
+    },
+    {
+      "claim_id": "c4",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "EXPLICIT_ATTRIBUTION",
+      "scoreable": true,
+      "text": "Constellation blames aluminum or tariffs for beer margin",
+      "unit": null,
+      "unscored_reason": null,
+      "variable": "aluminum or tariff attribution"
+    }
+  ],
+  "code_commit": "54d83938f0b5c60a2602ca8998113f573dd9a5cf",
+  "event": "STZ Q2 FY2027",
+  "frozen_at": "2026-10-04T17:41:43.504907Z",
+  "knowledge_snapshot": {
+    "frozen_at": "2026-10-04T17:41:43.504907Z",
+    "items": [
+      {
+        "claim_id": "c1",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      },
+      {
+        "claim_id": "c2",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      },
+      {
+        "claim_id": "c3",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      },
+      {
+        "claim_id": "c4",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      }
+    ]
+  },
+  "reaction_trigger_pct": "0.03",
+  "references": [
+    {
+      "citation": {
+        "captured_at": "2026-10-04T17:14:39Z",
+        "excerpt": "Our Beer Business reported a net sales decrease of 7% driven by an 8.7% decline in shipment volumes reflecting socioeconomic headwinds affecting consumer demand, along with distributor inventory rebalancing during the quarter. \u2022 Operating margin decreased 200 basis points to 40.6%",
+        "location": "evidence/events/stz-q2-fy27/pre_event/q2_fy26_release.txt normalized text offsets 3489:3770",
+        "published_at": "2025-10-06T20:08:27Z",
+        "source_sha256": "25e3be545e5a94b4cf5e7b221262cd46b0da84fee175558c06c2a34d78544510",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/16918/000001691825000140/stzex991_83120258kearnings.htm"
+      },
+      "claim_id": "c3",
+      "unit": "percent",
+      "value_text": "40.6%"
+    }
+  ],
+  "risk_budget_usdt": "100",
+  "sha256": "27abf0f7c40afaa9312f0e42de8b589c08f120a5b259a8c9ce3faa1df3b49e6b",
+  "thesis_text": "Constellation's beer sales grow against last year's weak, destocking-hit quarter, and beer depletions finally turn positive, but beer operating margin comes in below last year's 40.6% because aluminum and tariff costs keep biting. I'd put $100 at risk at most."
+}

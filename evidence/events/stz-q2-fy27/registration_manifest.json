@@ -1,0 +1,80 @@
+{
+  "approval_text": "yes yes",
+  "approved_by_owner_at": "2026-10-04T17:37:30Z",
+  "claims_approved_by_human": true,
+  "code_commit": "54d83938f0b5c60a2602ca8998113f573dd9a5cf",
+  "config_path": "config/events/stz-q2-fy27.json",
+  "config_sha256": "58806e4ccb4c0ea18c670b58b98827c8b90b40b0a03acb1ced8604175b89ddc3",
+  "drafted_by": "Claude Code from cited pre-event sources",
+  "event": "STZ Q2 FY2027",
+  "event_id": "stz-q2-fy27",
+  "frozen_at": "2026-10-04T17:41:43.504907Z",
+  "frozen_thesis_path": "evidence/events/stz-q2-fy27/frozen_thesis.json",
+  "frozen_thesis_sha256": "27abf0f7c40afaa9312f0e42de8b589c08f120a5b259a8c9ce3faa1df3b49e6b",
+  "knowledge_snapshot_statuses": [
+    {
+      "claim_id": "c1",
+      "reason": "no claim-resolving source was public by freeze",
+      "status": "UNKNOWN"
+    },
+    {
+      "claim_id": "c2",
+      "reason": "no claim-resolving source was public by freeze",
+      "status": "UNKNOWN"
+    },
+    {
+      "claim_id": "c3",
+      "reason": "no claim-resolving source was public by freeze",
+      "status": "UNKNOWN"
+    },
+    {
+      "claim_id": "c4",
+      "reason": "no claim-resolving source was public by freeze",
+      "status": "UNKNOWN"
+    }
+  ],
+  "live_orders_allowed": false,
+  "model_candidate_used": false,
+  "pre_event_sources": [
+    {
+      "captured_at": "2026-10-04T17:15Z",
+      "file": "evidence/events/stz-q2-fy27/pre_event/q1_fy27_release.htm",
+      "sha256": "c6534c4aca833efbe92c3aacd6b306ffbd5baf812e10d7425b5a2f11bb84806d",
+      "url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000028/stzex991_53120268kearnings.htm",
+      "why": "Prior-quarter release (Q1 FY27, 8-K accepted 2026-06-30T20:08:55Z) with current fiscal 2027 guidance"
+    },
+    {
+      "captured_at": "2026-10-04T17:15Z",
+      "file": "evidence/events/stz-q2-fy27/pre_event/q2_fy26_release.htm",
+      "sha256": "c2bfc5410b847322ad1141d61852ff729c8fa6d3c1d5cb5d3e0d387cc98f271d",
+      "url": "https://www.sec.gov/Archives/edgar/data/16918/000001691825000140/stzex991_83120258kearnings.htm",
+      "why": "Same quarter last year (Q2 FY26, 8-K accepted 2025-10-06T20:08:27Z): prior-year comparison values"
+    },
+    {
+      "captured_at": "2026-10-04T17:15Z",
+      "file": "evidence/events/stz-q2-fy27/pre_event/sep08_2026_8k_ex991.htm",
+      "sha256": "d297e96fea0f3ebdc707b5f6fea1bf16bac491f21c4b266c289e991385698e9c",
+      "url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000034/stzex991_90820268k.htm",
+      "why": "Latest 7.01 filing before freeze; checked for guidance changes (none: note redemption only)"
+    },
+    {
+      "captured_at": "2026-10-04T17:15Z",
+      "file": "evidence/events/stz-q2-fy27/pre_event/timing_announcement_sep10.html",
+      "sha256": "22560452c106cbae05c3566cf1c0688a7ba3f1487d0c36e8ee12beac68c9789d",
+      "url": "https://ir.cbrands.com/news-events/press-releases/detail/345/constellation-brands-to-report-second-quarter-fiscal-2027-financial-results-on-october-6-2026-after-market-close-and-host-conference-call-on-october-7-2026-at-8-00-am-et",
+      "why": "Issuer timing: release 2026-10-06 after the U.S. close; call 2026-10-07 08:00 ET"
+    },
+    {
+      "captured_at": "2026-10-04T17:15Z",
+      "file": "evidence/events/stz-q2-fy27/pre_event/barclays_conference_notice.html",
+      "sha256": "9046733b3cd94e5fa1a71f485f3add5437306628ed43bd24a7e66749656ff48e",
+      "url": "https://ir.cbrands.com/news-events/press-releases/detail/343/constellation-brands-to-present-at-the-2026-barclays-global-consumer-conference-on-september-8-2026",
+      "why": "Knowledge-snapshot risk: management fireside chat on 2026-09-08 (webcast not captured)"
+    }
+  ],
+  "token_symbol": "RSTZUSDT",
+  "window": [
+    "2026-10-06T19:30:00Z",
+    "2026-10-07T00:00:00Z"
+  ]
+}
