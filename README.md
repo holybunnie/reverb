@@ -4,6 +4,17 @@
 
 Write down what you believe before the earnings report. Reverb checks it against what the company actually said, measures how the market reacted, and leaves you a sourced brief in the morning. **You make the decision.**
 
+## Start here
+
+**[Walk through one complete research task](https://holybunnie.github.io/reverb/walkthrough/)**: a trader's Costco view, from the question to the actionable insight, in eight steps and under three minutes.
+
+| Judging line | Where to look | What it proves |
+| --- | --- | --- |
+| Feature depth | [Evidence and known limits](#evidence-and-known-limits), [Run and verify](#run-and-verify) | Each source, how it is used, and how it failed when it did |
+| Research quality | [Costco forward run](#costco-forward-run), [raw capture](evidence/costco/raw/20260924T072322Z-1239ae49) | A forward run with push-time proof, exact-offset citations and measured model error, rebuildable from committed raw data |
+| LUI fluency | [Walkthrough](https://holybunnie.github.io/reverb/walkthrough/) | Question to decision in plain language, with the source for every number |
+| Personalised thesis | [Walkthrough step 3](https://holybunnie.github.io/reverb/walkthrough/#3) | Your browser recomputes the frozen hash; edit a claim and it breaks, so the view can't be rewritten after the result |
+
 Most earnings tools tell you what happened. Reverb tells you whether your view survived—and does not score you on facts that were already public when you wrote it.
 
 ### It ran on a live earnings report
