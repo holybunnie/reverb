@@ -1,0 +1,136 @@
+{
+  "baseline_method": "Use the declared pre-close window ending at 16:00 ET; do not anchor it to the unknown release timestamp.",
+  "capture_plan": "Capture RAPLDUSDT one-minute market candles, the public UTA v3 SPOT order book and ticker, with exchange and local receipt timestamps, from 15:30 through 20:00 ET on 2026-10-07. Also attempt public SPOT fills and the account-scoped Reality order book and fills as separately labelled provenance. A protected-route 40025 response does not invalidate a slot when the required candles and public order book were captured. If either required interval is missing, or the issuer release time cannot be verified from the issuer's own publication, mark the run INCOMPLETE.",
+  "claims": [
+    {
+      "claim_id": "c1",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "ABOVE_REFERENCE",
+      "scoreable": true,
+      "text": "Revenue beats last quarter's $258.7M",
+      "unit": "usd",
+      "unscored_reason": null,
+      "variable": "revenues"
+    },
+    {
+      "claim_id": "c2",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "ABOVE_REFERENCE",
+      "scoreable": true,
+      "text": "Adjusted EBITDA beats last quarter's $42.4M",
+      "unit": "usd",
+      "unscored_reason": null,
+      "variable": "adjusted ebitda"
+    },
+    {
+      "claim_id": "c3",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "BELOW_REFERENCE",
+      "scoreable": true,
+      "text": "Net loss narrows from $110.6M",
+      "unit": "usd",
+      "unscored_reason": null,
+      "variable": "net loss attributable to common stockholders"
+    },
+    {
+      "claim_id": "c4",
+      "claim_type": "QUARTER_FACT",
+      "comparison": "ABOVE_REFERENCE",
+      "scoreable": true,
+      "text": "A new lease lifts contracted capacity above 1,410 MW",
+      "unit": "MW",
+      "unscored_reason": null,
+      "variable": "contracted critical IT load"
+    }
+  ],
+  "code_commit": "d16c590597f0acc98da2582592b419b9c1e769bf",
+  "event": "APLD Q1 FY2027",
+  "frozen_at": "2026-10-04T17:41:56.708870Z",
+  "knowledge_snapshot": {
+    "frozen_at": "2026-10-04T17:41:56.708870Z",
+    "items": [
+      {
+        "claim_id": "c1",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      },
+      {
+        "claim_id": "c2",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      },
+      {
+        "claim_id": "c3",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      },
+      {
+        "claim_id": "c4",
+        "evidence": [],
+        "reason": "no claim-resolving source was public by freeze",
+        "status": "UNKNOWN"
+      }
+    ]
+  },
+  "reaction_trigger_pct": "0.03",
+  "references": [
+    {
+      "citation": {
+        "captured_at": "2026-10-04T17:31:46Z",
+        "excerpt": "Fiscal Fourth Quarter 2026 Financial Highlights \u2022 Revenues: $258.7 million, up 407% from the prior year comparable period \u2022 Net loss attributable to common stockholders: $110.6 million",
+        "location": "evidence/events/apld-q1-fy27/pre_event/q4_fy26_release.txt normalized text offsets 1286:1470",
+        "published_at": "2026-07-27T21:04:53Z",
+        "source_sha256": "cec492f8138214cc59ec25e2a7ba3e4f2f4924e1afa3a6ea5830517bb5bfb14d",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000044/apldq426earningsreleaseasf.htm"
+      },
+      "claim_id": "c1",
+      "unit": "usd",
+      "value_text": "$258.7 million"
+    },
+    {
+      "citation": {
+        "captured_at": "2026-10-04T17:31:46Z",
+        "excerpt": "Adjusted net income per diluted share: $0.04 \u2022 Adjusted EBITDA: $42.4 million",
+        "location": "evidence/events/apld-q1-fy27/pre_event/q4_fy26_release.txt normalized text offsets 1722:1799",
+        "published_at": "2026-07-27T21:04:53Z",
+        "source_sha256": "cec492f8138214cc59ec25e2a7ba3e4f2f4924e1afa3a6ea5830517bb5bfb14d",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000044/apldq426earningsreleaseasf.htm"
+      },
+      "claim_id": "c2",
+      "unit": "usd",
+      "value_text": "$42.4 million"
+    },
+    {
+      "citation": {
+        "captured_at": "2026-10-04T17:31:46Z",
+        "excerpt": "Fiscal Fourth Quarter 2026 Financial Highlights \u2022 Revenues: $258.7 million, up 407% from the prior year comparable period \u2022 Net loss attributable to common stockholders: $110.6 million",
+        "location": "evidence/events/apld-q1-fy27/pre_event/q4_fy26_release.txt normalized text offsets 1286:1470",
+        "published_at": "2026-07-27T21:04:53Z",
+        "source_sha256": "cec492f8138214cc59ec25e2a7ba3e4f2f4924e1afa3a6ea5830517bb5bfb14d",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000044/apldq426earningsreleaseasf.htm"
+      },
+      "claim_id": "c3",
+      "unit": "usd",
+      "value_text": "$110.6 million"
+    },
+    {
+      "citation": {
+        "captured_at": "2026-10-04T17:31:46Z",
+        "excerpt": "approximately 1,410 MW of contracted critical IT load",
+        "location": "evidence/events/apld-q1-fy27/pre_event/q4_fy26_release.txt normalized text offsets 10577:10630",
+        "published_at": "2026-07-27T21:04:53Z",
+        "source_sha256": "cec492f8138214cc59ec25e2a7ba3e4f2f4924e1afa3a6ea5830517bb5bfb14d",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000044/apldq426earningsreleaseasf.htm"
+      },
+      "claim_id": "c4",
+      "unit": "MW",
+      "value_text": "1,410"
+    }
+  ],
+  "risk_budget_usdt": "100",
+  "sha256": "3f707686a7cb2ed9f7e8e8e49fec2d41a5b498a79ccf8d247277d9fdc9682967",
+  "thesis_text": "Applied Digital keeps growing quarter on quarter: revenue and adjusted EBITDA beat last quarter's $258.7M and $42.4M as more capacity comes online, the net loss narrows from $110.6M, and they announce another lease. I'd put $100 at risk at most."
+}
