@@ -31,7 +31,7 @@ The language model reads and explains; it never supplies a number or picks a tra
 
 ## Costco forward run
 
-The Costco Q4 FY2026 event ran on 24 September 2026, after the US close, against a thesis frozen at `2026-09-24T06:30:01Z` with hash `bcd4e540fa1e2b46d883f6b63734b418cd533641be03f4eed5fc9877666ea4c6`, code commit `301ab3225dc0cbe1cd806e76e92f206db88f5a89`.
+The Costco Q4 FY2026 event ran on 24 September 2026, after the US close, against a thesis frozen at `2026-09-24T06:30:01Z` with hash `bcd4e540fa1e2b46d883f6b63734b418cd533641be03f4eed5fc9877666ea4c6`, code commit `301ab3225dc0cbe1cd806e76e92f206db88f5a89`. Commit `dfb03ca`, which contains `frozen_thesis_v2.json`, reached GitHub at `2026-09-24T06:35:26Z` per the repository's [activity log](https://api.github.com/repos/holybunnie/reverb/activity), about 13h40m before the `20:15 UTC` release.
 
 | Result | Evidence |
 | --- | --- |
@@ -42,6 +42,7 @@ The Costco Q4 FY2026 event ran on 24 September 2026, after the US close, against
 | Not graded | EPS: no fair benchmark was frozen (reported `$6.75` includes a stated `$0.15` one-off). Freight: not attributed by Costco in the release or deck |
 | Release time | `16:15 ET` (`20:15 UTC`) per Costco's own press-release feed ([record](evidence/costco/post_event/issuer_release_timestamp.json)); the [8-K](https://www.sec.gov/Archives/edgar/data/909832/000090983226000084/costex9918-k92426.htm) followed at `16:17:37 ET`. The RCOST peak landed in the release minute |
 | Depth | Measured: all `270` public order-book snapshots returned `0` levels while RCOST traded. The event traded with no quoted depth |
+| Raw data | The capture, reaction and depth figures rebuild byte-identically from the committed [raw capture](evidence/costco/raw/20260924T072322Z-1239ae49): the full hash-chained ledger plus every public candle, order-book and fills body. The two authenticated, account-scoped feeds are withheld, with their hashes kept in [WITHHELD.md](evidence/costco/raw/20260924T072322Z-1239ae49/WITHHELD.md) |
 
 Under the pre-registered protocol the run is **`COMPLETE`**: every required slot was captured and the issuer timestamp is verified from Costco's own publication record.
 
@@ -129,6 +130,8 @@ After the event, derive the sanitized summary and reconcile against the issuer f
 
 ```sh
 ./.venv/bin/python scripts/costco_capture_summary.py data/private/costco-recordings/<run-id>
+./.venv/bin/python scripts/costco_publish_raw.py data/private/costco-recordings/<run-id>
+./.venv/bin/python scripts/costco_capture_summary.py --verify   # rebuild from committed raw data
 ./.venv/bin/python scripts/costco_reconcile.py
 ```
 

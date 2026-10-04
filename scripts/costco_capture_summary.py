@@ -10,14 +10,19 @@ import argparse
 import json
 import statistics
 from datetime import datetime, timezone
+import sys
 from pathlib import Path
 
-from reverb.ledger import Ledger
-
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from reverb.ledger import Ledger  # noqa: E402
+
 BASELINE_MS = int(datetime(2026, 9, 24, 20, 0, tzinfo=timezone.utc).timestamp() * 1000)  # 16:00 ET
 TRIGGER_PCT = 3.0
 RELEASE_RECORD = ROOT / "evidence/costco/post_event/issuer_release_timestamp.json"
+SUMMARY_PATH = ROOT / "evidence/costco/capture_summary.json"
+RAW_CAPTURE = ROOT / "evidence/costco/raw/20260924T072322Z-1239ae49"
 
 
 def iso(ms: int) -> str:
@@ -104,11 +109,22 @@ def summarize(directory: Path) -> dict:
     }
 
 
+def render(directory: Path) -> str:
+    return json.dumps(summarize(directory), indent=2) + "\n"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("capture_dir", type=Path)
-    parser.add_argument("--out", type=Path, default=ROOT / "evidence/costco/capture_summary.json")
+    parser.add_argument("capture_dir", type=Path, nargs="?", default=RAW_CAPTURE)
+    parser.add_argument("--out", type=Path, default=SUMMARY_PATH)
+    parser.add_argument("--verify", action="store_true",
+                        help="rebuild from the capture and assert byte-equality with the committed summary")
     args = parser.parse_args()
+    if args.verify:
+        if render(args.capture_dir) != SUMMARY_PATH.read_text(encoding="utf-8"):
+            raise SystemExit("capture summary does not match the committed file")
+        print(f"verified: {SUMMARY_PATH.relative_to(ROOT)} rebuilds byte-identically from {args.capture_dir}")
+        return
     summary = summarize(args.capture_dir)
     args.out.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))

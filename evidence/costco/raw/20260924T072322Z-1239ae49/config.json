@@ -1,0 +1,26 @@
+{
+  "event": "COST Q4 FY2026",
+  "event_date": "2026-09-24",
+  "token_symbol": "RCOSTUSDT",
+  "event_source_url": "https://investor.costco.com/events-and-presentations/default.aspx?lv=true",
+  "thesis_text": "I think Costco beats on EPS and membership fee growth stays strong, but margins disappoint because of freight costs. I'd put $100 at risk at most.",
+  "risk_budget_usdt": "100",
+  "approved_comparison_rules": {
+    "EPS above consensus": "ABOVE_REFERENCE; human may mark this claim unscored unless a pre-freeze consensus source, value, timestamp, and exact reported/adjusted EPS basis are captured and match the issuer's reported measure.",
+    "membership fee growth stays strong": "UP_YEAR_OVER_YEAR; operational proxy is membership-fee income higher than the comparable prior-year period, not a general definition of strong.",
+    "margins disappoint": "DOWN_YEAR_OVER_YEAR; operational proxy is the same explicitly sourced gross-margin metric lower than the comparable prior-year period; do not derive or substitute a different margin measure after release.",
+    "because of freight costs": "EXPLICIT_ATTRIBUTION as a separate claim; confirm only when the issuer's source text explicitly links freight/shipping/transportation to margin or cost-of-sales impact. A margin decline alone is insufficient."
+  },
+  "reaction_trigger_pct": "0.03",
+  "baseline_method": "Use the declared pre-close window ending at 16:00 ET; do not anchor it to the unknown release timestamp.",
+  "capture_plan": "Capture RCOSTUSDT one-minute market candles and the public UTA v3 SPOT order book, with exchange and local receipt timestamps, from 15:30 through 20:00 ET on 2026-09-24. This is the proven Reality-token depth route used by the successful EXNIGHT capture. Also attempt the account-scoped Reality order book, Reality platform fills, and generic public SPOT fills as separately labelled provenance when accessible. A protected-route 40025 response does not invalidate a slot when the required candles and public order book were captured. If either required interval is missing, or the issuer timestamp cannot be verified, mark the run INCOMPLETE.",
+  "live_orders_allowed": false,
+  "status": "FROZEN",
+  "frozen_thesis_path": "evidence/costco/frozen_thesis_v2.json",
+  "frozen_thesis_sha256": "bcd4e540fa1e2b46d883f6b63734b418cd533641be03f4eed5fc9877666ea4c6",
+  "frozen_at": "2026-09-24T06:30:01.749791Z",
+  "code_commit": "301ab3225dc0cbe1cd806e76e92f206db88f5a89",
+  "supersession_reason": "The first registration contradicted the repository's 23 September observed correction: EXNIGHT proved public UTA v3 SPOT depth while the account-scoped route remained whitelist-blocked. Preserve v1; freeze a corrected v2 before the event.",
+  "supersedes_frozen_thesis_path": "evidence/costco/frozen_thesis.json",
+  "supersedes_frozen_thesis_sha256": "8f28dd5f4bb4e4fbf70df5a97dd50d1de39fad1a2ab25498720a708c4d45743f"
+}
