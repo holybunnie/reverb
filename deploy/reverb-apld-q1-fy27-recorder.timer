@@ -1,0 +1,11 @@
+[Unit]
+Description=Start the apld-q1-fy27 recorder ten minutes before its window
+
+[Timer]
+OnCalendar=2026-10-07 19:20:00 UTC
+AccuracySec=1s
+Persistent=false
+Unit=reverb-apld-q1-fy27-recorder.service
+
+[Install]
+WantedBy=timers.target

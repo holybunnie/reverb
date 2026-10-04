@@ -49,8 +49,8 @@ def schedule(args: argparse.Namespace) -> tuple[datetime, datetime, int]:
     return start, end, count
 
 
-def create_run_directory() -> Path:
-    root = ROOT / "data" / "private" / "costco-recordings"
+def create_run_directory(event_id: str | None = None) -> Path:
+    root = ROOT / "data" / "private" / ("event-recordings/" + event_id if event_id else "costco-recordings")
     root.mkdir(parents=True, exist_ok=True)
     name = utc_now().strftime("%Y%m%dT%H%M%SZ-") + uuid4().hex[:8]
     return root / name
@@ -58,6 +58,7 @@ def create_run_directory() -> Path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--event", help="event_id under config/events/; default is the Costco run")
     parser.add_argument("--start-at", help="UTC ISO-8601 start, e.g. 2026-09-24T19:30:00Z")
     parser.add_argument("--end-at", help="UTC ISO-8601 end, exclusive")
     parser.add_argument("--duration-minutes", type=int,
@@ -67,6 +68,9 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
+        if args.event and not (args.start_at or args.end_at or args.duration_minutes is not None):
+            window = json.loads((ROOT / "config" / "events" / f"{args.event}.json").read_text(encoding="utf-8"))
+            args.start_at, args.end_at = window["window_start"], window["window_end"]
         start_at, end_at, expected_slots = schedule(args)
         if args.max_lateness_seconds < 0 or args.max_lateness_seconds >= 60:
             raise ValueError("max lateness must be between 0 and 59 seconds")
@@ -74,10 +78,14 @@ def main() -> int:
         # The recorder never trades, so prefer dedicated read-only credentials
         # without replacing the existing order-capable key.
         credentials = Credentials.from_env_priority("BITGET_READ", "BITGET_DATA", "BITGET")
-        config_bytes = (ROOT / "config" / "costco_run.json").read_bytes()
+        config_path = ROOT / "config" / ("events/" + args.event + ".json" if args.event else "costco_run.json")
+        config_bytes = config_path.read_bytes()
         config = json.loads(config_bytes)
         symbol = config["token_symbol"]
-        if symbol != "RCOSTUSDT":
+        if args.event:
+            if config.get("live_orders_allowed") is not False or config.get("event_id") != args.event:
+                raise ValueError("event registration must be read-only and match --event")
+        elif symbol != "RCOSTUSDT":
             raise ValueError("Costco recorder requires the live-probed RCOSTUSDT pair")
     except (ValueError, KeyError, ReverbError, OSError, json.JSONDecodeError) as exc:
         print(f"RECORDER HALTED: {type(exc).__name__}: {exc}", file=sys.stderr)
@@ -88,7 +96,7 @@ def main() -> int:
         "request": [trace.on_request], "response": [trace.on_response],
     })
     client = BitgetClient(credentials=credentials, client=http)
-    directory = create_run_directory()
+    directory = create_run_directory(args.event)
     recorder = EventRecorder(directory=directory, config=config, config_bytes=config_bytes,
                              client=client, trace=trace, symbol=symbol)
     interrupted = False
@@ -96,12 +104,12 @@ def main() -> int:
         instrument = client.instrument(symbol)
         stock_info = client.reality_stock_info(symbol)
         if len(stock_info) != 1 or stock_info[0].get("symbol") != symbol:
-            raise DataUnavailable("live stock-info did not return exactly one Costco Reality token")
+            raise DataUnavailable(f"live stock-info did not return exactly one {symbol} Reality token")
         metadata = stock_info[0]
         if instrument.get("isReality") != "yes" or instrument.get("status") != "online":
-            raise DataUnavailable("Costco pair no longer matches live online Reality instrument metadata")
+            raise DataUnavailable(f"{symbol} no longer matches live online Reality instrument metadata")
         if "after_hours" not in metadata.get("tradingPeriod", []):
-            raise DataUnavailable("Costco is not currently listed for after-hours trading")
+            raise DataUnavailable(f"{symbol} is not currently listed for after-hours trading")
 
         recorder.ledger.append("eligibility_preflight", {
             "checked_at": iso_utc(utc_now()),
@@ -112,7 +120,7 @@ def main() -> int:
             "weekend_tradable": metadata.get("weekendTradable"),
             "source": "live Bitget instruments + Reality stock-info",
         })
-        print(f"Read-only Costco recorder started: {symbol}; raw captures stay under data/private.", flush=True)
+        print(f"Read-only {config['event']} recorder started: {symbol}; raw captures stay under data/private.", flush=True)
         print(f"Window: {iso_utc(start_at)} → {iso_utc(end_at)} ({expected_slots} minute slots).", flush=True)
         print("Candles and the public UTA Reality-token order book are required. Account-scoped Reality book/fills and public fills are optional provenance. No order path is called.", flush=True)
 
