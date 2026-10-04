@@ -1,0 +1,42 @@
+{
+  "event": "STZ Q2 FY27",
+  "token_symbol": "RSTZUSDT",
+  "status": "DRAFT_SOURCES_NOT_FROZEN",
+  "sources": [
+    {
+      "file": "evidence/events/stz-q2-fy27/pre_event/q1_fy27_release.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000028/stzex991_53120268kearnings.htm",
+      "why": "Prior-quarter release (Q1 FY27, 8-K accepted 2026-06-30T20:08:55Z) with current fiscal 2027 guidance",
+      "captured_at": "2026-10-04T17:15Z",
+      "sha256": "c6534c4aca833efbe92c3aacd6b306ffbd5baf812e10d7425b5a2f11bb84806d"
+    },
+    {
+      "file": "evidence/events/stz-q2-fy27/pre_event/q2_fy26_release.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/16918/000001691825000140/stzex991_83120258kearnings.htm",
+      "why": "Same quarter last year (Q2 FY26, 8-K accepted 2025-10-06T20:08:27Z): prior-year comparison values",
+      "captured_at": "2026-10-04T17:15Z",
+      "sha256": "c2bfc5410b847322ad1141d61852ff729c8fa6d3c1d5cb5d3e0d387cc98f271d"
+    },
+    {
+      "file": "evidence/events/stz-q2-fy27/pre_event/sep08_2026_8k_ex991.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000034/stzex991_90820268k.htm",
+      "why": "Latest 7.01 filing before freeze; checked for guidance changes (none: note redemption only)",
+      "captured_at": "2026-10-04T17:15Z",
+      "sha256": "d297e96fea0f3ebdc707b5f6fea1bf16bac491f21c4b266c289e991385698e9c"
+    },
+    {
+      "file": "evidence/events/stz-q2-fy27/pre_event/timing_announcement_sep10.html",
+      "url": "https://ir.cbrands.com/news-events/press-releases/detail/345/constellation-brands-to-report-second-quarter-fiscal-2027-financial-results-on-october-6-2026-after-market-close-and-host-conference-call-on-october-7-2026-at-8-00-am-et",
+      "why": "Issuer timing: release 2026-10-06 after the U.S. close; call 2026-10-07 08:00 ET",
+      "captured_at": "2026-10-04T17:15Z",
+      "sha256": "22560452c106cbae05c3566cf1c0688a7ba3f1487d0c36e8ee12beac68c9789d"
+    },
+    {
+      "file": "evidence/events/stz-q2-fy27/pre_event/barclays_conference_notice.html",
+      "url": "https://ir.cbrands.com/news-events/press-releases/detail/343/constellation-brands-to-present-at-the-2026-barclays-global-consumer-conference-on-september-8-2026",
+      "why": "Knowledge-snapshot risk: management fireside chat on 2026-09-08 (webcast not captured)",
+      "captured_at": "2026-10-04T17:15Z",
+      "sha256": "9046733b3cd94e5fa1a71f485f3add5437306628ed43bd24a7e66749656ff48e"
+    }
+  ]
+}

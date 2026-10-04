@@ -1,0 +1,71 @@
+{
+  "event_id": "stz-q2-fy27",
+  "event": "STZ Q2 FY2027",
+  "issuer": "Constellation Brands, Inc.",
+  "event_date": "2026-10-06",
+  "token_symbol": "RSTZUSDT",
+  "window_start": "2026-10-06T19:30:00Z",
+  "window_end": "2026-10-07T00:00:00Z",
+  "baseline_at": "2026-10-06T20:00:00Z",
+  "event_source_url": "https://ir.cbrands.com/news-events/press-releases/detail/345/constellation-brands-to-report-second-quarter-fiscal-2027-financial-results-on-october-6-2026-after-market-close-and-host-conference-call-on-october-7-2026-at-8-00-am-et",
+  "thesis_text": "Constellation's beer sales grow against last year's weak, destocking-hit quarter, and beer depletions finally turn positive, but beer operating margin comes in below last year's 40.6% because aluminum and tariff costs keep biting. I'd put $100 at risk at most.",
+  "risk_budget_usdt": "100",
+  "reaction_trigger_pct": "0.03",
+  "live_orders_allowed": false,
+  "drafted_by": "Claude Code from cited pre-event sources",
+  "approved_by_owner_at": "2026-10-04T17:37:30Z",
+  "approval_text": "yes yes",
+  "baseline_method": "Use the declared pre-close window ending at 16:00 ET; do not anchor it to the unknown release timestamp.",
+  "capture_plan": "Capture RSTZUSDT one-minute market candles, the public UTA v3 SPOT order book and ticker, with exchange and local receipt timestamps, from 15:30 through 20:00 ET on 2026-10-06. Also attempt public SPOT fills and the account-scoped Reality order book and fills as separately labelled provenance. A protected-route 40025 response does not invalidate a slot when the required candles and public order book were captured. If either required interval is missing, or the issuer release time cannot be verified from the issuer's own publication, mark the run INCOMPLETE.",
+  "approved_comparison_rules": {
+    "beer sales grow": "UP_YEAR_OVER_YEAR; Beer net sales for the three months ended August 31, 2026 higher than the comparable prior-year column in the same issuer table.",
+    "beer depletions turn positive": "STATED_INCREASE; the issuer-stated Beer depletions % change for the quarter is above zero, read from the signed table cell.",
+    "beer operating margin below last year's 40.6%": "BELOW_REFERENCE; issuer-stated Beer operating margin for the quarter below the frozen reference 40.6% from the Q2 FY26 release.",
+    "because aluminum and tariff costs": "EXPLICIT_ATTRIBUTION; confirm only when issuer text explicitly links aluminum or tariffs to beer margin or COGS. A margin decline alone is insufficient."
+  },
+  "claims": [
+    {
+      "claim_id": "c1",
+      "text": "Beer net sales grow year over year",
+      "variable": "beer net sales",
+      "comparison": "UP_YEAR_OVER_YEAR",
+      "claim_type": "QUARTER_FACT",
+      "unit": "usd"
+    },
+    {
+      "claim_id": "c2",
+      "text": "Beer depletions turn positive",
+      "variable": "beer depletions",
+      "comparison": "STATED_INCREASE",
+      "claim_type": "QUARTER_FACT",
+      "unit": "percent"
+    },
+    {
+      "claim_id": "c3",
+      "text": "Beer operating margin below last year's 40.6%",
+      "variable": "beer operating margin",
+      "comparison": "BELOW_REFERENCE",
+      "claim_type": "QUARTER_FACT",
+      "unit": "percent"
+    },
+    {
+      "claim_id": "c4",
+      "text": "Constellation blames aluminum or tariffs for beer margin",
+      "variable": "aluminum or tariff attribution",
+      "comparison": "EXPLICIT_ATTRIBUTION",
+      "claim_type": "QUARTER_FACT"
+    }
+  ],
+  "references": [
+    {
+      "claim_id": "c3",
+      "value_text": "40.6%",
+      "unit": "percent",
+      "text_path": "evidence/events/stz-q2-fy27/pre_event/q2_fy26_release.txt",
+      "excerpt": "Our Beer Business reported a net sales decrease of 7% driven by an 8.7% decline in shipment volumes reflecting socioeconomic headwinds affecting consumer demand, along with distributor inventory rebalancing during the quarter. • Operating margin decreased 200 basis points to 40.6%",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/16918/000001691825000140/stzex991_83120258kearnings.htm",
+      "published_at": "2025-10-06T20:08:27Z",
+      "captured_at": "2026-10-04T17:14:39Z"
+    }
+  ]
+}

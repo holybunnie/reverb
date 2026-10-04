@@ -32,6 +32,7 @@ class Comparison(str, Enum):
     UP_YEAR_OVER_YEAR = "UP_YEAR_OVER_YEAR"
     DOWN_YEAR_OVER_YEAR = "DOWN_YEAR_OVER_YEAR"
     EXPLICIT_ATTRIBUTION = "EXPLICIT_ATTRIBUTION"
+    STATED_INCREASE = "STATED_INCREASE"
 
 
 class ClaimStatus(str, Enum):
@@ -299,7 +300,10 @@ def _validate_value(citation: Citation, value_text: str | None,
     verify_citation(citation, source_documents)
     if value_text not in citation.excerpt:
         raise ValueError("extracted numeric value is not verbatim in its citation excerpt")
-    parse_source_number(value_text)
+    if _SIGNED_PERCENT.fullmatch(value_text):
+        parse_signed_percent(value_text)
+    else:
+        parse_source_number(value_text)
 
 
 def build_knowledge_snapshot(*, claims: tuple[ThesisClaim, ...],
@@ -399,6 +403,26 @@ _FREIGHT_CAUSAL = re.compile(
     r"|\b(?:margin|gross profit|cost of sales)\b.{0,120}\b(?:due to|because of|from|driven by|pressured by|attributable to|reflecting)\b.{0,120}\b(?:freight|shipping|transportation)\b",
     re.IGNORECASE | re.DOTALL,
 )
+_ALUMINUM_TARIFF_CAUSAL = re.compile(
+    r"\b(?:aluminum|tariffs?)\b.{0,120}\b(?:drove|caused|pressured|reduced|lowered|weighed on|contributed to|due to|because of|attributable to|reflected in)\b.{0,120}\b(?:margin|cogs|cost of (?:goods|product) sold|costs?)\b"
+    r"|\b(?:margin|cogs|cost of (?:goods|product) sold)\b.{0,160}\b(?:due to|because of|from|driven by|pressured by|attributable to|reflecting|inclusive of|impacts? from)\b.{0,160}\b(?:aluminum|tariffs?)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+# Attribution claims are matched by their frozen variable; an unknown variable is never scored.
+_ATTRIBUTION_RULES = {
+    "freight attribution": (_FREIGHT_CAUSAL, "freight", "margin/cost"),
+    "aluminum or tariff attribution": (_ALUMINUM_TARIFF_CAUSAL, "aluminum or tariffs", "margin/costs"),
+}
+# A stated percentage change as printed in an issuer table: "(0.3%)" is a decline, "1.8%" an increase.
+_SIGNED_PERCENT = re.compile(r"^\s*(\()?\s*([+-])?\s*(\d+(?:\.\d+)?)\s*%\s*(\))?\s*$")
+
+
+def parse_signed_percent(value_text: str) -> Decimal:
+    match = _SIGNED_PERCENT.fullmatch(value_text)
+    if not match or bool(match.group(1)) != bool(match.group(4)):
+        raise ValueError(f"stated change has an unsupported format: {value_text!r}")
+    value = Decimal(match.group(3))
+    return -value if match.group(1) or match.group(2) == "-" else value
 
 
 def reconcile_claims(*, claims: tuple[ThesisClaim, ...], knowledge: KnowledgeSnapshot,
@@ -498,13 +522,36 @@ def reconcile_claims(*, claims: tuple[ThesisClaim, ...], knowledge: KnowledgeSna
                                    fact.current_value_text, fact.prior_value_text))
             continue
 
-        quote = fact.attribution_quote
-        if quote and _FREIGHT_CAUSAL.search(quote):
-            results.append(_result(claim, ClaimStatus.CONFIRMED,
-                                   "the cited issuer text explicitly links freight to margin/cost", fact))
-        else:
+        if claim.comparison is Comparison.STATED_INCREASE:
+            if not fact.current_value_text or not fact.current_period_text:
+                results.append(_result(claim, ClaimStatus.NOT_ADDRESSED,
+                                       "the issuer-stated change or its period label is missing", fact))
+                continue
+            try:
+                change = parse_signed_percent(fact.current_value_text)
+            except ValueError:
+                results.append(_result(claim, ClaimStatus.NOT_ADDRESSED,
+                                       "the stated change is not a signed percentage", fact))
+                continue
+            results.append(_result(claim, ClaimStatus.CONFIRMED if change > 0 else ClaimStatus.CONTRADICTED,
+                                   "the issuer states an increase" if change > 0 else "the issuer does not state an increase",
+                                   fact, fact.current_value_text))
+            continue
+
+        rule = _ATTRIBUTION_RULES.get(claim.variable)
+        if rule is None:
             results.append(_result(claim, ClaimStatus.NOT_ADDRESSED,
-                                   "no explicit freight-to-margin attribution appears in the cited text", fact))
+                                   "no frozen attribution rule exists for this claim variable", fact))
+            continue
+        pattern, cause, effect = rule
+        quote = fact.attribution_quote
+        if quote and pattern.search(quote):
+            results.append(_result(claim, ClaimStatus.CONFIRMED,
+                                   f"the cited issuer text explicitly links {cause} to {effect}", fact))
+        else:
+            label = "freight-to-margin" if cause == "freight" else f"{cause}-to-margin"
+            results.append(_result(claim, ClaimStatus.NOT_ADDRESSED,
+                                   f"no explicit {label} attribution appears in the cited text", fact))
 
     scored = [result for result in results if result.scored]
     return ReconciliationResult(claims=tuple(results), scored_confirmed=sum(

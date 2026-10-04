@@ -1,6 +1,7 @@
 """Run Qwen's local Costco claim-extraction path; it never freezes or grades."""
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import sys
@@ -27,8 +28,8 @@ def _input_sha256(config: dict) -> str:
 def _append_attempt(config: dict, *, status: str, error_type: str | None = None,
                     provider: str | None = None, model: str | None = None,
                     input_sha256: str | None = None, output_sha256: str | None = None,
-                    claims: list[dict] | None = None) -> None:
-    Ledger(ROOT / "evidence" / "qwen" / "ledger.jsonl").append("costco_thesis_extraction", {
+                    claims: list[dict] | None = None, kind: str = "costco_thesis_extraction") -> None:
+    Ledger(ROOT / "evidence" / "qwen" / "ledger.jsonl").append(kind, {
         "checked_at": datetime.now(timezone.utc).isoformat(),
         "status": status,
         "provider": provider,
@@ -45,13 +46,18 @@ def _append_attempt(config: dict, *, status: str, error_type: str | None = None,
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--event", help="event_id under config/events/; default is the Costco run")
+    args = parser.parse_args()
+    config_path = ROOT / "config" / ("events/" + args.event + ".json" if args.event else "costco_run.json")
+    kind = "event_thesis_extraction" if args.event else "costco_thesis_extraction"
     load_local_env(ROOT)
     try:
-        config = json.loads((ROOT / "config" / "costco_run.json").read_text(encoding="utf-8"))
+        config = json.loads(config_path.read_text(encoding="utf-8"))
         credentials = QwenCredentials.from_env()
     except (OSError, ValueError, ReverbError) as exc:
         if "config" in locals():
-            _append_attempt(config, status="unavailable", error_type=type(exc).__name__)
+            _append_attempt(config, status="unavailable", error_type=type(exc).__name__, kind=kind)
         print(f"QWEN THESIS CHECK HALTED: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
 
@@ -68,13 +74,15 @@ def main() -> int:
                 error_type=type(exc).__name__,
                 provider="bitget-qwen",
                 model=credentials.model,
+                kind=kind,
             )
             print(f"QWEN THESIS CHECK HALTED: {type(exc).__name__}: {exc}", file=sys.stderr)
             return 2
 
     claims = [claim.model_dump(mode="json") for claim in result.extraction.claims]
     record = Ledger(ROOT / "evidence" / "qwen" / "ledger.jsonl").append(
-        "costco_thesis_extraction", {
+        kind, {
+            **({"event_id": args.event} if args.event else {}),
             "checked_at": datetime.now(timezone.utc).isoformat(),
             "status": "candidate_only_requires_human_review",
             "provider": result.provider,

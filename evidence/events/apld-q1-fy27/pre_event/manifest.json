@@ -1,0 +1,42 @@
+{
+  "event": "APLD Q1 FY27",
+  "token_symbol": "RAPLDUSDT",
+  "status": "DRAFT_SOURCES_NOT_FROZEN",
+  "sources": [
+    {
+      "file": "evidence/events/apld-q1-fy27/pre_event/q4_fy26_release.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000044/apldq426earningsreleaseasf.htm",
+      "why": "Prior-quarter release (Q4 FY26, 8-K accepted 2026-07-27T21:04:53Z): reference values for quarter-on-quarter claims",
+      "captured_at": "2026-10-04T17:35Z",
+      "sha256": "bedd4eb8f1081939bf845c0172433111cb51e12088eab30d8ef35af3f24d666c"
+    },
+    {
+      "file": "evidence/events/apld-q1-fy27/pre_event/q1_fy26_release.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487925000068/apldq126earningsrelease.htm",
+      "why": "Same quarter last year (Q1 FY26); pre-ChronoScale basis, context only",
+      "captured_at": "2026-10-04T17:35Z",
+      "sha256": "d9f7aa0e1969e101ab893d0627647724d25317d656ae16564d727f1147f3d373"
+    },
+    {
+      "file": "evidence/events/apld-q1-fy27/pre_event/ir_press_release_list.html",
+      "url": "https://ir.applieddigital.com/news-events/press-releases",
+      "why": "Knowledge snapshot: issuer press releases since the Q4 report (no new lease announced)",
+      "captured_at": "2026-10-04T17:35Z",
+      "sha256": "3346e4082c9757b7d20c221530cb364b87a4cf6c8ad2de5aafd9da3740c436a8"
+    },
+    {
+      "file": "evidence/events/apld-q1-fy27/pre_event/timing_announcement_sep28.html",
+      "url": "https://ir.applieddigital.com/news-events/press-releases/detail/160/applied-digital-sets-fiscal-first-quarter-2027-conference",
+      "why": "Issuer timing: results after the close on 2026-10-07; call 17:00 ET",
+      "captured_at": "2026-10-04T17:35Z",
+      "sha256": "2c1613da2fb492226b2a9730c3a3809b8542e9a143f4ec414fdb1cffc4ed1b85"
+    },
+    {
+      "file": "evidence/events/apld-q1-fy27/pre_event/polaris_75mw_oct02.html",
+      "url": "https://ir.applieddigital.com/news-events/press-releases/detail/161/applied-digital-brings-an-additional-75-mw-of-ai",
+      "why": "Post-quarter capacity update (2026-10-02): 250 MW live at Polaris Forge 1",
+      "captured_at": "2026-10-04T17:35Z",
+      "sha256": "ee72024987e0e8f8968c0c1e4a2cf915449fb45ff0e2624b08bbbd6b674a6147"
+    }
+  ]
+}
