@@ -179,7 +179,7 @@ svg{width:100%;height:auto;display:block}.chart text{fill:var(--muted);font-size
 .stat{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}.stat b{display:block;font-size:22px}.stat span{font-size:13px;color:var(--muted)}
 @media (max-width:640px){h1{font-size:22px}.q{font-size:17px}.grid2{grid-template-columns:1fr}.timeline li{grid-template-columns:1fr}.card{padding:16px}}
 </style></head><body>
-<header><a class="brand" href="__HOME__">REVERB<small>research task walkthrough</small></a><a href="__REPO__">Source and evidence on GitHub</a></header>
+<header><a class="brand" href="__HOME__">REVERB<small>research task walkthrough</small></a><span><a href="__HOME__runs/">Forward runs</a> · <a href="__REPO__">Source and evidence</a></span></header>
 <main><ol class="steps" id="steps" aria-label="Steps"></ol><section class="card" id="card" aria-live="polite"></section>
 <div class="nav"><button class="btn ghost" id="prev">Back</button><span class="count" id="count"></span><button class="btn" id="next">Next</button></div></main>
 <script id="data" type="application/json">__DATA__</script>

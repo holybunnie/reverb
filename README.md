@@ -15,6 +15,18 @@ Write down what you believe before the earnings report. Reverb checks it against
 | LUI fluency | [Walkthrough](https://holybunnie.github.io/reverb/walkthrough/) | Question to decision in plain language, with the source for every number |
 | Personalised thesis | [Walkthrough step 3](https://holybunnie.github.io/reverb/walkthrough/#3) | Your browser recomputes the frozen hash; edit a claim and it breaks, so the view can't be rewritten after the result |
 
+### Forward runs
+
+Each thesis is frozen, hashed and pushed to GitHub before the company reports; live status is on the [forward-run board](https://holybunnie.github.io/reverb/runs/).
+
+| Event | Token | Thesis frozen and pushed | Recording window (UTC) | Status |
+| --- | --- | --- | --- | --- |
+| Costco Q4 FY2026 | RCOSTUSDT | `bcd4e540…`, pushed 2026-09-24 06:35 | 24 Sep 19:30 → 25 Sep 00:00 | Scored: HOLD, 0 orders ([reconciliation](evidence/costco/post_event/reconciliation.json)) |
+| Constellation Brands Q2 FY2027 | RSTZUSDT | `27abf0f7…`, pushed 2026-10-04 17:41 ([thesis](evidence/events/stz-q2-fy27/frozen_thesis.json), [push proof](evidence/events/stz-q2-fy27/push_proof.json)) | 6 Oct 19:30 → 7 Oct 00:00 | Locked, awaiting release |
+| Applied Digital Q1 FY2027 | RAPLDUSDT | `3f707686…`, pushed 2026-10-04 17:42 ([thesis](evidence/events/apld-q1-fy27/frozen_thesis.json), [push proof](evidence/events/apld-q1-fy27/push_proof.json)) | 7 Oct 19:30 → 8 Oct 00:00 | Locked, awaiting release |
+
+The Constellation and Applied Digital theses were drafted by Claude Code from the issuers' own earlier filings ([STZ sources](evidence/events/stz-q2-fy27/pre_event/manifest.json), [APLD sources](evidence/events/apld-q1-fy27/pre_event/manifest.json)) and approved by the owner before freezing. They are not the owner's independent views. Each includes at least one claim that could plausibly fail.
+
 Most earnings tools tell you what happened. Reverb tells you whether your view survived—and does not score you on facts that were already public when you wrote it.
 
 ### It ran on a live earnings report

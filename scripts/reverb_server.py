@@ -112,6 +112,10 @@ class Handler(BaseHTTPRequestHandler):
                 kind = "text/css; charset=utf-8" if name.endswith(".css") else "text/javascript; charset=utf-8"
                 self._send(200, kind, body)
                 return
+            if route == "/runs":
+                from reverb.runs_page import render_runs_html
+                self._send(200, "text/html; charset=utf-8", render_runs_html(home="/").encode())
+                return
             if route == "/walkthrough":
                 from reverb.walkthrough import render_walkthrough_html
                 self._send(200, "text/html; charset=utf-8", render_walkthrough_html(home="/").encode())
