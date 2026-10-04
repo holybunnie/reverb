@@ -4,7 +4,7 @@ Description=Start the stz-q2-fy27 recorder ten minutes before its window
 [Timer]
 OnCalendar=2026-10-06 19:20:00 UTC
 AccuracySec=1s
-Persistent=false
+Persistent=true
 Unit=reverb-stz-q2-fy27-recorder.service
 
 [Install]

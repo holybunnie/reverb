@@ -1,0 +1,8 @@
+[Unit]
+Description=Reverb event recording heartbeat and EDGAR release watch (read-only)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ubuntu/reverb
+ExecStart=/home/ubuntu/reverb/.venv/bin/python scripts/event_heartbeat.py
+NoNewPrivileges=yes

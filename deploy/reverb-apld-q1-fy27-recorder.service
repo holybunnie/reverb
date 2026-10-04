@@ -1,4 +1,5 @@
 [Unit]
+StartLimitIntervalSec=0
 Description=Reverb RAPLDUSDT read-only Reality recorder (apld-q1-fy27)
 Wants=network-online.target
 After=network-online.target
@@ -9,7 +10,8 @@ Type=simple
 WorkingDirectory=/home/ubuntu/reverb
 EnvironmentFile=/home/ubuntu/reverb/.env
 ExecStart=/home/ubuntu/reverb/.venv/bin/python scripts/costco_recorder.py --event apld-q1-fy27
-Restart=no
+Restart=on-abnormal
+RestartSec=10
 StandardOutput=journal
 StandardError=journal
 NoNewPrivileges=yes

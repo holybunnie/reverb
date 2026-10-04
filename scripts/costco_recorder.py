@@ -72,6 +72,8 @@ def main() -> int:
             window = json.loads((ROOT / "config" / "events" / f"{args.event}.json").read_text(encoding="utf-8"))
             args.start_at, args.end_at = window["window_start"], window["window_end"]
         start_at, end_at, expected_slots = schedule(args)
+        if args.event and utc_now() >= end_at:
+            raise ValueError("the registered window has already closed; refusing to create an empty run")
         if args.max_lateness_seconds < 0 or args.max_lateness_seconds >= 60:
             raise ValueError("max lateness must be between 0 and 59 seconds")
         load_local_env(ROOT)
