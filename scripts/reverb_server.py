@@ -112,6 +112,10 @@ class Handler(BaseHTTPRequestHandler):
                 kind = "text/css; charset=utf-8" if name.endswith(".css") else "text/javascript; charset=utf-8"
                 self._send(200, kind, body)
                 return
+            if route == "/walkthrough":
+                from reverb.walkthrough import render_walkthrough_html
+                self._send(200, "text/html; charset=utf-8", render_walkthrough_html(home="/").encode())
+                return
             if route == "/demo":
                 replay = load_replay_snapshot(ROOT)
                 self._send(200, "text/html; charset=utf-8", embed_standalone(render_replay_html(replay), page="demo", title="Verified replay").encode())
