@@ -1,0 +1,13 @@
+{
+  "source": "Constellation Brands investor relations press-release RSS feed (ir.cbrands.com/news-events/press-releases/rss)",
+  "captured_at": "2026-10-07T00:51:47Z",
+  "body_path": "evidence/events/stz-q2-fy27/post_event/issuer_press_release_feed.xml",
+  "body_sha256": "74dba2fff59fc94767d738c5cd3d7ead90cc046efbb76898f9915a7a314981c7",
+  "headline": "Constellation Brands Reports Second Quarter Fiscal 2027 Financial Results",
+  "feed_press_release_date": "10/06/2026 16:05:00",
+  "timezone": "America/New_York",
+  "timezone_basis": "The feed's pubDate carries an explicit -0400 offset (Tue, 06 Oct 26 16:05:00 -0400). It precedes the EDGAR 8-K acceptance at 16:18:54 ET.",
+  "issuer_release_timestamp": "2026-10-06T20:05:00Z",
+  "upper_bound_8k_acceptance": "2026-10-06T20:18:54Z",
+  "same_window_issuer_release": "Constellation Brands Announces Acquisition of Spirit-Based Ready-to-Drink Brand SpikedAde, pubDate Tue, 06 Oct 26 16:15:00 -0400 (2026-10-06T20:15:00Z)"
+}

@@ -95,7 +95,7 @@ def main() -> None:
     parser.add_argument("capture_dir", type=Path)
     parser.add_argument("--out-root", type=Path, default=ROOT / "evidence/costco/raw")
     args = parser.parse_args()
-    target = publish(args.capture_dir, args.out_root)
+    target = publish(args.capture_dir, args.out_root.resolve())
     print(f"published {sum(1 for _ in target.iterdir())} files to {target.relative_to(ROOT)}")
 
 

@@ -1,0 +1,95 @@
+{
+  "frozen_thesis_sha256": "27abf0f7c40afaa9312f0e42de8b589c08f120a5b259a8c9ce3faa1df3b49e6b",
+  "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039/stzex991_83120268kearnings.htm",
+    "filing_index": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039/",
+    "text_path": "evidence/events/stz-q2-fy27/post_event/q2_release.txt",
+    "text_sha256": "4a5252011c390347c40f61eb1cca70872ad4cac5d698f9311eacaa3ef6faa7e5",
+    "captured_at": "2026-10-07T00:52:33.839067Z"
+  },
+  "issuer_release_timestamp": {
+    "value": "2026-10-06T20:05:00Z",
+    "kind": "ISSUER_PRESS_RELEASE_FEED",
+    "note": "Constellation's own RSS pubDate with explicit offset; 8-K acceptance 2026-10-06T20:18:54Z is the upper bound."
+  },
+  "reconciliation": {
+    "claims": [
+      {
+        "claim_id": "c1",
+        "text": "Beer net sales grow year over year",
+        "status": "CONFIRMED",
+        "scored": true,
+        "reason": "current value is higher than the cited prior-year value",
+        "current_value_text": "$2,473.6",
+        "comparison_value_text": "$2,345.0",
+        "citation": {
+          "source_url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039/stzex991_83120268kearnings.htm",
+          "published_at": "2026-10-06T20:05:00Z",
+          "captured_at": "2026-10-07T00:52:33.839067Z",
+          "source_sha256": "4a5252011c390347c40f61eb1cca70872ad4cac5d698f9311eacaa3ef6faa7e5",
+          "location": "normalized exhibit text offsets 3369:3611",
+          "excerpt": "BEER Shipments Depletions Net Sales Operating Income (Loss) Three Months Ended | in millions; branded product, 24-pack, 12-ounce case equivalents August 31, 2026 123.9 $2,473.6 $964.2 August 31, 2025 117.4 $2,345.0 $951.6 % Change 5.5% (0.6%)"
+        }
+      },
+      {
+        "claim_id": "c2",
+        "text": "Beer depletions turn positive",
+        "status": "CONTRADICTED",
+        "scored": true,
+        "reason": "the issuer does not state an increase",
+        "current_value_text": "(0.6%)",
+        "comparison_value_text": null,
+        "citation": {
+          "source_url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039/stzex991_83120268kearnings.htm",
+          "published_at": "2026-10-06T20:05:00Z",
+          "captured_at": "2026-10-07T00:52:33.839067Z",
+          "source_sha256": "4a5252011c390347c40f61eb1cca70872ad4cac5d698f9311eacaa3ef6faa7e5",
+          "location": "normalized exhibit text offsets 3369:3611",
+          "excerpt": "BEER Shipments Depletions Net Sales Operating Income (Loss) Three Months Ended | in millions; branded product, 24-pack, 12-ounce case equivalents August 31, 2026 123.9 $2,473.6 $964.2 August 31, 2025 117.4 $2,345.0 $951.6 % Change 5.5% (0.6%)"
+        }
+      },
+      {
+        "claim_id": "c3",
+        "text": "Beer operating margin below last year's 40.6%",
+        "status": "CONFIRMED",
+        "scored": true,
+        "reason": "issuer value is below the frozen reference",
+        "current_value_text": "39.0%",
+        "comparison_value_text": "40.6%",
+        "citation": {
+          "source_url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039/stzex991_83120268kearnings.htm",
+          "published_at": "2026-10-06T20:05:00Z",
+          "captured_at": "2026-10-07T00:52:33.839067Z",
+          "source_sha256": "4a5252011c390347c40f61eb1cca70872ad4cac5d698f9311eacaa3ef6faa7e5",
+          "location": "normalized exhibit text offsets 3703:3885",
+          "excerpt": "Operating margin decreased 160 bps to 39.0% as lower tariff expenses and favorable fixed cost absorption were more than offset by increased marketing investment and other SG&A spend."
+        }
+      },
+      {
+        "claim_id": "c4",
+        "text": "Constellation blames aluminum or tariffs for beer margin",
+        "status": "NOT_ADDRESSED",
+        "scored": false,
+        "reason": "no explicit aluminum or tariffs-to-margin attribution appears in the cited text",
+        "current_value_text": null,
+        "comparison_value_text": null,
+        "citation": {
+          "source_url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039/stzex991_83120268kearnings.htm",
+          "published_at": "2026-10-06T20:05:00Z",
+          "captured_at": "2026-10-07T00:52:33.839067Z",
+          "source_sha256": "4a5252011c390347c40f61eb1cca70872ad4cac5d698f9311eacaa3ef6faa7e5",
+          "location": "normalized exhibit text offsets 3703:3885",
+          "excerpt": "Operating margin decreased 160 bps to 39.0% as lower tariff expenses and favorable fixed cost absorption were more than offset by increased marketing investment and other SG&A spend."
+        }
+      }
+    ],
+    "scored_confirmed": 2,
+    "scored_total": 3
+  },
+  "unscored_context": {
+    "beer_margin_drivers": "Constellation states lower tariff expenses helped beer margin and that increased marketing and other SG&A spend more than offset it. Tariffs are named as a tailwind, not a cause of the decline; c4 stays NOT_ADDRESSED under the frozen pattern.",
+    "same_window_release": "Constellation Brands Announces Acquisition of Spirit-Based Ready-to-Drink Brand SpikedAde, pubDate Tue, 06 Oct 26 16:15:00 -0400 (2026-10-06T20:15:00Z)",
+    "conference_call": "Not captured; any attribution on the 7 Oct call is not evidence here.",
+    "qwen_release_check": "Not run for this event; scores come from the human-selected verbatim facts."
+  }
+}
