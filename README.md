@@ -11,7 +11,7 @@ Write down what you believe before the earnings report. Reverb checks it against
 | Judging line | Where to look | What it proves |
 | --- | --- | --- |
 | Feature depth | [Evidence and known limits](#evidence-and-known-limits), [Run and verify](#run-and-verify) | Each source, how it is used, and how it failed when it did |
-| Research quality | [Costco forward run](#costco-forward-run), [raw capture](evidence/costco/raw/20260924T072322Z-1239ae49) | A forward run with push-time proof, exact-offset citations and measured model error, rebuildable from committed raw data |
+| Research quality | [Costco forward run](#costco-forward-run) (the owner's own view), [STZ forward run](#forward-runs) (Claude Code draft, owner-approved), raw captures for [Costco](evidence/costco/raw/20260924T072322Z-1239ae49) and [STZ](evidence/events/stz-q2-fy27/raw/20261006T192000Z-27d5f529) | Two forward runs with push-time proof, exact-offset citations and measured model error, rebuildable from committed raw data |
 | LUI fluency | [Walkthrough](https://holybunnie.github.io/reverb/walkthrough/) | Question to decision in plain language, with the source for every number |
 | Personalised thesis | [Walkthrough step 3](https://holybunnie.github.io/reverb/walkthrough/#3) | Your browser recomputes the frozen hash; edit a claim and it breaks, so the view can't be rewritten after the result |
 

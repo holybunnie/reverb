@@ -101,7 +101,7 @@ class Handler(BaseHTTPRequestHandler):
         return document
 
     def do_GET(self) -> None:  # noqa: N802
-        route = urlsplit(self.path).path
+        route = urlsplit(self.path).path.rstrip("/") or "/"
         try:
             if route.startswith("/assets/"):
                 name = route.removeprefix("/assets/")
@@ -119,6 +119,10 @@ class Handler(BaseHTTPRequestHandler):
             if route == "/walkthrough":
                 from reverb.walkthrough import render_walkthrough_html
                 self._send(200, "text/html; charset=utf-8", render_walkthrough_html(home="/").encode())
+                return
+            if route == "/walkthrough/stz":
+                from reverb.walkthrough_stz import render_stz_walkthrough_html
+                self._send(200, "text/html; charset=utf-8", render_stz_walkthrough_html(home="/").encode())
                 return
             if route == "/demo":
                 replay = load_replay_snapshot(ROOT)

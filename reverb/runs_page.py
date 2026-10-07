@@ -22,6 +22,8 @@ def _load(path: Path) -> Any:
 
 def runs_data() -> list[dict[str, Any]]:
     costco = _load(ROOT / "evidence/costco/capture_summary.json")
+    costco_recon = _load(ROOT / "evidence/costco/post_event/reconciliation.json")
+    frozen, addendum = costco_recon["reconciliation"], costco_recon["addendum"]
     runs: list[dict[str, Any]] = [{
         "id": "costco-q4-fy26", "event": "Costco Q4 FY2026", "symbol": costco["symbol"],
         "window": ["2026-09-24T19:30:00Z", "2026-09-25T00:00:00Z"], "frozen_sha256": _load(
@@ -31,7 +33,8 @@ def runs_data() -> list[dict[str, Any]]:
         "drafted": "Owner-supplied thesis; claims human-approved", "files": {"frozen": "evidence/costco/frozen_thesis_v2.json",
                                                    "result": "evidence/costco/post_event/reconciliation.json"},
         "result": f"Peak {costco['reaction']['max_pct']:+.2f}% vs {costco['reaction']['trigger_pct']:.0f}% trigger · "
-                  f"HOLD, {costco['orders']} orders · run {costco['run_status']}",
+                  f"HOLD, {costco['orders']} orders · thesis {frozen['scored_confirmed']}/{frozen['scored_total']} confirmed "
+                  f"({addendum['scored_confirmed']}/{addendum['scored_total']} with a disclosed addendum) · run {costco['run_status']}",
         "walkthrough": True,
     }]
     for directory in sorted((ROOT / "evidence/events").iterdir()):

@@ -168,6 +168,27 @@ def embed_standalone(page_html: str, *, page: str, title: str, static: bool = Fa
                       head_extra=f"<style>{scoped}</style>")
 
 
+WALKTHROUGHS = {"costco-q4-fy26": "walkthrough", "stz-q2-fy27": "walkthrough/stz"}
+
+
+def runs_section(static: bool) -> str:
+    """Every registered forward run, built from committed evidence through the run board's data."""
+    from .runs_page import runs_data
+    cards = []
+    for run in runs_data():
+        own = run["drafted"].startswith("Owner-supplied")
+        start = run["window"][0]
+        result = run["result"] or f"Recording {start[8:10]} {_MONTHS[int(start[5:7])]} {start[11:16]} UTC; scored after the release"
+        link = (f'<a class="text-link" href="{route(WALKTHROUGHS[run["id"]], static)}">Walk through it <span>→</span></a>'
+                if run["id"] in WALKTHROUGHS else
+                f'<a class="text-link" href="{route("runs", static)}">See it on the run board <span>→</span></a>')
+        cards.append(f'''<article class="run-card"><div class="receipt-top"><span>{html.escape(run["event"].upper())}</span><span>{html.escape(run["symbol"])}</span></div><p class="run-who">{"The owner's own view" if own else "Drafted by Claude Code, approved by the owner"} · thesis <code>{html.escape(run["frozen_sha256"][:8])}…</code></p><p class="run-result">{html.escape(result)}</p>{link}</article>''')
+    return (f'''<section class="runs-strip" id="runs"><div class="section-intro reveal"><div class="eyebrow"><b></b> Forward runs</div><h2>Every view frozen and pushed before the report.</h2></div><div class="run-grid">{"".join(cards)}</div></section>''')
+
+
+_MONTHS = ("", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
 def render_landing(snapshot: PreviewSnapshot, replay: Any | None, *, static: bool = False) -> str:
     r = {k: html.escape(v) for k, v in replay_view(replay, "Africa/Lagos").items()}
     headline = costco_headline(ROOT) or {}
@@ -188,6 +209,7 @@ def render_landing(snapshot: PreviewSnapshot, replay: Any | None, *, static: boo
 <section class="landing-hero"><div class="orbital" aria-hidden="true"><span></span><span></span><span></span></div><div class="hero-copy reveal"><div class="eyebrow"><b></b> Overnight earnings desk</div><h1>Know what you believed.<br><em>See what survived.</em></h1><p>Write down your view before the report. Reverb checks it against what the company said, measures the token-market reaction, and leaves you a sourced morning brief. You make the decision.</p><div class="hero-actions"><a class="button primary magnetic" href="{route('walkthrough', static)}">Walk through a research task <span>↗</span></a><a class="button ghost" href="{route('events', static)}">Prepare a thesis</a><a class="button ghost" href="{route('demo', static)}"><span class="play">▶</span> Open verified replay</a></div><div class="trust-row"><span><i class="live-dot"></i> Claims frozen before scoring</span><span>Source-linked facts</span><span>Human decides</span></div></div>
 <aside class="event-orbit reveal delay-1">{receipt if c else ""}<div class="glass event-preview"{" hidden" if c else ""}><div class="event-preview-top"><span>COSTCO FORWARD RUN</span><span class="verified-pill">24 SEP · RECORDED</span></div><div class="event-symbol">COST</div><p>RCOSTUSDT · Q4 FY2026</p>{orbit}</div></aside></section>
 <section class="proof-strip" id="proof"><div><strong>{snapshot.online_reality}</strong><span>online Reality pairs in latest checked capture</span></div>{strip}<div><strong>YOU</strong><span>make the final decision</span></div></section>
+{runs_section(static)}
 <section class="story" id="how"><div class="section-intro reveal"><div class="eyebrow"><b></b> Your overnight research desk</div><h2>Most tools report the quarter. Reverb remembers your view before it.</h2><p>A post-mortem is useful only when the thesis was frozen first—and when public facts are not mistaken for a prediction.</p></div><div class="steps"><article class="step reveal"><span>01</span><div class="step-icon target"></div><h3>Write it down</h3><p>Put your earnings view into plain language. Review and confirm the extracted claims before the timestamped record is frozen.</p></article><article class="step reveal delay-1"><span>02</span><div class="step-icon pulse-icon"></div><h3>Check what changed</h3><p>Facts already public are marked known and excluded. New release facts must match their cited source; deterministic code reconciles the claims.</p></article><article class="step reveal delay-2"><span>03</span><div class="step-icon receipt"></div><h3>Decide with receipts</h3><p>See the measured market reaction, market quality, and Reverb's recommendation in the morning. No order without your explicit confirmation.</p></article></div></section>
 <section class="refusal-section"><div class="refusal-copy reveal"><div class="eyebrow"><b></b> Human-confirmed, never automatic</div><h2>Analysis is not an order.</h2><p>Reverb presents a deterministic recommendation with its arithmetic and source evidence. The final action stays with you; any supported execution is a separate, explicit Agent Hub handoff.</p><a class="text-link" href="{route('report', static)}">Inspect the morning brief <span>→</span></a></div><div class="refusal-card glass reveal delay-1">{card}<div class="math-line"><i style="--w:72%"></i><i style="--w:48%"></i></div><small>NVIDIA's 3% replay remains the secondary verification</small></div></section>
 <section class="closing-cta reveal"><div><span class="eyebrow"><b></b> Before the next report</span><h2>Make your view testable. Keep the decision yours.</h2></div><a class="button primary magnetic" href="{route('events', static)}">Open the thesis desk <span>↗</span></a></section>'''

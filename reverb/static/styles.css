@@ -92,3 +92,6 @@ body.app:before{mask-image:none;-webkit-mask-image:none;opacity:.5}
 @media(max-width:600px){.proof-strip{grid-template-columns:1fr}.app .section{width:calc(100% - 32px)}.claim-table td:first-child{width:auto}.claim-table th:nth-child(3),.claim-table td:nth-child(3){display:none}}
 .app .report-stage .section{width:100%}
 .receipt-note{margin:10px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
+
+.runs-strip{width:min(1160px,calc(100% - 48px));margin:0 auto 140px}.runs-strip .section-intro h2{font-size:clamp(34px,4.4vw,56px)}.run-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:36px}.run-card{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:22px;display:flex;flex-direction:column;gap:10px}.run-who{color:var(--muted);font-size:12px;margin:0}.run-who code{font:11px 'JetBrains Mono',monospace}.run-result{font-size:15px;margin:0;flex:1}.run-card .text-link{margin-top:6px}
+@media(max-width:900px){.run-grid{grid-template-columns:1fr}}
