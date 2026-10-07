@@ -215,11 +215,19 @@ def check_stz_spoken_numbers(d: dict) -> None:
         raise SystemExit(f"narration would contradict the evidence: {wrong}")
 
 
+# Lift the referenced element above the caption box (bottom ~200px of the frame).
+LIFT_JS = """sel => { const el = document.querySelector(sel); if (!el) return;
+  const r = el.getBoundingClientRect(), limit = innerHeight - 200;
+  if (r.bottom > limit) window.scrollBy(0, Math.min(r.top - 80, r.bottom - limit)); }"""
+
+
 def stz_script(rec: Recorder, d: dict) -> None:
     page = rec.page
     if page is not None:
-        smooth = lambda sel: lambda: page.locator(sel).first.scroll_into_view_if_needed()  # noqa: E731
-        claim = lambda cid: lambda: (page.click(f'#cl button[data-id="{cid}"]'), page.wait_for_timeout(300))  # noqa: E731
+        page.add_style_tag(content="body{padding-bottom:260px}")
+        smooth = lambda sel: lambda: page.evaluate(LIFT_JS, sel)  # noqa: E731
+        claim = lambda cid: lambda: (page.click(f'#cl button[data-id="{cid}"]'), page.wait_for_timeout(300),  # noqa: E731
+                                     page.evaluate(LIFT_JS, ".doc"))
     else:
         smooth = claim = lambda _: None  # noqa: E731
 
@@ -235,6 +243,7 @@ def stz_script(rec: Recorder, d: dict) -> None:
              say="This thesis was drafted by Claude Code from Constellation's earlier filings, and approved by the owner. It is not the owner's independent view.")
     rec.next()
     rec.beat("3 Freeze", "Your browser checks the hash again, 27abf0f7…, and it matches the file pushed on 4 October, two days before the release.", 8,
+             smooth("#hashnote"),
              say="Your browser checks the hash again, and it matches the file pushed on October fourth, two days before the release.")
 
     def edit() -> None:
@@ -248,9 +257,10 @@ def stz_script(rec: Recorder, d: dict) -> None:
 
     rec.beat("3 Freeze", "Now try to edit a claim after the fact…", 5, edit if page else None,
              say="Now, try to edit a claim after the fact.")
-    rec.beat("3 Freeze", "…and the hash breaks. The view can't be rewritten after the result.", 6,
+    rec.beat("3 Freeze", "…and the hash breaks. The view can't be rewritten after the result.", 6, smooth("#hashnote"),
              say="And the hash breaks. The view cannot be rewritten after the result.")
-    rec.beat("3 Freeze", "Restore the frozen text, and the hash matches again.", 4, (lambda: page.click("#reset")) if page else None,
+    rec.beat("3 Freeze", "Restore the frozen text, and the hash matches again.", 4,
+             (lambda: (page.click("#reset"), page.wait_for_timeout(300), page.evaluate(LIFT_JS, "#hashnote"))) if page else None,
              say="Restore the frozen text, and the hash matches again.")
     rec.next()
     rec.beat("4 Event & market", "Event clock (ET): Constellation published results at 16:05, a second release at 16:15, the SEC filing at 16:18.", 8,
@@ -258,18 +268,18 @@ def stz_script(rec: Recorder, d: dict) -> None:
     rec.beat("4 Event & market", "239 recorded one-minute RSTZ closes. Baseline $115.67, with a 3% trigger line on either side.", 7, smooth("svg.chart"),
              say="Two hundred thirty nine recorded one minute closes. The baseline is one hundred fifteen dollars sixty seven, with a three percent trigger line on either side.")
     rec.beat("4 Event & market", "It crossed −3% at 16:23 ET and hit a low of −5.31% at 16:26. 0 of 270 minutes showed a single order on the book.", 9, smooth(".grid2"),
-             say="It crossed minus three percent at four twenty three, and fell to minus five point three one percent at four twenty six. Not one of the two hundred seventy minutes showed a single order on the public book.")
+             say="The price crossed minus three percent at four twenty three, and fell to minus five point three one percent at four twenty six. Not one of the two hundred seventy minutes showed a single order on the public book.")
     rec.next()
     rec.beat("5 Evidence", "Beer net sales: Constellation's own Exhibit 99.1 reports $2,473.6M vs $2,345.0M, highlighted at its exact position.", 9,
              claim("c1") if page else None,
-             say="Beer net sales. Constellation's own exhibit ninety nine point one reports two thousand four hundred seventy three million, against two thousand three hundred forty five million a year earlier. Confirmed.")
+             say="First, beer net sales. Constellation's own exhibit ninety nine point one reports two thousand four hundred seventy three million, against two thousand three hundred forty five million a year earlier. That claim is confirmed.")
     rec.beat("5 Evidence", "Depletions: the same table shows (0.6%), a decline. That claim is contradicted.", 7, claim("c2") if page else None,
-             say="Depletions. The same table shows a decline of zero point six percent. That claim is contradicted.")
+             say="Second, depletions. The same table shows a decline of zero point six percent. That claim is contradicted.")
     rec.beat("5 Evidence", "Beer margin: 39.0%, below last year's frozen 40.6%. Confirmed.", 6, claim("c3") if page else None,
-             say="Beer operating margin was thirty nine percent, below last year's frozen forty point six. Confirmed.")
+             say="As for the third claim, beer operating margin was thirty nine percent, below last year's frozen forty point six. That claim is confirmed too.")
     rec.beat("5 Evidence", "The reason: Constellation called lower tariffs a help and blamed marketing and SG&A. The tariff story wasn't theirs.", 8,
              claim("c4") if page else None,
-             say="And the reason. Constellation called lower tariffs a help, and blamed marketing and other spending. The tariff story was not theirs.")
+             say="As for the reason behind the view, Constellation said lower tariffs helped, and blamed marketing and other spending. The tariff story was not theirs.")
     rec.next()
     rec.beat("6 Verdicts", "Two of three scored claims confirmed. Depletions failed; the tariff reason was not addressed.", 7,
              say="Two of three scored claims were confirmed. Depletions failed, and the tariff reason was not addressed.")
@@ -281,12 +291,12 @@ def stz_script(rec: Recorder, d: dict) -> None:
              say="So: right on the numbers, wrong on the reason, and depletions missed.")
     rec.beat("7 Insight", "REVIEW, 0 orders: the move crossed the trigger, but an acquisition landed in the same window and there was no depth to trade.", 10,
              smooth(".big"),
-             say="The move crossed the trigger, so the rule says review, with zero orders. An acquisition landed in the same window, and there was no depth to trade into. This is not a claim that the strategy is profitable.")
+             say="The move crossed the trigger, so the rule says review, with zero orders. An acquisition landed in the same window, and there was no order book depth to trade into. This is not a claim that the strategy is profitable.")
     rec.next()
     rec.beat("8 You decide", "Reverb recommends. The human decides.", 5,
              say="Ree-verb recommends. The human decides.")
     rec.beat("8 You decide", "Every number traces to a committed evidence file. Next up: Applied Digital, recording tonight.", 6,
-             say="Every number traces to a committed evidence file. Next up: Applied Digital, recording tonight.")
+             say="Every number traces to a committed evidence file. Next up is the Applied Digital report, recording tonight.")
 
 
 def synthesise(lines: list[str], voice: Path, directory: Path) -> list[tuple[Path, float]]:
