@@ -26,9 +26,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from reverb.walkthrough import walkthrough_data  # noqa: E402
+from reverb.walkthrough_stz import walkthrough_data as stz_walkthrough_data  # noqa: E402
 
 DEFAULT_URL = "https://holybunnie.github.io/reverb/walkthrough/"
 NAME = "research-task-costco"
+STZ_URL = "https://holybunnie.github.io/reverb/walkthrough/stz/"
+STZ_NAME = "research-task-stz"
 TAIL_SECONDS = 0.8  # pause after each spoken line before the next beat
 
 CAPTION_JS = """text => {
@@ -184,6 +187,108 @@ def script(rec: Recorder, d: dict) -> None:
              say="Mark reviewed is stored only in this browser. Every number traces to a committed evidence file.")
 
 
+def check_stz_spoken_numbers(d: dict) -> None:
+    """Same guard for the STZ narration: every spoken value must match the committed evidence."""
+    m, v, q = d["market"], {x["id"]: x for x in d["verdicts"]}, d["qwen_check"]
+    expected = {
+        "frozen hash prefix": (d["frozen"]["sha256"][:8], "27abf0f7"),
+        "push time": (d["frozen"]["push"]["pushed_at"], "2026-10-04T17:41:49Z"),
+        "release": (m["release_at"], "2026-10-06T20:05:00Z"),
+        "8-K": (next(c["at"] for c in d["clock"] if c["label"] == "SEC 8-K accepted"), "2026-10-06T20:18:54Z"),
+        "second release": (next(c["at"] for c in d["clock"] if c["label"].startswith("Second")), "2026-10-06T20:15:00Z"),
+        "closes": (len(m["closes"]), 239),
+        "baseline": (m["baseline"], 115.67),
+        "trigger": (m["trigger_pct"], 3.0),
+        "low": ((round(m["mark"]["pct"], 2), m["mark"]["at"]), (-5.31, "2026-10-06T20:26:00Z")),
+        "first crossing": (m["first_crossing"][0], "2026-10-06T20:23:00Z"),
+        "book": ((m["book"]["with_visible_levels"], m["book"]["snapshots"]), (0, 270)),
+        "sales": (v["c1"]["values"], ["$2,473.6", "$2,345.0"]),
+        "depletions": (v["c2"]["values"][0], "(0.6%)"),
+        "margin": (v["c3"]["values"], ["39.0%", "40.6%"]),
+        "statuses": ([v[c]["frozen_status"] for c in ("c1", "c2", "c3", "c4")],
+                     ["CONFIRMED", "CONTRADICTED", "CONFIRMED", "NOT_ADDRESSED"]),
+        "qwen": ((q["schema_valid"], q["runs"], q["per_claim"]), (4, 5, {"c2": 3, "c3": 3})),
+        "decision": ((d["decision"]["action"], d["decision"]["orders"]), ("REVIEW", 0)),
+    }
+    wrong = {k: a for k, (a, b) in expected.items() if a != b}
+    if wrong:
+        raise SystemExit(f"narration would contradict the evidence: {wrong}")
+
+
+def stz_script(rec: Recorder, d: dict) -> None:
+    page = rec.page
+    if page is not None:
+        smooth = lambda sel: lambda: page.locator(sel).first.scroll_into_view_if_needed()  # noqa: E731
+        claim = lambda cid: lambda: (page.click(f'#cl button[data-id="{cid}"]'), page.wait_for_timeout(300))  # noqa: E731
+    else:
+        smooth = claim = lambda _: None  # noqa: E731
+
+    rec.beat("1 Question", "Reverb's second forward run: Constellation Brands' Q2 report. Did the view survive, and what should I do with RSTZ tonight?", 8,
+             say="This is Ree-verb's second forward run: Constellation Brands' second quarter report. Did the view survive? And what should I do with the Ar S T Z token tonight?")
+    rec.beat("1 Question", "A recorded run from 6 October 2026. Reverb has no way to place orders: it cannot make a trade.", 4,
+             say="This is a recorded run from October sixth, twenty twenty six. Ree-verb has no way to place orders. It cannot make a trade.")
+    rec.next()
+    rec.beat("2 Claims", "The view becomes four claims, each with a fixed, mechanical test.", 6,
+             say="The view becomes four separate claims, each with a fixed, mechanical test.")
+    rec.beat("2 Claims", "This thesis was drafted by Claude Code from Constellation's earlier filings and approved by the owner. It is not the owner's independent view.", 8,
+             smooth(".label"),
+             say="This thesis was drafted by Claude Code from Constellation's earlier filings, and approved by the owner. It is not the owner's independent view.")
+    rec.next()
+    rec.beat("3 Freeze", "Your browser checks the hash again, 27abf0f7…, and it matches the file pushed on 4 October, two days before the release.", 8,
+             say="Your browser checks the hash again, and it matches the file pushed on October fourth, two days before the release.")
+
+    def edit() -> None:
+        box = page.locator("#edits input").nth(3)
+        box.click()
+        box.press("End")
+        for _ in range(len("beer margin")):
+            box.press("Backspace")
+            page.wait_for_timeout(40)
+        box.type("nothing", delay=90)
+
+    rec.beat("3 Freeze", "Now try to edit a claim after the fact…", 5, edit if page else None,
+             say="Now, try to edit a claim after the fact.")
+    rec.beat("3 Freeze", "…and the hash breaks. The view can't be rewritten after the result.", 6,
+             say="And the hash breaks. The view cannot be rewritten after the result.")
+    rec.beat("3 Freeze", "Restore the frozen text, and the hash matches again.", 4, (lambda: page.click("#reset")) if page else None,
+             say="Restore the frozen text, and the hash matches again.")
+    rec.next()
+    rec.beat("4 Event & market", "Event clock (ET): Constellation published results at 16:05, a second release at 16:15, the SEC filing at 16:18.", 8,
+             say="The event clock. Constellation published results at four oh five p m Eastern, a second release, an acquisition, at four fifteen, and the S E C filing at four eighteen.")
+    rec.beat("4 Event & market", "239 recorded one-minute RSTZ closes. Baseline $115.67, with a 3% trigger line on either side.", 7, smooth("svg.chart"),
+             say="Two hundred thirty nine recorded one minute closes. The baseline is one hundred fifteen dollars sixty seven, with a three percent trigger line on either side.")
+    rec.beat("4 Event & market", "It crossed −3% at 16:23 ET and hit a low of −5.31% at 16:26. 0 of 270 minutes showed a single order on the book.", 9, smooth(".grid2"),
+             say="It crossed minus three percent at four twenty three, and fell to minus five point three one percent at four twenty six. Not one of the two hundred seventy minutes showed a single order on the public book.")
+    rec.next()
+    rec.beat("5 Evidence", "Beer net sales: Constellation's own Exhibit 99.1 reports $2,473.6M vs $2,345.0M, highlighted at its exact position.", 9,
+             claim("c1") if page else None,
+             say="Beer net sales. Constellation's own exhibit ninety nine point one reports two thousand four hundred seventy three million, against two thousand three hundred forty five million a year earlier. Confirmed.")
+    rec.beat("5 Evidence", "Depletions: the same table shows (0.6%), a decline. That claim is contradicted.", 7, claim("c2") if page else None,
+             say="Depletions. The same table shows a decline of zero point six percent. That claim is contradicted.")
+    rec.beat("5 Evidence", "Beer margin: 39.0%, below last year's frozen 40.6%. Confirmed.", 6, claim("c3") if page else None,
+             say="Beer operating margin was thirty nine percent, below last year's frozen forty point six. Confirmed.")
+    rec.beat("5 Evidence", "The reason: Constellation called lower tariffs a help and blamed marketing and SG&A. The tariff story wasn't theirs.", 8,
+             claim("c4") if page else None,
+             say="And the reason. Constellation called lower tariffs a help, and blamed marketing and other spending. The tariff story was not theirs.")
+    rec.next()
+    rec.beat("6 Verdicts", "Two of three scored claims confirmed. Depletions failed; the tariff reason was not addressed.", 7,
+             say="Two of three scored claims were confirmed. Depletions failed, and the tariff reason was not addressed.")
+    rec.beat("6 Verdicts", "Model cross-check: 4 of 5 Qwen runs valid; it matched depletions and margin 3 times, never sales. Scores come only from human-selected facts.", 10,
+             smooth("h2"),
+             say="The model cross check, measured. Four of five A I model runs returned valid output. It matched depletions and margin three times, and never matched sales. Scores come only from human selected facts.")
+    rec.next()
+    rec.beat("7 Insight", "Right on the numbers, wrong on the reason, and depletions missed.", 6,
+             say="So: right on the numbers, wrong on the reason, and depletions missed.")
+    rec.beat("7 Insight", "REVIEW, 0 orders: the move crossed the trigger, but an acquisition landed in the same window and there was no depth to trade.", 10,
+             smooth(".big"),
+             say="The move crossed the trigger, so the rule says review, with zero orders. An acquisition landed in the same window, and there was no depth to trade into. This is not a claim that the strategy is profitable.")
+    rec.next()
+    rec.beat("8 You decide", "Reverb recommends. The human decides.", 5,
+             say="Ree-verb recommends. The human decides.")
+    rec.beat("8 You decide", "Every number traces to a committed evidence file. Next up: Applied Digital, recording tonight.", 6,
+             say="Every number traces to a committed evidence file. Next up: Applied Digital, recording tonight.")
+
+
 def synthesise(lines: list[str], voice: Path, directory: Path) -> list[tuple[Path, float]]:
     directory.mkdir(parents=True, exist_ok=True)
     clips = []
@@ -205,20 +310,25 @@ def main() -> None:
     parser.add_argument("--height", type=int, default=720)
     parser.add_argument("--voice", type=Path, help="Piper .onnx voice; adds a narration track")
     parser.add_argument("--smoke", action="store_true", help="record a 10-second clip only")
+    parser.add_argument("--event", choices=("costco", "stz"), default="costco")
     args = parser.parse_args()
+    stz = args.event == "stz"
+    name_root, run_script = (STZ_NAME, stz_script) if stz else (NAME, script)
+    if stz and args.url == DEFAULT_URL:
+        args.url = STZ_URL
     if not shutil.which("ffmpeg"):
         raise SystemExit("ffmpeg is required")
     args.out.mkdir(parents=True, exist_ok=True)
     tmp = args.out / "_video"
     shutil.rmtree(tmp, ignore_errors=True)
-    data = walkthrough_data()
-    check_spoken_numbers(data)
+    data = stz_walkthrough_data() if stz else walkthrough_data()
+    (check_stz_spoken_numbers if stz else check_spoken_numbers)(data)
     clips = None
     if args.voice and not args.smoke:
         planner = Recorder(None)
-        script(planner, data)
+        run_script(planner, data)
         clips = synthesise(planner.lines, args.voice, tmp / "voice")
-        (args.out / f"{NAME}-narration.txt").write_text("\n".join(planner.lines) + "\n", encoding="utf-8")
+        (args.out / f"{name_root}-narration.txt").write_text("\n".join(planner.lines) + "\n", encoding="utf-8")
     size = {"width": args.width, "height": args.height}
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -232,12 +342,12 @@ def main() -> None:
         if args.smoke:
             rec.beat("smoke", "Smoke test: recording works.", 10)
         else:
-            script(rec, data)
+            run_script(rec, data)
         lead = rec.start - video_start  # captions are timed from when the page was ready, the video from page creation
         context.close()
         browser.close()
     webm = next(tmp.glob("*.webm"))
-    name = f"{NAME}-smoke" if args.smoke else NAME
+    name = f"{name_root}-smoke" if args.smoke else name_root
     mp4 = args.out / f"{name}.mp4"
     command = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(webm)]
     if clips:

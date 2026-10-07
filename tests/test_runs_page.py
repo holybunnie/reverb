@@ -26,3 +26,16 @@ class RunsPageTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StzWalkthroughTests(unittest.TestCase):
+    def test_stz_walkthrough_reads_committed_evidence_and_makes_no_network_calls(self):
+        from reverb.walkthrough_stz import render_stz_walkthrough_html, walkthrough_data
+        data = walkthrough_data()
+        self.assertEqual(data["decision"], {"action": "REVIEW", "orders": 0, "run_status": "COMPLETE",
+                                            "live_orders_allowed": False})
+        self.assertEqual([v["frozen_status"] for v in data["verdicts"]],
+                         ["CONFIRMED", "CONTRADICTED", "CONFIRMED", "NOT_ADDRESSED"])
+        self.assertEqual([c["at"] for c in data["clock"]], sorted(c["at"] for c in data["clock"]))
+        page = render_stz_walkthrough_html()
+        self.assertNotRegex(page, r"fetch\(|<script src=|Costco release</text>")
