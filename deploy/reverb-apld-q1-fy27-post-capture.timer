@@ -1,0 +1,16 @@
+[Unit]
+Description=Run the apld-q1-fy27 post-capture steps after the recording window, with retries
+
+[Timer]
+OnCalendar=2026-10-08 00:10:00 UTC
+OnCalendar=2026-10-08 00:40:00 UTC
+OnCalendar=2026-10-08 01:10:00 UTC
+OnCalendar=2026-10-08 02:10:00 UTC
+OnCalendar=2026-10-08 04:10:00 UTC
+OnCalendar=2026-10-08 07:10:00 UTC
+AccuracySec=1s
+Persistent=true
+Unit=reverb-apld-q1-fy27-post-capture.service
+
+[Install]
+WantedBy=timers.target

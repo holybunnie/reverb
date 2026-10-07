@@ -1,0 +1,15 @@
+[Unit]
+Description=Reverb apld-q1-fy27 post-capture steps (release time, release text, raw publish, summary; no scoring, no git)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ubuntu/reverb
+ExecStart=/home/ubuntu/reverb/.venv/bin/python scripts/event_post_capture.py apld-q1-fy27
+# 75 means a step is still pending (recorder running, 8-K not filed); a later timer firing retries.
+SuccessExitStatus=75
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=yes
+PrivateTmp=yes

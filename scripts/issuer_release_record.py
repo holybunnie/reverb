@@ -24,10 +24,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 USER_AGENT = "Reverb evidence capture admin@example.invalid"
 EVENTS = {
-    "stz-q2-fy27": {"issuer": "Constellation Brands", "cik": "0000016918", "date": "2026-10-06",
+    "stz-q2-fy27": {"issuer": "Constellation Brands", "short": "Constellation", "cik": "0000016918", "date": "2026-10-06",
                     "feed": "https://ir.cbrands.com/news-events/press-releases/rss",
                     "headline": r"Reports Second Quarter Fiscal 2027 Financial Results"},
-    "apld-q1-fy27": {"issuer": "Applied Digital", "cik": "0001144879", "date": "2026-10-07",
+    "apld-q1-fy27": {"issuer": "Applied Digital", "short": "Applied Digital", "cik": "0001144879", "date": "2026-10-07",
                      "feed": "https://ir.applieddigital.com/news-events/press-releases/rss",
                      "headline": r"Reports (Fiscal )?First Quarter (Fiscal )?(Year )?2027\b.*Results"},
 }
