@@ -131,6 +131,42 @@ class LanguageTests(unittest.TestCase):
         finally:
             client.close()
 
+    def test_qwen_release_extraction_drops_unaddressed_claims_and_reads_signed_changes(self):
+        release = "Depletions % Change (0.6 %) for the quarter."
+        facts = [{"claim_id": "c1", "current_value_text": "(0.6 %)", "prior_value_text": None,
+                  "current_period_text": None, "prior_period_text": None, "attribution_quote": None,
+                  "excerpt": release},
+                 {"claim_id": "c2", "current_value_text": None, "prior_value_text": None,
+                  "current_period_text": None, "prior_period_text": None, "attribution_quote": None,
+                  "excerpt": release}]
+        body = {"choices": [{"message": {"content": json.dumps({"facts": facts})}}]}
+        client = QwenClient(QwenCredentials("local-test-value", "https://example.test/v1", "test-model"),
+                            client=httpx.Client(transport=httpx.MockTransport(
+                                lambda request: httpx.Response(200, json=body))))
+        claims = [{"claim_id": "c1", "text": "Depletions turn positive"}, {"claim_id": "c2", "text": "Tariffs blamed"}]
+        try:
+            result = client.extract_release_facts(release_text=release, claims=claims)
+        finally:
+            client.close()
+        self.assertEqual([f.claim_id for f in result.extraction.facts], ["c1"])
+        self.assertEqual(result.unaddressed_claim_ids, ("c2",))
+
+    def test_qwen_release_extraction_drops_one_ungrounded_fact_and_keeps_the_rest(self):
+        release = "Net sales $2,473.6 versus $2,345.0. Margin 39.0%."
+        good = {"claim_id": "c1", "current_value_text": "39.0%", "prior_value_text": None, "current_period_text": None,
+                "prior_period_text": None, "attribution_quote": None, "excerpt": "Margin 39.0%."}
+        bad = dict(good, claim_id="c2", current_value_text="$ 2,473.6", excerpt="Net sales $ 2,473.6")
+        body = {"choices": [{"message": {"content": json.dumps({"facts": [good, bad]})}}]}
+        client = QwenClient(QwenCredentials("local-test-value", "https://example.test/v1", "test-model"),
+                            client=httpx.Client(transport=httpx.MockTransport(
+                                lambda request: httpx.Response(200, json=body))))
+        try:
+            result = client.extract_release_facts(release_text=release, claims=[{"claim_id": "c1"}, {"claim_id": "c2"}])
+        finally:
+            client.close()
+        self.assertEqual([f.claim_id for f in result.extraction.facts], ["c1"])
+        self.assertEqual([cid for cid, _ in result.rejected_facts], ["c2"])
+
     def test_narration_is_attached_without_changing_decision(self):
         with TemporaryDirectory() as temp:
             ledger = Ledger(Path(temp) / "ledger.jsonl")

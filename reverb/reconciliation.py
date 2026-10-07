@@ -360,7 +360,7 @@ def ground_extracted_facts(*, extraction: FactExtraction, claims: tuple[ThesisCl
             if value:
                 if value not in candidate.excerpt:
                     raise ValueError("model fact number does not appear verbatim in its excerpt")
-                parse_source_number(value)
+                parse_fact_value(value)
         for period in (candidate.current_period_text, candidate.prior_period_text):
             if period and period not in candidate.excerpt:
                 raise ValueError("model comparison period does not appear verbatim in its excerpt")
@@ -415,6 +415,14 @@ _ATTRIBUTION_RULES = {
 }
 # A stated percentage change as printed in an issuer table: "(0.3%)" is a decline, "1.8%" an increase.
 _SIGNED_PERCENT = re.compile(r"^\s*(\()?\s*([+-])?\s*(\d+(?:\.\d+)?)\s*%\s*(\))?\s*$")
+
+
+def parse_fact_value(value_text: str) -> Decimal:
+    """Parse a plain source number or an issuer-table signed change such as "(0.6 %)"."""
+    try:
+        return parse_source_number(value_text)
+    except ValueError:
+        return parse_signed_percent(value_text)
 
 
 def parse_signed_percent(value_text: str) -> Decimal:

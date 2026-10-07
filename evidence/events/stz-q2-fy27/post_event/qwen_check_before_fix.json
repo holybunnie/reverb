@@ -1,0 +1,174 @@
+{
+  "provider": "bitget-qwen",
+  "model": "qwen3.8-max",
+  "runs": 5,
+  "schema_valid_runs": 0,
+  "runs_matching_human_selection": 0,
+  "human_selection": {
+    "c1": {
+      "current": "$2,473.6",
+      "prior": "$2,345.0"
+    },
+    "c2": {
+      "current": "(0.6%)",
+      "prior": null
+    },
+    "c3": {
+      "current": "39.0%",
+      "prior": null
+    }
+  },
+  "attempts": [
+    {
+      "status": "rejected_or_unavailable",
+      "error_type": "DataUnavailable",
+      "reason": "Qwen returned release facts outside the strict extraction schema",
+      "output_sha256": "4364117ec8b29ace63b069ca612488778bacdcca871796cec20254cee6e4018f",
+      "diagnostic": {
+        "parsed": true,
+        "value_less_candidates": [
+          "c4"
+        ],
+        "grounded_facts": [],
+        "rejected_candidates": [
+          {
+            "claim_id": "c1",
+            "reason": "model fact number does not appear verbatim in its excerpt"
+          },
+          {
+            "claim_id": "c2",
+            "reason": "source number has an unsupported format: '(0.6 %)'"
+          },
+          {
+            "claim_id": "c3",
+            "reason": "model fact excerpt does not appear verbatim in the captured release"
+          }
+        ],
+        "claims_matching_human_selection": []
+      }
+    },
+    {
+      "status": "rejected_or_unavailable",
+      "error_type": "DataUnavailable",
+      "reason": "Qwen returned release facts outside the strict extraction schema",
+      "output_sha256": "f98eec5deb9556d64bca192e41cafbdfbc2c6206780f7b50a80333f881059ac8",
+      "diagnostic": {
+        "parsed": true,
+        "value_less_candidates": [
+          "c4"
+        ],
+        "grounded_facts": [],
+        "rejected_candidates": [
+          {
+            "claim_id": "c1",
+            "reason": "model fact number does not appear verbatim in its excerpt"
+          },
+          {
+            "claim_id": "c2",
+            "reason": "source number has an unsupported format: '(0.6 %)'"
+          },
+          {
+            "claim_id": "c3",
+            "reason": "model comparison period does not appear verbatim in its excerpt"
+          }
+        ],
+        "claims_matching_human_selection": []
+      }
+    },
+    {
+      "status": "rejected_or_unavailable",
+      "error_type": "DataUnavailable",
+      "reason": "Qwen returned release facts outside the strict extraction schema",
+      "output_sha256": "5c590b3aa3a9f2d7d6041acff02aee35c560387ca5a2bd49eb96a780528e0014",
+      "diagnostic": {
+        "parsed": true,
+        "value_less_candidates": [
+          "c4"
+        ],
+        "grounded_facts": [
+          {
+            "claim_id": "c3",
+            "current": "39.0 %",
+            "prior": "40.6 %"
+          }
+        ],
+        "rejected_candidates": [
+          {
+            "claim_id": "c1",
+            "reason": "model fact number does not appear verbatim in its excerpt"
+          },
+          {
+            "claim_id": "c2",
+            "reason": "source number has an unsupported format: '(0.6 %)'"
+          }
+        ],
+        "claims_matching_human_selection": [
+          "c3"
+        ]
+      }
+    },
+    {
+      "status": "rejected_or_unavailable",
+      "error_type": "DataUnavailable",
+      "reason": "Qwen returned release facts outside the strict extraction schema",
+      "output_sha256": "8bf453a6269b5f7e494546bcbf7771d6ca382444b3a2f25dc8b2b12df84108ca",
+      "diagnostic": {
+        "parsed": true,
+        "value_less_candidates": [
+          "c4"
+        ],
+        "grounded_facts": [
+          {
+            "claim_id": "c3",
+            "current": "39.0 %",
+            "prior": "40.6 %"
+          }
+        ],
+        "rejected_candidates": [
+          {
+            "claim_id": "c1",
+            "reason": "model fact excerpt does not appear verbatim in the captured release"
+          },
+          {
+            "claim_id": "c2",
+            "reason": "source number has an unsupported format: '(0.6 %)'"
+          }
+        ],
+        "claims_matching_human_selection": [
+          "c3"
+        ]
+      }
+    },
+    {
+      "status": "rejected_or_unavailable",
+      "error_type": "DataUnavailable",
+      "reason": "Qwen returned release facts outside the strict extraction schema",
+      "output_sha256": "f98eec5deb9556d64bca192e41cafbdfbc2c6206780f7b50a80333f881059ac8",
+      "diagnostic": {
+        "parsed": true,
+        "value_less_candidates": [
+          "c4"
+        ],
+        "grounded_facts": [],
+        "rejected_candidates": [
+          {
+            "claim_id": "c1",
+            "reason": "model fact number does not appear verbatim in its excerpt"
+          },
+          {
+            "claim_id": "c2",
+            "reason": "source number has an unsupported format: '(0.6 %)'"
+          },
+          {
+            "claim_id": "c3",
+            "reason": "model comparison period does not appear verbatim in its excerpt"
+          }
+        ],
+        "claims_matching_human_selection": []
+      }
+    }
+  ],
+  "role": "candidate cross-check only; scores come from the human-selected verbatim facts",
+  "diagnostic_rule": "For replies rejected by the strict schema, value-less candidates are dropped and the rest grounded by the same code. Reported per attempt; never counted as schema-valid.",
+  "superseded": "First run, before the 2026-10-07 parser fix: value-less 'not addressed' entries rejected whole replies, and signed changes like '(0.6 %)' were read with the plain-number parser. Kept unchanged as recorded; scores never depended on it."
+}

@@ -172,6 +172,8 @@ def main() -> None:
                 rejected.append({"claim_id": fact.claim_id, "reason": str(exc)})
         attempts.append({
             "status": "returned", "output_sha256": candidate.output_sha256,
+            "unaddressed_claim_ids": list(candidate.unaddressed_claim_ids),
+            "parser_rejected_facts": [{"claim_id": cid, "reason": why} for cid, why in candidate.rejected_facts],
             "grounded_facts": [{"claim_id": f.claim_id, "current": f.current_value_text, "prior": f.prior_value_text,
                                 "current_period": f.current_period_text, "prior_period": f.prior_period_text,
                                 "attribution_quote": f.attribution_quote} for f in grounded],
@@ -186,6 +188,8 @@ def main() -> None:
         "human_selection": {cid: {"current": pair[0], "prior": pair[1]} for cid, pair in human.items()},
         "attempts": attempts,
         "role": "candidate cross-check only; scores come from the human-selected verbatim facts",
+        "earlier_run": ("evidence/events/stz-q2-fy27/post_event/qwen_check_before_fix.json: 0 of 5 schema-valid "
+                        "before the 2026-10-07 parser fix; kept as recorded."),
         "diagnostic_rule": ("For replies rejected by the strict schema, value-less candidates are dropped and the rest "
                             "grounded by the same code. Reported per attempt; never counted as schema-valid."),
     }

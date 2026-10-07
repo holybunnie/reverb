@@ -11,7 +11,7 @@ import httpx
 from pydantic import ValidationError
 
 from .errors import ConfigurationError, DataUnavailable
-from .reconciliation import Comparison, FactExtraction, ThesisExtraction, parse_source_number
+from .reconciliation import Comparison, FactExtraction, ThesisExtraction, parse_fact_value
 
 
 @dataclass(frozen=True)
@@ -66,6 +66,8 @@ class QwenFactExtraction:
     model: str
     input_sha256: str
     output_sha256: str
+    unaddressed_claim_ids: tuple[str, ...] = ()
+    rejected_facts: tuple[tuple[str, str], ...] = ()
 
 
 class QwenClient:
@@ -254,6 +256,7 @@ class QwenClient:
             "Return one JSON object with exactly one key, facts. Each fact must have exactly "
             "claim_id, current_value_text, prior_value_text, current_period_text, "
             "prior_period_text, attribution_quote, excerpt. Use null for a missing field. "
+            "Omit a claim the release does not address. "
             "Copy every value and period label character-for-character from excerpt. The "
             "excerpt must be copied character-for-character from the release text. For a value "
             "in a table, the excerpt must run contiguously from the column header that carries "
@@ -287,28 +290,54 @@ class QwenClient:
             raise DataUnavailable(f"Qwen release extraction failed: {type(exc).__name__}") from exc
         if not isinstance(raw, str) or not raw.strip():
             raise DataUnavailable("Qwen release extraction returned empty content")
+        # A candidate with no value and no quote means "not addressed": drop and record it
+        # rather than reject the whole reply. Everything else stays strictly validated.
+        unaddressed: list[str] = []
         try:
-            extraction = FactExtraction.model_validate_json(raw)
-        except ValidationError as exc:
+            document = json.loads(raw)
+            if isinstance(document, dict) and isinstance(document.get("facts"), list):
+                kept = []
+                for item in document["facts"]:
+                    if isinstance(item, dict) and not any(
+                            item.get(k) for k in ("current_value_text", "prior_value_text", "attribution_quote")):
+                        unaddressed.append(str(item.get("claim_id")))
+                    else:
+                        kept.append(item)
+                document["facts"] = kept
+            extraction = FactExtraction.model_validate(document)
+        except (ValueError, ValidationError) as exc:
             raise DataUnavailable("Qwen returned release facts outside the strict extraction schema") from exc
         claim_ids = {str(item.get("claim_id")) for item in claims if isinstance(item, dict)}
         if any(fact.claim_id not in claim_ids for fact in extraction.facts):
             raise DataUnavailable("Qwen returned a fact for an unregistered claim")
+        # Ungrounded facts are dropped one by one and recorded; the reply fails only if none survive.
+        grounded, rejected = [], []
         for fact in extraction.facts:
+            reason = None
             if fact.excerpt not in release_text:
-                raise DataUnavailable("Qwen returned an excerpt absent from the issuer release")
+                reason = "Qwen returned an excerpt absent from the issuer release"
             for value in (fact.current_value_text, fact.prior_value_text):
-                if value:
+                if value and reason is None:
                     if value not in fact.excerpt:
-                        raise DataUnavailable("Qwen returned a figure absent from its source excerpt")
-                    try:
-                        parse_source_number(value)
-                    except ValueError as exc:
-                        raise DataUnavailable("Qwen returned a figure with unsupported source formatting") from exc
+                        reason = "Qwen returned a figure absent from its source excerpt"
+                    else:
+                        try:
+                            parse_fact_value(value)
+                        except ValueError:
+                            reason = "Qwen returned a figure with unsupported source formatting"
+            if reason:
+                rejected.append((fact.claim_id, reason))
+            else:
+                grounded.append(fact)
+        if rejected and not grounded:
+            raise DataUnavailable(rejected[0][1])
+        extraction = FactExtraction(facts=tuple(grounded))
         return QwenFactExtraction(
             extraction=extraction,
             provider="bitget-qwen",
             model=self.credentials.model,
             input_sha256=hashlib.sha256(serialized.encode()).hexdigest(),
             output_sha256=hashlib.sha256(raw.encode()).hexdigest(),
+            unaddressed_claim_ids=tuple(unaddressed),
+            rejected_facts=tuple(rejected),
         )
