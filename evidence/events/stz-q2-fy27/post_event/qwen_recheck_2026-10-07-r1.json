@@ -1,0 +1,197 @@
+{
+  "event": "STZ Q2 FY2027",
+  "label": "2026-10-07",
+  "sample": "in-sample",
+  "note": "In-sample: this event's earlier failures informed the prompt revision, so this shows whether the fix works on the case it was built from, not how it generalises.",
+  "prompt_method_sha256": "e9fc4ad3a4c4bb0563f1f13ddc0a0b97a12a184c55e51c342af1eae29e5cf01d",
+  "model": "qwen3.8-max",
+  "checked_at": "2026-10-07T03:39:47.173762Z",
+  "runs": 5,
+  "schema_valid_runs": 5,
+  "human_selection": {
+    "c1": {
+      "current": "$2,473.6",
+      "prior": "$2,345.0"
+    },
+    "c2": {
+      "current": "(0.6%)",
+      "prior": null
+    },
+    "c3": {
+      "current": "39.0%",
+      "prior": null
+    }
+  },
+  "runs_matching_per_claim": {
+    "c1": 5,
+    "c2": 1,
+    "c3": 5
+  },
+  "runs_matching_every_claim": 1,
+  "attempts": [
+    {
+      "status": "returned",
+      "output_sha256": "0ba350a0da3d1e1e87d8e8c91bc854e15c9340195b34c0c5eb9ef986d03e6015",
+      "unaddressed_claim_ids": [],
+      "parser_rejected_facts": [],
+      "grounded_facts": [
+        {
+          "claim_id": "c1",
+          "current": "$2,473.6",
+          "prior": "$2,345.0",
+          "current_period": "August 31, 2026",
+          "prior_period": "August 31, 2025"
+        },
+        {
+          "claim_id": "c3",
+          "current": "39.0 %",
+          "prior": "40.6 %",
+          "current_period": "August 31, 2026",
+          "prior_period": "August 31, 2025"
+        }
+      ],
+      "rejected_candidates": [
+        {
+          "claim_id": "c2",
+          "reason": "model comparison period does not appear verbatim in its excerpt"
+        }
+      ],
+      "claims_matching_human_selection": [
+        "c1",
+        "c3"
+      ]
+    },
+    {
+      "status": "returned",
+      "output_sha256": "0ba350a0da3d1e1e87d8e8c91bc854e15c9340195b34c0c5eb9ef986d03e6015",
+      "unaddressed_claim_ids": [],
+      "parser_rejected_facts": [],
+      "grounded_facts": [
+        {
+          "claim_id": "c1",
+          "current": "$2,473.6",
+          "prior": "$2,345.0",
+          "current_period": "August 31, 2026",
+          "prior_period": "August 31, 2025"
+        },
+        {
+          "claim_id": "c3",
+          "current": "39.0 %",
+          "prior": "40.6 %",
+          "current_period": "August 31, 2026",
+          "prior_period": "August 31, 2025"
+        }
+      ],
+      "rejected_candidates": [
+        {
+          "claim_id": "c2",
+          "reason": "model comparison period does not appear verbatim in its excerpt"
+        }
+      ],
+      "claims_matching_human_selection": [
+        "c1",
+        "c3"
+      ]
+    },
+    {
+      "status": "returned",
+      "output_sha256": "0ba350a0da3d1e1e87d8e8c91bc854e15c9340195b34c0c5eb9ef986d03e6015",
+      "unaddressed_claim_ids": [],
+      "parser_rejected_facts": [],
+      "grounded_facts": [
+        {
+          "claim_id": "c1",
+          "current": "$2,473.6",
+          "prior": "$2,345.0",
+          "current_period": "August 31, 2026",
+          "prior_period": "August 31, 2025"
+        },
+        {
+          "claim_id": "c3",
+          "current": "39.0 %",
+          "prior": "40.6 %",
+          "current_period": "August 31, 2026",
+          "prior_period": "August 31, 2025"
+        }
+      ],
+      "rejected_candidates": [
+        {
+          "claim_id": "c2",
+          "reason": "model comparison period does not appear verbatim in its excerpt"
+        }
+      ],
+      "claims_matching_human_selection": [
+        "c1",
+        "c3"
+      ]
+    },
+    {
+      "status": "returned",
+      "output_sha256": "0ba350a0da3d1e1e87d8e8c91bc854e15c9340195b34c0c5eb9ef986d03e6015",
+      "unaddressed_claim_ids": [],
+      "parser_rejected_facts": [],
+      "grounded_facts": [
+        {
+          "claim_id": "c1",
+          "current": "$2,473.6",
+          "prior": "$2,345.0",
+          "current_period": "August 31, 2026",
+          "prior_period": "August 31, 2025"
+        },
+        {
+          "claim_id": "c3",
+          "current": "39.0 %",
+          "prior": "40.6 %",
+          "current_period": "August 31, 2026",
+          "prior_period": "August 31, 2025"
+        }
+      ],
+      "rejected_candidates": [
+        {
+          "claim_id": "c2",
+          "reason": "model comparison period does not appear verbatim in its excerpt"
+        }
+      ],
+      "claims_matching_human_selection": [
+        "c1",
+        "c3"
+      ]
+    },
+    {
+      "status": "returned",
+      "output_sha256": "b77f621d9d0f6f1371a0967545cf34d883772f4ccc54f43ee30a2f987633929c",
+      "unaddressed_claim_ids": [],
+      "parser_rejected_facts": [],
+      "grounded_facts": [
+        {
+          "claim_id": "c1",
+          "current": "$2,473.6",
+          "prior": "$2,345.0",
+          "current_period": "August 31, 2026",
+          "prior_period": "August 31, 2025"
+        },
+        {
+          "claim_id": "c2",
+          "current": "(0.6 %)",
+          "prior": null,
+          "current_period": "Three Months Ended",
+          "prior_period": null
+        },
+        {
+          "claim_id": "c3",
+          "current": "39.0 %",
+          "prior": "40.6 %",
+          "current_period": "August 31, 2026",
+          "prior_period": "August 31, 2025"
+        }
+      ],
+      "rejected_candidates": [],
+      "claims_matching_human_selection": [
+        "c1",
+        "c2",
+        "c3"
+      ]
+    }
+  ],
+  "role": "candidate cross-check only; scores come from the human-selected verbatim facts"
+}

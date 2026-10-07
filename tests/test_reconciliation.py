@@ -20,6 +20,7 @@ from reverb.reconciliation import (
     build_knowledge_snapshot,
     freeze_thesis,
     ground_extracted_facts,
+    locate_excerpt,
     parse_source_number,
     reconcile_claims,
     source_text_sha256,
@@ -222,6 +223,33 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(grounded[0].unit, "adjusted_eps_usd/share")
         self.assertIn("offsets 0:", grounded[0].citation.location)
         self.assertEqual(grounded[0].citation.source_sha256, source_text_sha256(self.eps_doc))
+
+    def test_excerpt_locating_forgives_spacing_only(self):
+        source = "BEER Net Sales Three Months Ended August 31, 2026 $2,473.6 August 31, 2025 $2,345.0 HIGHLIGHTS"
+        # Line breaks for spaces: located, and the citation uses the source's own text.
+        self.assertEqual(locate_excerpt("Three Months Ended\nAugust 31, 2026  $2,473.6", source),
+                         "Three Months Ended August 31, 2026 $2,473.6")
+        # Stitched from separate places, a skipped word, or an altered figure: still rejected.
+        self.assertIsNone(locate_excerpt("Net Sales\nAugust 31, 2026 $2,473.6", source))
+        self.assertIsNone(locate_excerpt("Three Months August 31, 2026 $2,473.6", source))
+        self.assertIsNone(locate_excerpt("August 31, 2026 $ 2,473.6", source))
+        self.assertIsNone(locate_excerpt("   ", source))
+
+    def test_whitespace_variant_excerpt_is_grounded_at_exact_source_offsets(self):
+        source = "Intro text. Net Sales Three Months Ended August 31, 2026 $2,473.6 August 31, 2025 $2,345.0 end."
+        claims = (claim("c1", "beer net sales", Comparison.UP_YEAR_OVER_YEAR, "Beer sales grow", unit="usd"),)
+        candidate = ExtractedFactCandidate(
+            claim_id="c1", current_value_text="$2,473.6", prior_value_text="$2,345.0",
+            current_period_text="August 31,\n2026", prior_period_text="August 31, 2025",
+            excerpt="Three Months Ended\nAugust 31,\n2026 $2,473.6\nAugust 31, 2025 $2,345.0")
+        fact = ground_extracted_facts(
+            extraction=FactExtraction(facts=(candidate,)), claims=claims,
+            source_url="https://example.test/release", source_text=source,
+            published_at=RELEASED, captured_at=RELEASED + timedelta(seconds=2))[0]
+        start = source.index("Three Months Ended")
+        self.assertEqual(fact.citation.excerpt, source[start:start + len(fact.citation.excerpt)])
+        self.assertIn(f"offsets {start}:", fact.citation.location)
+        self.assertEqual(fact.current_period_text, "August 31, 2026")
 
     def test_release_fact_candidate_cannot_invent_value_or_status(self):
         with self.assertRaisesRegex(ValueError, "does not appear verbatim"):

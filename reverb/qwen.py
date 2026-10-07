@@ -11,7 +11,7 @@ import httpx
 from pydantic import ValidationError
 
 from .errors import ConfigurationError, DataUnavailable
-from .reconciliation import Comparison, FactExtraction, ThesisExtraction, parse_fact_value
+from .reconciliation import Comparison, FactExtraction, ThesisExtraction, with_exact_text, locate_excerpt, parse_fact_value
 
 
 @dataclass(frozen=True)
@@ -243,14 +243,17 @@ class QwenClient:
             output_sha256=hashlib.sha256(raw.encode()).hexdigest(),
         )
 
-    def extract_release_facts(self, *, release_text: str, claims: list[dict[str, Any]]) -> QwenFactExtraction:
+    def extract_release_facts(self, *, release_text: str, claims: list[dict[str, Any]],
+                              reporting_period: str | None = None) -> QwenFactExtraction:
         """Extract verbatim issuer facts; deterministic code assigns all statuses."""
         if not isinstance(release_text, str) or not release_text.strip() or len(release_text) > 200_000:
             raise ConfigurationError("release text must be non-empty and at most 200000 characters")
         if not isinstance(claims, list) or not claims or len(claims) > 20:
             raise ConfigurationError("registered claims must be a non-empty list of at most 20")
-        serialized = json.dumps({"registered_claims": claims, "issuer_release_text": release_text},
-                                sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        source = {"registered_claims": claims, "issuer_release_text": release_text}
+        if reporting_period:
+            source["reporting_period"] = reporting_period
+        serialized = json.dumps(source, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
         prompt = (
             "Extract only issuer-reported facts that address the registered claims. "
             "Return one JSON object with exactly one key, facts. Each fact must have exactly "
@@ -260,7 +263,13 @@ class QwenClient:
             "Copy every value and period label character-for-character from excerpt. The "
             "excerpt must be copied character-for-character from the release text. For a value "
             "in a table, the excerpt must run contiguously from the column header that carries "
-            "the period labels through the row that carries the values. Do not "
+            "the period labels through the row that carries the values, copying every character "
+            "in between, including headings you do not need; never skip, reorder, or join text from "
+            "separate places. Use the column for the quarter being reported (reporting_period when "
+            "given), not year-to-date, six-month, nine-month, or full-year columns, unless the claim "
+            "names a different period. Period labels must also appear as one contiguous piece of the "
+            "excerpt: when a table header splits a period across cells, copy one piece as printed, such "
+            "as the period name alone, and never assemble a label from separate header cells. Do not "
             "calculate year-over-year changes, normalize figures, infer causation, add a "
             "consensus value, or include a status, score, summary, recommendation, or prose. "
             "Only use claim_id values from registered_claims. Return {\"facts\": []} when no "
@@ -314,8 +323,11 @@ class QwenClient:
         grounded, rejected = [], []
         for fact in extraction.facts:
             reason = None
-            if fact.excerpt not in release_text:
+            exact = locate_excerpt(fact.excerpt, release_text)
+            if exact is None:
                 reason = "Qwen returned an excerpt absent from the issuer release"
+            elif exact != fact.excerpt:
+                fact = with_exact_text(fact, exact)
             for value in (fact.current_value_text, fact.prior_value_text):
                 if value and reason is None:
                     if value not in fact.excerpt:

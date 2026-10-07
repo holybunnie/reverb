@@ -1,0 +1,23 @@
+{
+  "revision": "2026-10-07 release-fact extraction prompt and parser",
+  "prompt_method_sha256": "893ceb707d21227189b5567e6680b1110dfa751beff9b199f875f585f834685b",
+  "hash_of": "source text of reverb/qwen.py QwenClient.extract_release_facts (prompt and parser together)",
+  "recorded_at": "2026-10-07T03:43:34Z",
+  "changes": [
+    "Ask for the column of the quarter being reported (reporting_period), not year-to-date or full-year columns",
+    "Require one contiguous quote: copy everything between start and end, never skip, reorder or join text from separate places",
+    "Period labels must be one contiguous piece of the quote, never assembled from separate table-header cells",
+    "Checker forgives line breaks versus spaces only, and cites the release's own exact text and offsets",
+    "Claims the release does not address are dropped and recorded instead of failing the reply; an ungrounded fact is dropped on its own instead of sinking the whole reply"
+  ],
+  "learned_from": "Costco Q4 FY2026 and STZ Q2 FY2027 failures, so rechecks of those two events are in-sample",
+  "in_sample_rechecks": {
+    "costco_round_1": "evidence/costco/post_event/qwen_recheck_2026-10-07-r1.json",
+    "costco_round_2": "evidence/costco/post_event/qwen_recheck_2026-10-07-r2.json",
+    "stz_round_1": "evidence/events/stz-q2-fy27/post_event/qwen_recheck_2026-10-07-r1.json",
+    "stz_round_2": "evidence/events/stz-q2-fy27/post_event/qwen_recheck_2026-10-07-r2.json"
+  },
+  "out_of_sample_test": "APLD Q1 FY2027, released after this revision was pushed; GitHub's activity log records the push time",
+  "scores_affected": false,
+  "note": "Original Costco and STZ cross-check results stay as recorded. Scores always come from human-selected verbatim facts."
+}

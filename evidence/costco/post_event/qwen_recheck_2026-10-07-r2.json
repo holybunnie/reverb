@@ -1,0 +1,119 @@
+{
+  "event": "COST Q4 FY2026",
+  "label": "2026-10-07-r2",
+  "sample": "in-sample",
+  "note": "In-sample: this event's earlier failures informed the prompt revision, so this shows whether the fix works on the case it was built from, not how it generalises.",
+  "prompt_method_sha256": "893ceb707d21227189b5567e6680b1110dfa751beff9b199f875f585f834685b",
+  "model": "qwen3.8-max",
+  "checked_at": "2026-10-07T03:41:42.095964Z",
+  "runs": 5,
+  "schema_valid_runs": 5,
+  "human_selection": {
+    "c2": {
+      "current": "1,850",
+      "prior": "1,724"
+    }
+  },
+  "runs_matching_per_claim": {
+    "c2": 5
+  },
+  "runs_matching_every_claim": 5,
+  "attempts": [
+    {
+      "status": "returned",
+      "output_sha256": "d6cd1ea4173449276bc425e38442c2cda84353d562e96a444261b2737712ea16",
+      "unaddressed_claim_ids": [],
+      "parser_rejected_facts": [],
+      "grounded_facts": [
+        {
+          "claim_id": "c2",
+          "current": "1,850",
+          "prior": "1,724",
+          "current_period": "August 30, 2026",
+          "prior_period": "August 31, 2025"
+        }
+      ],
+      "rejected_candidates": [],
+      "claims_matching_human_selection": [
+        "c2"
+      ]
+    },
+    {
+      "status": "returned",
+      "output_sha256": "a8fb2a57843e0170eee934bcac93bebc0a5f0ce44c5f5ca6b0440b91757f5f51",
+      "unaddressed_claim_ids": [],
+      "parser_rejected_facts": [],
+      "grounded_facts": [
+        {
+          "claim_id": "c2",
+          "current": "1,850",
+          "prior": "1,724",
+          "current_period": "August 30, 2026",
+          "prior_period": "August 31, 2025"
+        }
+      ],
+      "rejected_candidates": [],
+      "claims_matching_human_selection": [
+        "c2"
+      ]
+    },
+    {
+      "status": "returned",
+      "output_sha256": "d6cd1ea4173449276bc425e38442c2cda84353d562e96a444261b2737712ea16",
+      "unaddressed_claim_ids": [],
+      "parser_rejected_facts": [],
+      "grounded_facts": [
+        {
+          "claim_id": "c2",
+          "current": "1,850",
+          "prior": "1,724",
+          "current_period": "August 30, 2026",
+          "prior_period": "August 31, 2025"
+        }
+      ],
+      "rejected_candidates": [],
+      "claims_matching_human_selection": [
+        "c2"
+      ]
+    },
+    {
+      "status": "returned",
+      "output_sha256": "d6cd1ea4173449276bc425e38442c2cda84353d562e96a444261b2737712ea16",
+      "unaddressed_claim_ids": [],
+      "parser_rejected_facts": [],
+      "grounded_facts": [
+        {
+          "claim_id": "c2",
+          "current": "1,850",
+          "prior": "1,724",
+          "current_period": "August 30, 2026",
+          "prior_period": "August 31, 2025"
+        }
+      ],
+      "rejected_candidates": [],
+      "claims_matching_human_selection": [
+        "c2"
+      ]
+    },
+    {
+      "status": "returned",
+      "output_sha256": "d6cd1ea4173449276bc425e38442c2cda84353d562e96a444261b2737712ea16",
+      "unaddressed_claim_ids": [],
+      "parser_rejected_facts": [],
+      "grounded_facts": [
+        {
+          "claim_id": "c2",
+          "current": "1,850",
+          "prior": "1,724",
+          "current_period": "August 30, 2026",
+          "prior_period": "August 31, 2025"
+        }
+      ],
+      "rejected_candidates": [],
+      "claims_matching_human_selection": [
+        "c2"
+      ]
+    }
+  ],
+  "role": "candidate cross-check only; scores come from the human-selected verbatim facts"
+}

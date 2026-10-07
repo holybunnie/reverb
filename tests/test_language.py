@@ -167,6 +167,31 @@ class LanguageTests(unittest.TestCase):
         self.assertEqual([f.claim_id for f in result.extraction.facts], ["c1"])
         self.assertEqual([cid for cid, _ in result.rejected_facts], ["c2"])
 
+    def test_qwen_release_prompt_asks_for_the_reported_quarter_and_contiguous_quotes(self):
+        release = "Net Sales Three Months Ended August 31, 2026 $2,473.6"
+        seen = {}
+
+        def reply(request):
+            seen["body"] = json.loads(request.content)
+            fact = {"claim_id": "c1", "current_value_text": "$2,473.6", "prior_value_text": None,
+                    "current_period_text": None, "prior_period_text": None, "attribution_quote": None,
+                    "excerpt": "Three Months Ended\nAugust 31, 2026 $2,473.6"}
+            return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"facts": [fact]})}}]})
+
+        client = QwenClient(QwenCredentials("local-test-value", "https://example.test/v1", "test-model"),
+                            client=httpx.Client(transport=httpx.MockTransport(reply)))
+        try:
+            result = client.extract_release_facts(release_text=release, claims=[{"claim_id": "c1"}],
+                                                  reporting_period="STZ Q2 FY2027")
+        finally:
+            client.close()
+        prompt = seen["body"]["messages"][1]["content"]
+        self.assertIn("never skip, reorder, or join text from separate places", prompt)
+        self.assertIn("not year-to-date", prompt)
+        self.assertIn("never assemble a label from separate header cells", prompt)
+        self.assertIn('"reporting_period":"STZ Q2 FY2027"', prompt)
+        self.assertEqual(result.extraction.facts[0].excerpt, "Three Months Ended August 31, 2026 $2,473.6")
+
     def test_narration_is_attached_without_changing_decision(self):
         with TemporaryDirectory() as temp:
             ledger = Ledger(Path(temp) / "ledger.jsonl")

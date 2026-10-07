@@ -344,6 +344,20 @@ def build_knowledge_snapshot(*, claims: tuple[ThesisClaim, ...],
     return KnowledgeSnapshot(frozen_at=frozen, items=tuple(items))
 
 
+def with_exact_text(candidate: "ExtractedFactCandidate", exact: str) -> "ExtractedFactCandidate":
+    """Swap a whitespace-variant excerpt (and its quoted fields) for the source's exact text."""
+    def exact_part(value: str | None) -> str | None:
+        return None if value is None else (locate_excerpt(value, exact) or value)
+    return candidate.model_copy(update={
+        "excerpt": exact,
+        "current_value_text": exact_part(candidate.current_value_text),
+        "prior_value_text": exact_part(candidate.prior_value_text),
+        "current_period_text": exact_part(candidate.current_period_text),
+        "prior_period_text": exact_part(candidate.prior_period_text),
+        "attribution_quote": exact_part(candidate.attribution_quote),
+    })
+
+
 def ground_extracted_facts(*, extraction: FactExtraction, claims: tuple[ThesisClaim, ...],
                            source_url: str, source_text: str, published_at: datetime,
                            captured_at: datetime) -> tuple[MetricFact, ...]:
@@ -354,8 +368,11 @@ def ground_extracted_facts(*, extraction: FactExtraction, claims: tuple[ThesisCl
     for candidate in extraction.facts:
         if candidate.claim_id not in claim_by_id:
             raise ValueError("model returned a fact for a claim that was not registered")
-        if candidate.excerpt not in source_text:
+        exact = locate_excerpt(candidate.excerpt, source_text)
+        if exact is None:
             raise ValueError("model fact excerpt does not appear verbatim in the captured release")
+        if exact != candidate.excerpt:
+            candidate = with_exact_text(candidate, exact)
         for value in (candidate.current_value_text, candidate.prior_value_text):
             if value:
                 if value not in candidate.excerpt:
@@ -415,6 +432,21 @@ _ATTRIBUTION_RULES = {
 }
 # A stated percentage change as printed in an issuer table: "(0.3%)" is a decline, "1.8%" an increase.
 _SIGNED_PERCENT = re.compile(r"^\s*(\()?\s*([+-])?\s*(\d+(?:\.\d+)?)\s*%\s*(\))?\s*$")
+
+
+def locate_excerpt(excerpt: str, source: str) -> str | None:
+    """Return the exact source span for a model excerpt, treating any run of whitespace as one space.
+
+    Only spacing is forgiven: every word and symbol must appear in order and contiguously,
+    so stitched or reworded excerpts still fail. The returned span is the source's own text.
+    """
+    if excerpt in source:
+        return excerpt
+    tokens = excerpt.split()
+    if not tokens:
+        return None
+    match = re.search(r"\s+".join(re.escape(token) for token in tokens), source)
+    return match.group(0) if match else None
 
 
 def parse_fact_value(value_text: str) -> Decimal:

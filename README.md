@@ -42,7 +42,7 @@ On 24 September 2026, Reverb froze a Costco thesis about 14 hours before Q4 resu
 | **EPS** | **No fair benchmark.** Reported `$6.75` includes a stated `$0.15` one-off; no consensus on a matching basis was frozen in advance, so Reverb declines to grade it rather than pick a number after the fact |
 | **Market reaction** | Peak `+1.17%` at 16:15 ET, under the `3%` trigger |
 | **Decision** | **HOLD**, with `0` orders. The human decides |
-| **Model, measured** | Live Qwen thesis extraction matched the human claim set on variable and comparison `4/4`. On the release, `4/5` live runs returned valid facts but `0/5` chose the quarter: every run cited 52-week fees. The code caught it, which is why the model never scores |
+| **Model, measured** | Live Qwen thesis extraction matched the human claim set on variable and comparison `4/4`. On the release, `4/5` live runs returned valid facts but `0/5` chose the quarter: every run cited 52-week fees. The code caught it, which is why the model never scores. On 7 Oct the extraction prompt was revised (ask for the reported quarter; one unbroken quote; no assembled period labels). Rechecked on the same events, which is in-sample because their failures shaped the fix: Costco `5/5` runs matched, STZ `4/5` matched every claim. The revision was pushed before Applied Digital reported, so APLD is the out-of-sample test ([revision record](evidence/qwen/release_prompt_revision.json)) |
 
 Everything above regenerates from committed evidence. The run is `COMPLETE`: all 270 slots captured, and the release time is verified from Costco's own press-release feed.
 
