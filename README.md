@@ -86,7 +86,7 @@ The active registration is [frozen_thesis_v2.json](evidence/costco/frozen_thesis
 | Orders in the replay | `0` |
 | Replay verification | Rebuilt from the captured issuer pages and Bitget candles; checked ledger at `evidence/replays/20260923T122959.089784Z-448cf031/` |
 | Historical corpus inventory | `1` distinct verified replay event, reproduced exactly on rerun. Threshold crossings: 1% `1`, 2% `1`, 3% `0`, 4% `0`, 5% `0`; full report at `evidence/historical/corpus.json` |
-| Extraction accuracy | Measured on the Costco event: thesis `4/4`, release quarter `0/5` |
+| Extraction accuracy | Measured on the Costco event: thesis `4/4`, release quarter `0/5`. After the 7 Oct prompt revision, rechecked in-sample: Costco `5/5`, STZ `4/5` runs matching every claim; APLD is the out-of-sample test |
 | Qwen live check | Verified on 23 September 2026; sanitized hashes at `evidence/qwen/ledger.jsonl`; no Bitget account or order calls |
 | Live Qwen thesis extraction | Verified on 28 September 2026 after disabling the reasoning trace for schema-bound calls (it had caused the earlier timeouts). Candidates matched the approved claims on variable and comparison `4/4`; claim type differed (`FORWARD_EXPECTATION` vs approved `QUARTER_FACT`). Sanitized hashes in `evidence/qwen/ledger.jsonl`; the frozen claims remain human-approved |
 | Costco Reality token | `RCOSTUSDT` appeared in the live Reality instrument list; Bitget `stock-info` returned `tradingPeriod` including after-hours and `weekendTradable: no`, captured at `evidence/runs/20260923T115045.662310Z-11d40a83/` |
