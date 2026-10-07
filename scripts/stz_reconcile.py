@@ -7,6 +7,7 @@ feed (explicit -0400 offset), recorded in issuer_release_timestamp.json.
 """
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import re
@@ -15,8 +16,12 @@ from pathlib import Path
 
 import httpx
 
+from reverb.env import load_local_env
+from reverb.errors import ReverbError
+from reverb.qwen import QwenClient, QwenCredentials
 from reverb.reconciliation import (
-    Citation, FrozenThesis, MetricFact, reconcile_claims, source_text_sha256, verify_frozen_thesis,
+    Citation, ExtractedFactCandidate, FactExtraction, FrozenThesis, MetricFact, ground_extracted_facts, parse_source_number,
+    reconcile_claims, source_text_sha256, verify_frozen_thesis,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +30,7 @@ FILING = "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039"
 EXHIBIT_URL = f"{FILING}/stzex991_83120268kearnings.htm"
 USER_AGENT = "Reverb evidence capture admin@example.invalid"
 OUT = EVENT / "post_event"
+QWEN_RUNS = 5
 
 
 def normalize(body: str) -> str:
@@ -72,13 +78,124 @@ def main() -> None:
                               references=thesis.references, frozen_at=thesis.frozen_at,
                               source_documents={digest: text, source_text_sha256(prior_text): prior_text})
 
+    # Live Qwen cross-check: candidate facts only, grounded by code, never scored.
+    # Repeated so reliability is measured rather than a single run cherry-picked.
+    load_local_env(ROOT)
+    claims_payload = [{"claim_id": c.claim_id, "text": c.text, "variable": c.variable,
+                       "comparison": c.comparison.value} for c in thesis.claims]
+    # Human-selected values per claim; compared numerically so "$2,473.6" and "2,473.6" agree.
+    human = {"c1": ("$2,473.6", "$2,345.0"), "c2": ("(0.6%)", None), "c3": ("39.0%", None)}
+
+    def number(value: str | None):
+        if value is None:
+            return None
+        try:
+            stripped = value.strip()
+            negative = stripped.startswith("(") and stripped.endswith(")")
+            parsed = parse_source_number(stripped.strip("()"))
+            return -parsed if negative else parsed
+        except ValueError:
+            return value
+
+    def matches(facts, cid, pair) -> bool:
+        return any(f.claim_id == cid and number(f.current_value_text) == number(pair[0])
+                   and (pair[1] is None or number(f.prior_value_text) == number(pair[1])) for f in facts)
+
+    attempts = []
+    try:
+        credentials = QwenCredentials.from_env()
+    except ReverbError as exc:
+        credentials = None
+        attempts.append({"status": "unavailable", "error_type": type(exc).__name__})
+    def ground(candidates):
+        grounded, rejected = [], []
+        for fact in candidates:
+            try:
+                grounded += ground_extracted_facts(
+                    extraction=FactExtraction(facts=(fact,)), claims=thesis.claims, source_url=EXHIBIT_URL,
+                    source_text=text, published_at=published_at, captured_at=captured_at)
+            except ValueError as exc:
+                rejected.append({"claim_id": fact.claim_id, "reason": str(exc)})
+        return grounded, rejected
+
+    def diagnose(raw: str) -> dict:
+        """Disclosed diagnostic, not the strict check: drop value-less candidates, ground the rest."""
+        try:
+            items = json.loads(raw)["facts"]
+        except (ValueError, KeyError, TypeError):
+            return {"parsed": False}
+        empty = [item.get("claim_id") for item in items
+                 if not any(item.get(k) for k in ("current_value_text", "prior_value_text", "attribution_quote"))]
+        kept = []
+        for item in items:
+            if item.get("claim_id") in empty:
+                continue
+            try:
+                kept.append(ExtractedFactCandidate.model_validate(item))
+            except ValueError as exc:
+                return {"parsed": True, "value_less_candidates": empty, "other_schema_error": str(exc)[:200]}
+        grounded, rejected = ground(kept)
+        return {"parsed": True, "value_less_candidates": empty,
+                "grounded_facts": [{"claim_id": f.claim_id, "current": f.current_value_text,
+                                    "prior": f.prior_value_text} for f in grounded],
+                "rejected_candidates": rejected,
+                "claims_matching_human_selection": sorted(cid for cid, pair in human.items() if matches(grounded, cid, pair))}
+
+    for _ in range(QWEN_RUNS if credentials else 0):
+        raw_replies: list[str] = []
+
+        def keep_reply(response: httpx.Response) -> None:
+            response.read()
+            try:
+                raw_replies.append(response.json()["choices"][0]["message"]["content"])
+            except (ValueError, KeyError, IndexError, TypeError):
+                pass
+
+        try:
+            with QwenClient(credentials) as model:
+                model._client.event_hooks["response"].append(keep_reply)
+                candidate = model.extract_release_facts(release_text=text, claims=claims_payload)
+        except (ReverbError, ValueError) as exc:
+            attempt = {"status": "rejected_or_unavailable", "error_type": type(exc).__name__, "reason": str(exc)[:200]}
+            if raw_replies:
+                attempt["output_sha256"] = hashlib.sha256(raw_replies[-1].encode()).hexdigest()
+                attempt["diagnostic"] = diagnose(raw_replies[-1])
+            attempts.append(attempt)
+            continue
+        grounded, rejected = [], []
+        for fact in candidate.extraction.facts:
+            try:
+                grounded += ground_extracted_facts(
+                    extraction=FactExtraction(facts=(fact,)), claims=thesis.claims, source_url=EXHIBIT_URL,
+                    source_text=text, published_at=published_at, captured_at=captured_at)
+            except ValueError as exc:
+                rejected.append({"claim_id": fact.claim_id, "reason": str(exc)})
+        attempts.append({
+            "status": "returned", "output_sha256": candidate.output_sha256,
+            "grounded_facts": [{"claim_id": f.claim_id, "current": f.current_value_text, "prior": f.prior_value_text,
+                                "current_period": f.current_period_text, "prior_period": f.prior_period_text,
+                                "attribution_quote": f.attribution_quote} for f in grounded],
+            "rejected_candidates": rejected,
+            "claims_matching_human_selection": sorted(cid for cid, pair in human.items() if matches(grounded, cid, pair)),
+            "matches_human_selection": all(matches(grounded, cid, pair) for cid, pair in human.items()),
+        })
+    qwen = {
+        "provider": "bitget-qwen", "model": credentials.model if credentials else None, "runs": len(attempts),
+        "schema_valid_runs": sum(a["status"] == "returned" for a in attempts),
+        "runs_matching_human_selection": sum(bool(a.get("matches_human_selection")) for a in attempts),
+        "human_selection": {cid: {"current": pair[0], "prior": pair[1]} for cid, pair in human.items()},
+        "attempts": attempts,
+        "role": "candidate cross-check only; scores come from the human-selected verbatim facts",
+        "diagnostic_rule": ("For replies rejected by the strict schema, value-less candidates are dropped and the rest "
+                            "grounded by the same code. Reported per attempt; never counted as schema-valid."),
+    }
+
     context = {
         "beer_margin_drivers": ("Constellation states lower tariff expenses helped beer margin and that increased "
                                 "marketing and other SG&A spend more than offset it. Tariffs are named as a tailwind, "
                                 "not a cause of the decline; c4 stays NOT_ADDRESSED under the frozen pattern."),
         "same_window_release": release.get("same_window_issuer_release"),
         "conference_call": "Not captured; any attribution on the 7 Oct call is not evidence here.",
-        "qwen_release_check": "Not run for this event; scores come from the human-selected verbatim facts.",
     }
 
     OUT.mkdir(parents=True, exist_ok=True)
@@ -93,10 +210,12 @@ def main() -> None:
             "note": f"Constellation's own RSS pubDate with explicit offset; 8-K acceptance {release['upper_bound_8k_acceptance']} is the upper bound.",
         },
         "reconciliation": json.loads(result.model_dump_json()),
+        "qwen_release_check": qwen,
         "unscored_context": context,
     }
     (OUT / "reconciliation.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"scored": f"{result.scored_confirmed}/{result.scored_total}",
+                      "qwen": {k: qwen[k] for k in ("runs", "schema_valid_runs", "runs_matching_human_selection")},
                       "claims": {row.claim_id: [row.status.value, row.reason] for row in result.claims}}, indent=2))
 
 

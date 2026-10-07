@@ -5,7 +5,7 @@
     "filing_index": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039/",
     "text_path": "evidence/events/stz-q2-fy27/post_event/q2_release.txt",
     "text_sha256": "4a5252011c390347c40f61eb1cca70872ad4cac5d698f9311eacaa3ef6faa7e5",
-    "captured_at": "2026-10-07T00:52:33.839067Z"
+    "captured_at": "2026-10-07T00:58:01.758030Z"
   },
   "issuer_release_timestamp": {
     "value": "2026-10-06T20:05:00Z",
@@ -25,7 +25,7 @@
         "citation": {
           "source_url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039/stzex991_83120268kearnings.htm",
           "published_at": "2026-10-06T20:05:00Z",
-          "captured_at": "2026-10-07T00:52:33.839067Z",
+          "captured_at": "2026-10-07T00:58:01.758030Z",
           "source_sha256": "4a5252011c390347c40f61eb1cca70872ad4cac5d698f9311eacaa3ef6faa7e5",
           "location": "normalized exhibit text offsets 3369:3611",
           "excerpt": "BEER Shipments Depletions Net Sales Operating Income (Loss) Three Months Ended | in millions; branded product, 24-pack, 12-ounce case equivalents August 31, 2026 123.9 $2,473.6 $964.2 August 31, 2025 117.4 $2,345.0 $951.6 % Change 5.5% (0.6%)"
@@ -42,7 +42,7 @@
         "citation": {
           "source_url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039/stzex991_83120268kearnings.htm",
           "published_at": "2026-10-06T20:05:00Z",
-          "captured_at": "2026-10-07T00:52:33.839067Z",
+          "captured_at": "2026-10-07T00:58:01.758030Z",
           "source_sha256": "4a5252011c390347c40f61eb1cca70872ad4cac5d698f9311eacaa3ef6faa7e5",
           "location": "normalized exhibit text offsets 3369:3611",
           "excerpt": "BEER Shipments Depletions Net Sales Operating Income (Loss) Three Months Ended | in millions; branded product, 24-pack, 12-ounce case equivalents August 31, 2026 123.9 $2,473.6 $964.2 August 31, 2025 117.4 $2,345.0 $951.6 % Change 5.5% (0.6%)"
@@ -59,7 +59,7 @@
         "citation": {
           "source_url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039/stzex991_83120268kearnings.htm",
           "published_at": "2026-10-06T20:05:00Z",
-          "captured_at": "2026-10-07T00:52:33.839067Z",
+          "captured_at": "2026-10-07T00:58:01.758030Z",
           "source_sha256": "4a5252011c390347c40f61eb1cca70872ad4cac5d698f9311eacaa3ef6faa7e5",
           "location": "normalized exhibit text offsets 3703:3885",
           "excerpt": "Operating margin decreased 160 bps to 39.0% as lower tariff expenses and favorable fixed cost absorption were more than offset by increased marketing investment and other SG&A spend."
@@ -76,7 +76,7 @@
         "citation": {
           "source_url": "https://www.sec.gov/Archives/edgar/data/16918/000001691826000039/stzex991_83120268kearnings.htm",
           "published_at": "2026-10-06T20:05:00Z",
-          "captured_at": "2026-10-07T00:52:33.839067Z",
+          "captured_at": "2026-10-07T00:58:01.758030Z",
           "source_sha256": "4a5252011c390347c40f61eb1cca70872ad4cac5d698f9311eacaa3ef6faa7e5",
           "location": "normalized exhibit text offsets 3703:3885",
           "excerpt": "Operating margin decreased 160 bps to 39.0% as lower tariff expenses and favorable fixed cost absorption were more than offset by increased marketing investment and other SG&A spend."
@@ -86,10 +86,182 @@
     "scored_confirmed": 2,
     "scored_total": 3
   },
+  "qwen_release_check": {
+    "provider": "bitget-qwen",
+    "model": "qwen3.8-max",
+    "runs": 5,
+    "schema_valid_runs": 0,
+    "runs_matching_human_selection": 0,
+    "human_selection": {
+      "c1": {
+        "current": "$2,473.6",
+        "prior": "$2,345.0"
+      },
+      "c2": {
+        "current": "(0.6%)",
+        "prior": null
+      },
+      "c3": {
+        "current": "39.0%",
+        "prior": null
+      }
+    },
+    "attempts": [
+      {
+        "status": "rejected_or_unavailable",
+        "error_type": "DataUnavailable",
+        "reason": "Qwen returned release facts outside the strict extraction schema",
+        "output_sha256": "4364117ec8b29ace63b069ca612488778bacdcca871796cec20254cee6e4018f",
+        "diagnostic": {
+          "parsed": true,
+          "value_less_candidates": [
+            "c4"
+          ],
+          "grounded_facts": [],
+          "rejected_candidates": [
+            {
+              "claim_id": "c1",
+              "reason": "model fact number does not appear verbatim in its excerpt"
+            },
+            {
+              "claim_id": "c2",
+              "reason": "source number has an unsupported format: '(0.6 %)'"
+            },
+            {
+              "claim_id": "c3",
+              "reason": "model fact excerpt does not appear verbatim in the captured release"
+            }
+          ],
+          "claims_matching_human_selection": []
+        }
+      },
+      {
+        "status": "rejected_or_unavailable",
+        "error_type": "DataUnavailable",
+        "reason": "Qwen returned release facts outside the strict extraction schema",
+        "output_sha256": "f98eec5deb9556d64bca192e41cafbdfbc2c6206780f7b50a80333f881059ac8",
+        "diagnostic": {
+          "parsed": true,
+          "value_less_candidates": [
+            "c4"
+          ],
+          "grounded_facts": [],
+          "rejected_candidates": [
+            {
+              "claim_id": "c1",
+              "reason": "model fact number does not appear verbatim in its excerpt"
+            },
+            {
+              "claim_id": "c2",
+              "reason": "source number has an unsupported format: '(0.6 %)'"
+            },
+            {
+              "claim_id": "c3",
+              "reason": "model comparison period does not appear verbatim in its excerpt"
+            }
+          ],
+          "claims_matching_human_selection": []
+        }
+      },
+      {
+        "status": "rejected_or_unavailable",
+        "error_type": "DataUnavailable",
+        "reason": "Qwen returned release facts outside the strict extraction schema",
+        "output_sha256": "5c590b3aa3a9f2d7d6041acff02aee35c560387ca5a2bd49eb96a780528e0014",
+        "diagnostic": {
+          "parsed": true,
+          "value_less_candidates": [
+            "c4"
+          ],
+          "grounded_facts": [
+            {
+              "claim_id": "c3",
+              "current": "39.0 %",
+              "prior": "40.6 %"
+            }
+          ],
+          "rejected_candidates": [
+            {
+              "claim_id": "c1",
+              "reason": "model fact number does not appear verbatim in its excerpt"
+            },
+            {
+              "claim_id": "c2",
+              "reason": "source number has an unsupported format: '(0.6 %)'"
+            }
+          ],
+          "claims_matching_human_selection": [
+            "c3"
+          ]
+        }
+      },
+      {
+        "status": "rejected_or_unavailable",
+        "error_type": "DataUnavailable",
+        "reason": "Qwen returned release facts outside the strict extraction schema",
+        "output_sha256": "8bf453a6269b5f7e494546bcbf7771d6ca382444b3a2f25dc8b2b12df84108ca",
+        "diagnostic": {
+          "parsed": true,
+          "value_less_candidates": [
+            "c4"
+          ],
+          "grounded_facts": [
+            {
+              "claim_id": "c3",
+              "current": "39.0 %",
+              "prior": "40.6 %"
+            }
+          ],
+          "rejected_candidates": [
+            {
+              "claim_id": "c1",
+              "reason": "model fact excerpt does not appear verbatim in the captured release"
+            },
+            {
+              "claim_id": "c2",
+              "reason": "source number has an unsupported format: '(0.6 %)'"
+            }
+          ],
+          "claims_matching_human_selection": [
+            "c3"
+          ]
+        }
+      },
+      {
+        "status": "rejected_or_unavailable",
+        "error_type": "DataUnavailable",
+        "reason": "Qwen returned release facts outside the strict extraction schema",
+        "output_sha256": "f98eec5deb9556d64bca192e41cafbdfbc2c6206780f7b50a80333f881059ac8",
+        "diagnostic": {
+          "parsed": true,
+          "value_less_candidates": [
+            "c4"
+          ],
+          "grounded_facts": [],
+          "rejected_candidates": [
+            {
+              "claim_id": "c1",
+              "reason": "model fact number does not appear verbatim in its excerpt"
+            },
+            {
+              "claim_id": "c2",
+              "reason": "source number has an unsupported format: '(0.6 %)'"
+            },
+            {
+              "claim_id": "c3",
+              "reason": "model comparison period does not appear verbatim in its excerpt"
+            }
+          ],
+          "claims_matching_human_selection": []
+        }
+      }
+    ],
+    "role": "candidate cross-check only; scores come from the human-selected verbatim facts",
+    "diagnostic_rule": "For replies rejected by the strict schema, value-less candidates are dropped and the rest grounded by the same code. Reported per attempt; never counted as schema-valid."
+  },
   "unscored_context": {
     "beer_margin_drivers": "Constellation states lower tariff expenses helped beer margin and that increased marketing and other SG&A spend more than offset it. Tariffs are named as a tailwind, not a cause of the decline; c4 stays NOT_ADDRESSED under the frozen pattern.",
     "same_window_release": "Constellation Brands Announces Acquisition of Spirit-Based Ready-to-Drink Brand SpikedAde, pubDate Tue, 06 Oct 26 16:15:00 -0400 (2026-10-06T20:15:00Z)",
-    "conference_call": "Not captured; any attribution on the 7 Oct call is not evidence here.",
-    "qwen_release_check": "Not run for this event; scores come from the human-selected verbatim facts."
+    "conference_call": "Not captured; any attribution on the 7 Oct call is not evidence here."
   }
 }
