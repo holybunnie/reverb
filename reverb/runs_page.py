@@ -44,6 +44,14 @@ def runs_data() -> list[dict[str, Any]]:
         if proof["frozen_thesis_sha256"] != thesis["sha256"] or registration["frozen_thesis_sha256"] != thesis["sha256"]:
             raise ValueError(f"push proof or registration does not match the frozen thesis for {directory.name}")
         reconciliation = directory / "post_event/reconciliation.json"
+        summary_path = directory / "capture_summary.json"
+        result = None
+        if reconciliation.exists() and summary_path.exists():
+            summary, scored = _load(summary_path), _load(reconciliation)["reconciliation"]
+            reaction = summary["reaction"]
+            move = max((reaction["max_pct"], reaction["min_pct"]), key=abs)
+            result = (f"Move {move:+.2f}% vs {reaction['trigger_pct']:.0f}% trigger · {summary['orders']} orders (read-only) · "
+                      f"thesis {scored['scored_confirmed']}/{scored['scored_total']} confirmed · run {summary['run_status']}")
         runs.append({
             "id": registration["event_id"], "event": registration["event"], "symbol": registration["token_symbol"],
             "window": registration["window"], "frozen_sha256": thesis["sha256"], "pushed_at": proof["pushed_at"],
@@ -53,7 +61,7 @@ def runs_data() -> list[dict[str, Any]]:
             "files": {"frozen": registration["frozen_thesis_path"],
                       "sources": f"evidence/events/{directory.name}/pre_event/manifest.json",
                       **({"result": str(reconciliation.relative_to(ROOT))} if reconciliation.exists() else {})},
-            "result": None, "walkthrough": False,
+            "result": result, "walkthrough": False,
         })
     return sorted(runs, key=lambda run: run["window"][0])
 

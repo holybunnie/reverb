@@ -14,7 +14,8 @@ class RunsPageTests(unittest.TestCase):
         for registration in (ROOT / "evidence/events").glob("*/registration_manifest.json"):
             data = json.loads(registration.read_text())
             self.assertEqual(runs[data["event_id"]]["frozen_sha256"], data["frozen_thesis_sha256"])
-            self.assertIsNone(runs[data["event_id"]]["result"])
+            scored = (registration.parent / "post_event/reconciliation.json").exists()
+            self.assertEqual(runs[data["event_id"]]["result"] is not None, scored)
 
     def test_page_embeds_data_and_makes_no_network_calls(self):
         page = render_runs_html()
