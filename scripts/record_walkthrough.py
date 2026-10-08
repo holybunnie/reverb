@@ -298,8 +298,8 @@ def stz_script(rec: Recorder, d: dict) -> None:
     rec.next()
     rec.beat("8 You decide", "Reverb recommends. The human decides.", 5,
              say="Ree-verb recommends. The human decides.")
-    rec.beat("8 You decide", "Every number traces to a committed evidence file. Next up: Applied Digital, recording tonight.", 6,
-             say="Every number traces to a committed evidence file. Next up is the Applied Digital report, recording tonight.")
+    rec.beat("8 You decide", "Every number traces to a committed evidence file. Next: the Applied Digital run, in its own walkthrough.", 6,
+             say="Every number traces to a committed evidence file. Next is the Applied Digital run, in its own walkthrough.")
 
 
 def check_apld_spoken_numbers(d: dict) -> None:
