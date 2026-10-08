@@ -73,6 +73,9 @@ def main() -> int:
     source_assets = ROOT / "reverb" / "static"
     for name in ("styles.css", "app.js"):
         (assets / name).write_bytes((source_assets / name).read_bytes())
+    (assets / "fonts").mkdir(exist_ok=True)
+    for font in (source_assets / "fonts").iterdir():
+        (assets / "fonts" / font.name).write_bytes(font.read_bytes())
     print(f"Static demo written to {site}")
     return 0
 

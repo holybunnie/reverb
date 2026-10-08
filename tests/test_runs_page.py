@@ -23,6 +23,13 @@ class RunsPageTests(unittest.TestCase):
         embedded = re.search(r'<script id="data" type="application/json">(.*?)</script>', page, re.S).group(1)
         self.assertEqual(len(json.loads(embedded)), len(runs_data()))
 
+    def test_every_scored_run_links_to_a_built_walkthrough(self):
+        for run in runs_data():
+            if run["result"] is None:
+                continue
+            self.assertTrue(run["walkthrough"], run["id"])
+            self.assertIn(run["walkthrough"], ("walkthrough/", "walkthrough/stz/", "walkthrough/apld/"))
+
 
 if __name__ == "__main__":
     unittest.main()

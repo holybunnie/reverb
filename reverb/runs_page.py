@@ -20,6 +20,9 @@ def _load(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+WALKTHROUGH_PATHS = {"stz-q2-fy27": "walkthrough/stz/", "apld-q1-fy27": "walkthrough/apld/"}
+
+
 def runs_data() -> list[dict[str, Any]]:
     costco = _load(ROOT / "evidence/costco/capture_summary.json")
     costco_recon = _load(ROOT / "evidence/costco/post_event/reconciliation.json")
@@ -35,7 +38,7 @@ def runs_data() -> list[dict[str, Any]]:
         "result": f"Peak {costco['reaction']['max_pct']:+.2f}% vs {costco['reaction']['trigger_pct']:.0f}% trigger · "
                   f"HOLD, {costco['orders']} orders · thesis {frozen['scored_confirmed']}/{frozen['scored_total']} confirmed "
                   f"({addendum['scored_confirmed']}/{addendum['scored_total']} with a disclosed addendum) · run {costco['run_status']}",
-        "walkthrough": True,
+        "walkthrough": "walkthrough/",
     }]
     for directory in sorted((ROOT / "evidence/events").iterdir()):
         registration_path = directory / "registration_manifest.json"
@@ -64,7 +67,7 @@ def runs_data() -> list[dict[str, Any]]:
             "files": {"frozen": registration["frozen_thesis_path"],
                       "sources": f"evidence/events/{directory.name}/pre_event/manifest.json",
                       **({"result": str(reconciliation.relative_to(ROOT))} if reconciliation.exists() else {})},
-            "result": result, "walkthrough": False,
+            "result": result, "walkthrough": WALKTHROUGH_PATHS.get(registration["event_id"]),
         })
     return sorted(runs, key=lambda run: run["window"][0])
 
@@ -79,11 +82,13 @@ _TEMPLATE = r"""<!doctype html>
 <title>Reverb Forward Runs</title>
 <meta name="description" content="Every Reverb forward run: thesis frozen and pushed before the earnings release, then recorded and scored against the issuer's own filing.">
 <style>
-:root{--bg:#f6f4ef;--panel:#fff;--ink:#16181d;--muted:#5d6370;--line:#dedad0;--accent:#1f5eff;--ok:#127a46;--warn:#9a5b00;--chip:#efece4}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--panel:#171a21;--ink:#eceef3;--muted:#a1a7b3;--line:#2a2f3a;--accent:#7aa2ff;--ok:#4cc38a;--warn:#f0b354;--chip:#222733}}
-:root[data-theme="dark"]{--bg:#0f1115;--panel:#171a21;--ink:#eceef3;--muted:#a1a7b3;--line:#2a2f3a;--accent:#7aa2ff;--ok:#4cc38a;--warn:#f0b354;--chip:#222733}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
-a{color:var(--accent)}header,main{max-width:1040px;margin:0 auto;padding:16px}header{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;padding-top:20px}
+@font-face{font-family:'Inter Tight';font-style:normal;font-weight:400 800;font-display:swap;src:url(__HOME__assets/fonts/inter-tight-latin.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url(__HOME__assets/fonts/jetbrains-mono-latin.woff2) format('woff2')}
+:root{--bg:#f6f4ef;--panel:#fff;--ink:#16181d;--muted:#5d6370;--line:#dedad0;--accent:#c2410c;--ok:#127a46;--warn:#9a5b00;--chip:#efece4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0b0d;--panel:#111317;--ink:#f3f4f6;--muted:#8d929c;--line:#24272d;--accent:#ff6b2c;--ok:#4fdca0;--warn:#ffc15e;--chip:#16191e}}
+:root[data-theme="dark"]{--bg:#0a0b0d;--panel:#111317;--ink:#f3f4f6;--muted:#8d929c;--line:#24272d;--accent:#ff6b2c;--ok:#4fdca0;--warn:#ffc15e;--chip:#16191e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'Inter Tight',system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}header,main{max-width:1040px;margin:0 auto;padding:16px}header{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;padding-top:20px}
 .brand{font-weight:700;text-decoration:none;color:var(--ink)}.brand small{color:var(--muted);font-weight:500;margin-left:8px}
 h1{font-size:26px;margin:4px 0 6px}.lede{color:var(--muted);margin:0 0 18px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
@@ -92,10 +97,10 @@ h1{font-size:26px;margin:4px 0 6px}.lede{color:var(--muted);margin:0 0 18px}
 .pill{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--chip);white-space:nowrap}.pill.ok{color:var(--ok)}.pill.warn{color:var(--warn)}.pill.live{color:var(--accent)}
 .count{font-size:22px;font-weight:700}.muted{color:var(--muted);font-size:14px}
 blockquote{margin:0;border-left:3px solid var(--line);padding-left:10px;font-size:15px}
-ul{margin:0;padding-left:18px;font-size:15px}code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:var(--chip);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+ul{margin:0;padding-left:18px;font-size:15px}code{font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:12.5px;background:var(--chip);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
 .links{font-size:14px;display:flex;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:6px;border-top:1px dashed var(--line)}
 </style></head><body>
-<header><a class="brand" href="__HOME__">REVERB<small>forward runs</small></a><a href="__HOME__walkthrough/">Walk through the Costco run</a></header>
+<header><a class="brand" href="__HOME__">REVERB<small>forward runs</small></a><a href="__HOME__">Reverb home</a></header>
 <main><h1>Forward runs</h1><p class="lede">Each thesis is frozen and pushed to GitHub before the company reports. The page never fills in a result that isn't committed; times are shown in your time zone.</p>
 <div class="grid" id="grid"></div></main>
 <script id="data" type="application/json">__DATA__</script>
@@ -122,7 +127,7 @@ function render() {
     ${r.result ? `<div><b>${esc(r.result)}</b></div>` : ""}
     <div class="muted">${esc(r.drafted)}</div>
     <div class="muted">Frozen hash <code>${esc(r.frozen_sha256.slice(0, 16))}…</code> pushed ${when(r.pushed_at)}</div>
-    <div class="links"><a href="${BLOB}/${esc(r.files.frozen)}">Frozen thesis</a>${r.files.sources ? `<a href="${BLOB}/${esc(r.files.sources)}">Pre-event sources</a>` : ""}${r.files.result ? `<a href="${BLOB}/${esc(r.files.result)}">Scoring</a>` : ""}${r.walkthrough ? `<a href="__HOME__walkthrough/">Walkthrough</a>` : ""}</div></article>`;
+    <div class="links"><a href="${BLOB}/${esc(r.files.frozen)}">Frozen thesis</a>${r.files.sources ? `<a href="${BLOB}/${esc(r.files.sources)}">Pre-event sources</a>` : ""}${r.files.result ? `<a href="${BLOB}/${esc(r.files.result)}">Scoring</a>` : ""}${r.walkthrough ? `<a href="__HOME__${esc(r.walkthrough)}">Walkthrough</a>` : ""}</div></article>`;
   }).join("");
 }
 render(); setInterval(render, 30000);

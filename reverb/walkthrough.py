@@ -138,11 +138,13 @@ _TEMPLATE = r"""<!doctype html>
 <title>Reverb Research Walkthrough</title>
 <meta name="description" content="One complete research task on Reverb: a trader's Costco view, frozen before the report, checked against Costco's own filing and the RCOST market, to a decision.">
 <style>
-:root{--bg:#f6f4ef;--panel:#fff;--ink:#16181d;--muted:#5d6370;--line:#dedad0;--accent:#1f5eff;--ok:#127a46;--warn:#9a5b00;--bad:#b42318;--hl:#fff1a8;--chip:#efece4}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--panel:#171a21;--ink:#eceef3;--muted:#a1a7b3;--line:#2a2f3a;--accent:#7aa2ff;--ok:#4cc38a;--warn:#f0b354;--bad:#ff7b72;--hl:#5a4b00;--chip:#222733}}
-:root[data-theme="dark"]{--bg:#0f1115;--panel:#171a21;--ink:#eceef3;--muted:#a1a7b3;--line:#2a2f3a;--accent:#7aa2ff;--ok:#4cc38a;--warn:#f0b354;--bad:#ff7b72;--hl:#5a4b00;--chip:#222733}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
-a{color:var(--accent)}header{max-width:980px;margin:0 auto;padding:20px 16px 0;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+@font-face{font-family:'Inter Tight';font-style:normal;font-weight:400 800;font-display:swap;src:url(__HOME__assets/fonts/inter-tight-latin.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url(__HOME__assets/fonts/jetbrains-mono-latin.woff2) format('woff2')}
+:root{--bg:#f6f4ef;--panel:#fff;--ink:#16181d;--muted:#5d6370;--line:#dedad0;--accent:#c2410c;--ok:#127a46;--warn:#9a5b00;--bad:#b42318;--hl:#fff1a8;--chip:#efece4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0b0d;--panel:#111317;--ink:#f3f4f6;--muted:#8d929c;--line:#24272d;--accent:#ff6b2c;--ok:#4fdca0;--warn:#ffc15e;--bad:#ff5a67;--hl:#5a4b00;--chip:#16191e}}
+:root[data-theme="dark"]{--bg:#0a0b0d;--panel:#111317;--ink:#f3f4f6;--muted:#8d929c;--line:#24272d;--accent:#ff6b2c;--ok:#4fdca0;--warn:#ffc15e;--bad:#ff5a67;--hl:#5a4b00;--chip:#16191e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'Inter Tight',system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}header{max-width:980px;margin:0 auto;padding:20px 16px 0;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .brand{font-weight:700;text-decoration:none;color:var(--ink);letter-spacing:.02em}.brand small{color:var(--muted);font-weight:500;margin-left:8px}
 main{max-width:980px;margin:0 auto;padding:16px}
 .steps{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 18px;padding:0;list-style:none}
@@ -154,7 +156,7 @@ main{max-width:980px;margin:0 auto;padding:16px}
 h1{font-size:26px;line-height:1.25;margin:0 0 12px}h2{font-size:17px;margin:20px 0 8px}
 .q{font-size:20px;line-height:1.5;border-left:4px solid var(--accent);padding:6px 0 6px 16px;margin:16px 0}
 .src{font-size:13px;color:var(--muted);margin-top:16px;border-top:1px dashed var(--line);padding-top:10px;overflow-wrap:anywhere}
-.src code,code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;background:var(--chip);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+.src code,code{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;background:var(--chip);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
 .nav{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:12px}
 .btn{border:1px solid var(--ink);background:var(--ink);color:var(--bg);border-radius:10px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn:disabled{opacity:.35;cursor:default}
@@ -164,14 +166,14 @@ table{width:100%;border-collapse:collapse;font-size:15px}td,th{text-align:left;p
 .pill.ok{color:var(--ok)}.pill.warn{color:var(--warn)}.pill.bad{color:var(--bad)}
 .label{font-size:13px;background:var(--chip);border-radius:8px;padding:8px 10px;color:var(--muted);margin:10px 0}
 .claim-edit{display:flex;gap:8px;align-items:center;margin:6px 0}.claim-edit input{flex:1;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
-.hash{font-family:ui-monospace,Menlo,monospace;font-size:13px;overflow-wrap:anywhere;padding:10px;border-radius:8px;border:1px solid var(--line);margin:6px 0}
+.hash{font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:13px;overflow-wrap:anywhere;padding:10px;border-radius:8px;border:1px solid var(--line);margin:6px 0}
 .hash.ok{border-color:var(--ok)}.hash.bad{border-color:var(--bad);color:var(--bad)}
 .timeline{list-style:none;padding:0;margin:8px 0;display:grid;gap:10px}.timeline li{display:grid;grid-template-columns:170px 1fr;gap:10px;border-left:3px solid var(--line);padding-left:12px}
 .timeline b{display:block}.timeline small{color:var(--muted)}
 svg{width:100%;height:auto;display:block}.chart text{fill:var(--muted);font-size:11px}
 .claims-list{display:grid;gap:6px;margin:8px 0}.claims-list button{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:9px 12px;font:inherit;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
 .claims-list button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-.doc{font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.6;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;max-height:280px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.doc{font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:13px;line-height:1.6;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;max-height:280px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 .doc mark{background:var(--hl);color:inherit;padding:1px 0}
 .insight{border:2px solid var(--ink);border-radius:14px;padding:16px;margin-top:8px}
 .big{font-size:34px;font-weight:800;letter-spacing:.02em}
@@ -342,5 +344,6 @@ function render(i) {
 document.getElementById("prev").onclick = () => render(current - 1);
 document.getElementById("next").onclick = () => render(current === STEPS.length - 1 ? 0 : current + 1);
 render((parseInt(location.hash.slice(1), 10) || 1) - 1);
+addEventListener("hashchange", () => render((parseInt(location.hash.slice(1), 10) || 1) - 1));
 </script></body></html>
 """
