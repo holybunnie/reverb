@@ -1,0 +1,10 @@
+{
+  "url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000057/apldq127earningsrelease.htm",
+  "filing_index": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000057/",
+  "acceptance": "2026-10-07T20:43:31.000Z",
+  "captured_at": "2026-10-08T00:10:01Z",
+  "html_sha256": "e93baf5903f70607767ee6082039d23e6165c4a86924479f7717e192bf2d1e6a",
+  "text_path": "evidence/events/apld-q1-fy27/post_event/release.txt",
+  "text_sha256": "9b429101287b201caab3bdc451fff82acbc047fb447edb6642be1425421830d8",
+  "normalisation": "tags replaced by spaces, HTML entities unescaped, whitespace runs collapsed"
+}

@@ -1,0 +1,44 @@
+{
+  "symbol": "RAPLDUSDT",
+  "ledger_head": "1e7f6d5c536883b5e34490c498f8aee2bf52a291667ecee7669c38342a2cc89b",
+  "recorder_status": "COMPLETE",
+  "slots": {
+    "expected": 270,
+    "complete": 270,
+    "gaps": 0
+  },
+  "public_book": {
+    "snapshots": 270,
+    "with_visible_levels": 270,
+    "depth_status": "MEASURED"
+  },
+  "event_time_spread": "MEASURED from ticker bid1/ask1",
+  "ticker_spread_bps": {
+    "samples": 270,
+    "median": 16.19,
+    "min": 4.01,
+    "max": 105.46,
+    "source": "ticker bid1Price/ask1Price, one sample per slot"
+  },
+  "reaction": {
+    "baseline_rule": "close of the one-minute market candle ending at 16:00 ET (open-time keys)",
+    "baseline_at": "2026-10-07T19:59:00Z",
+    "baseline_close": 23.81,
+    "post_candles": 239,
+    "max_close": 24.94,
+    "max_pct": 4.746,
+    "max_at": "2026-10-07T20:27:00Z",
+    "min_close": 23.63,
+    "min_pct": -0.756,
+    "min_at": "2026-10-07T20:15:00Z",
+    "last_close": 24.88,
+    "last_pct": 4.494,
+    "last_at": "2026-10-07T23:58:00Z",
+    "trigger_pct": 3.0,
+    "trigger_crossed": true
+  },
+  "issuer_release_timestamp": "2026-10-07T20:27:00Z",
+  "run_status": "COMPLETE",
+  "run_status_reason": "All required slots captured with no gaps; Applied Digital's own press-release feed dates the release 10/07/2026 16:27:00 ET (2026-10-07T20:27:00Z), before the 8-K acceptance at 2026-10-07T20:43:31Z.",
+  "orders": 0
+}

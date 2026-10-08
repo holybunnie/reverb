@@ -1,0 +1,265 @@
+{
+  "frozen_thesis_sha256": "3f707686a7cb2ed9f7e8e8e49fec2d41a5b498a79ccf8d247277d9fdc9682967",
+  "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000057/apldq127earningsrelease.htm",
+    "filing_index": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000057/",
+    "text_path": "evidence/events/apld-q1-fy27/post_event/release.txt",
+    "text_sha256": "9b429101287b201caab3bdc451fff82acbc047fb447edb6642be1425421830d8",
+    "html_sha256": "e93baf5903f70607767ee6082039d23e6165c4a86924479f7717e192bf2d1e6a",
+    "captured_at": "2026-10-08T00:10:01Z"
+  },
+  "issuer_release_timestamp": {
+    "value": "2026-10-07T20:27:00Z",
+    "kind": "ISSUER_PRESS_RELEASE_FEED",
+    "note": "Applied Digital's own RSS pubDate with explicit offset; 8-K acceptance 2026-10-07T20:43:31Z is the upper bound."
+  },
+  "reconciliation": {
+    "claims": [
+      {
+        "claim_id": "c1",
+        "text": "Revenue beats last quarter's $258.7M",
+        "status": "CONFIRMED",
+        "scored": true,
+        "reason": "issuer value is above the frozen reference",
+        "current_value_text": "$341.9 million",
+        "comparison_value_text": "$258.7 million",
+        "citation": {
+          "source_url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000057/apldq127earningsrelease.htm",
+          "published_at": "2026-10-07T20:27:00Z",
+          "captured_at": "2026-10-08T00:10:01Z",
+          "source_sha256": "9b429101287b201caab3bdc451fff82acbc047fb447edb6642be1425421830d8",
+          "location": "normalized exhibit text offsets 1066:1137",
+          "excerpt": "Revenues: $341.9 million, up 322% from the prior year comparable period"
+        }
+      },
+      {
+        "claim_id": "c2",
+        "text": "Adjusted EBITDA beats last quarter's $42.4M",
+        "status": "CONFIRMED",
+        "scored": true,
+        "reason": "issuer value is above the frozen reference",
+        "current_value_text": "$64.4 million",
+        "comparison_value_text": "$42.4 million",
+        "citation": {
+          "source_url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000057/apldq127earningsrelease.htm",
+          "published_at": "2026-10-07T20:27:00Z",
+          "captured_at": "2026-10-08T00:10:01Z",
+          "source_sha256": "9b429101287b201caab3bdc451fff82acbc047fb447edb6642be1425421830d8",
+          "location": "normalized exhibit text offsets 1399:1429",
+          "excerpt": "Adjusted EBITDA: $64.4 million"
+        }
+      },
+      {
+        "claim_id": "c3",
+        "text": "Net loss narrows from $110.6M",
+        "status": "CONTRADICTED",
+        "scored": true,
+        "reason": "issuer value is below the frozen reference",
+        "current_value_text": "$221.0 million",
+        "comparison_value_text": "$110.6 million",
+        "citation": {
+          "source_url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000057/apldq127earningsrelease.htm",
+          "published_at": "2026-10-07T20:27:00Z",
+          "captured_at": "2026-10-08T00:10:01Z",
+          "source_sha256": "9b429101287b201caab3bdc451fff82acbc047fb447edb6642be1425421830d8",
+          "location": "normalized exhibit text offsets 1140:1200",
+          "excerpt": "Net loss attributable to common stockholders: $221.0 million"
+        }
+      },
+      {
+        "claim_id": "c4",
+        "text": "A new lease lifts contracted capacity above 1,410 MW",
+        "status": "NOT_ADDRESSED",
+        "scored": false,
+        "reason": "actual value and frozen reference do not match the frozen claim unit",
+        "current_value_text": null,
+        "comparison_value_text": null,
+        "citation": {
+          "source_url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000057/apldq127earningsrelease.htm",
+          "published_at": "2026-10-07T20:27:00Z",
+          "captured_at": "2026-10-08T00:10:01Z",
+          "source_sha256": "9b429101287b201caab3bdc451fff82acbc047fb447edb6642be1425421830d8",
+          "location": "normalized exhibit text offsets 8014:8126",
+          "excerpt": "As of August 31, 2026, the Company has leases for approximately 1.41 GW of critical IT load across five campuses"
+        }
+      }
+    ],
+    "scored_confirmed": 2,
+    "scored_total": 3
+  },
+  "qwen_release_check": {
+    "provider": "bitget-qwen",
+    "model": "qwen3.8-max",
+    "runs": 5,
+    "schema_valid_runs": 4,
+    "runs_matching_human_selection": 0,
+    "human_selection": {
+      "c1": {
+        "current": "$341.9 million",
+        "prior": null
+      },
+      "c2": {
+        "current": "$64.4 million",
+        "prior": null
+      },
+      "c3": {
+        "current": "$221.0 million",
+        "prior": null
+      }
+    },
+    "attempts": [
+      {
+        "status": "returned",
+        "output_sha256": "c4d48f78befca36eddbe828c21b6e64a4e29cfaad9118f74ef681fe4394adbd4",
+        "unaddressed_claim_ids": [],
+        "parser_rejected_facts": [
+          {
+            "claim_id": "c4",
+            "reason": "Qwen returned a figure with unsupported source formatting"
+          }
+        ],
+        "grounded_facts": [
+          {
+            "claim_id": "c2",
+            "current": "$64.4 million",
+            "prior": null,
+            "current_period": "fiscal first quarter 2027",
+            "prior_period": null,
+            "attribution_quote": null
+          }
+        ],
+        "rejected_candidates": [
+          {
+            "claim_id": "c1",
+            "reason": "model comparison period does not appear verbatim in its excerpt"
+          },
+          {
+            "claim_id": "c3",
+            "reason": "model comparison period does not appear verbatim in its excerpt"
+          }
+        ],
+        "claims_matching_human_selection": [
+          "c2"
+        ],
+        "matches_human_selection": false
+      },
+      {
+        "status": "returned",
+        "output_sha256": "d8c4e2e4d0ff802e05fb709b792bdd937ab7a2c0869644ce4162d82fb9ed10cb",
+        "unaddressed_claim_ids": [],
+        "parser_rejected_facts": [
+          {
+            "claim_id": "c4",
+            "reason": "Qwen returned a figure with unsupported source formatting"
+          }
+        ],
+        "grounded_facts": [],
+        "rejected_candidates": [
+          {
+            "claim_id": "c1",
+            "reason": "model comparison period does not appear verbatim in its excerpt"
+          },
+          {
+            "claim_id": "c2",
+            "reason": "model comparison period does not appear verbatim in its excerpt"
+          },
+          {
+            "claim_id": "c3",
+            "reason": "model comparison period does not appear verbatim in its excerpt"
+          }
+        ],
+        "claims_matching_human_selection": [],
+        "matches_human_selection": false
+      },
+      {
+        "status": "returned",
+        "output_sha256": "c4d48f78befca36eddbe828c21b6e64a4e29cfaad9118f74ef681fe4394adbd4",
+        "unaddressed_claim_ids": [],
+        "parser_rejected_facts": [
+          {
+            "claim_id": "c4",
+            "reason": "Qwen returned a figure with unsupported source formatting"
+          }
+        ],
+        "grounded_facts": [
+          {
+            "claim_id": "c2",
+            "current": "$64.4 million",
+            "prior": null,
+            "current_period": "fiscal first quarter 2027",
+            "prior_period": null,
+            "attribution_quote": null
+          }
+        ],
+        "rejected_candidates": [
+          {
+            "claim_id": "c1",
+            "reason": "model comparison period does not appear verbatim in its excerpt"
+          },
+          {
+            "claim_id": "c3",
+            "reason": "model comparison period does not appear verbatim in its excerpt"
+          }
+        ],
+        "claims_matching_human_selection": [
+          "c2"
+        ],
+        "matches_human_selection": false
+      },
+      {
+        "status": "rejected_or_unavailable",
+        "error_type": "DataUnavailable",
+        "reason": "Qwen returned release facts outside the strict extraction schema",
+        "output_sha256": "8a73964baf95e19d0f840c6d0fa9b76d746f1b79178925f9f69c4d5e72e5d76c",
+        "diagnostic": {
+          "parsed": false
+        }
+      },
+      {
+        "status": "returned",
+        "output_sha256": "c4d48f78befca36eddbe828c21b6e64a4e29cfaad9118f74ef681fe4394adbd4",
+        "unaddressed_claim_ids": [],
+        "parser_rejected_facts": [
+          {
+            "claim_id": "c4",
+            "reason": "Qwen returned a figure with unsupported source formatting"
+          }
+        ],
+        "grounded_facts": [
+          {
+            "claim_id": "c2",
+            "current": "$64.4 million",
+            "prior": null,
+            "current_period": "fiscal first quarter 2027",
+            "prior_period": null,
+            "attribution_quote": null
+          }
+        ],
+        "rejected_candidates": [
+          {
+            "claim_id": "c1",
+            "reason": "model comparison period does not appear verbatim in its excerpt"
+          },
+          {
+            "claim_id": "c3",
+            "reason": "model comparison period does not appear verbatim in its excerpt"
+          }
+        ],
+        "claims_matching_human_selection": [
+          "c2"
+        ],
+        "matches_human_selection": false
+      }
+    ],
+    "role": "candidate cross-check only; scores come from the hand-selected verbatim facts",
+    "prompt_method_sha256": "893ceb707d21227189b5567e6680b1110dfa751beff9b199f875f585f834685b",
+    "out_of_sample": "First event released after the 2026-10-07 prompt revision (evidence/qwen/release_prompt_revision.json); the prompt hash above matches it.",
+    "diagnostic_rule": "For replies rejected by the strict schema, value-less candidates are dropped and the rest grounded by the same code. Reported per attempt; never counted as schema-valid."
+  },
+  "unscored_context": {
+    "contracted_capacity_unit": "Applied Digital states leases for approximately 1.41 GW of critical IT load as of August 31, 2026. The frozen claim and reference are in MW, and nothing converts units after the release, so c4 is not addressed. 1.41 GW equals the frozen 1,410 MW; it is not above it.",
+    "new_lease": "The only lease in Recent Highlights is the 210 MW Delta Forge 2 lease, announced 8 June 2026, before the freeze. Subsequent to the quarter the release lists a capacity delivery, a Finland power agreement and a power purchase agreement, not a new lease.",
+    "net_loss_basis": "Both releases report continuing operations only. Q1 FY27 continuing net loss attributable to common stockholders is $221.0 million; including discontinued operations it is $237.1 million. Either way it is above the frozen $110.6 million.",
+    "conference_call": "Not captured; anything said on the call is not evidence here."
+  }
+}

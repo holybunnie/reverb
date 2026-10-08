@@ -1,0 +1,12 @@
+{
+  "source": "Applied Digital investor relations press-release RSS feed (ir.applieddigital.com/news-events/press-releases/rss)",
+  "captured_at": "2026-10-08T00:10:00Z",
+  "body_path": "evidence/events/apld-q1-fy27/post_event/issuer_press_release_feed.xml",
+  "body_sha256": "f47afa6436b0f573f7636fc31c849f91793b46757b2e209eec0eb0b8612a632f",
+  "headline": "Applied Digital Reports Fiscal First Quarter 2027 Results",
+  "feed_press_release_date": "10/07/2026 16:27:00",
+  "timezone": "America/New_York",
+  "timezone_basis": "The feed's pubDate carries an explicit -0400 offset (Wed, 07 Oct 26 16:27:00 -0400). It precedes the EDGAR 8-K acceptance at 16:43:31 ET.",
+  "issuer_release_timestamp": "2026-10-07T20:27:00Z",
+  "upper_bound_8k_acceptance": "2026-10-07T20:43:31Z"
+}
