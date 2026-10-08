@@ -37,6 +37,7 @@ from reverb.ledger import Ledger  # noqa: E402
 
 PENDING = 75
 EXHIBIT = re.compile(r"ex[-_]?99[-_.]?0?1(?!\d)", re.IGNORECASE)
+DECLARED = re.compile(r"<TYPE>EX-99\.0?1\s*<SEQUENCE>\d+\s*<FILENAME>(\S+)", re.IGNORECASE)
 
 
 def now() -> str:
@@ -62,6 +63,11 @@ def finished_capture(event_id: str) -> Path | None:
     return runs[-1] if any(row["kind"] == "recording_complete" for row in rows) else None
 
 
+def declared_exhibits(headers_html: str) -> list[str]:
+    """Filenames the filing's own SGML header types as EX-99.1 (issuers name the file freely)."""
+    return [name for name in DECLARED.findall(html.unescape(headers_html)) if name.lower().endswith((".htm", ".html"))]
+
+
 def save_release_text(event_id: str, post: Path) -> dict:
     event = release_record.EVENTS[event_id]
     filings = json.loads(release_record.fetch(f"https://data.sec.gov/submissions/CIK{event['cik']}.json",
@@ -71,9 +77,13 @@ def save_release_text(event_id: str, post: Path) -> dict:
         raise LookupError("no same-day 8-K on EDGAR yet")
     i = min(same_day, key=lambda k: filings["acceptanceDateTime"][k])
     folder = f"https://www.sec.gov/Archives/edgar/data/{int(event['cik'])}/{filings['accessionNumber'][i].replace('-', '')}"
-    index = json.loads(release_record.fetch(f"{folder}/index.json", release_record.USER_AGENT))
-    exhibits = [item["name"] for item in index["directory"]["item"]
-                if item["name"].lower().endswith((".htm", ".html")) and EXHIBIT.search(item["name"])]
+    accession = filings["accessionNumber"][i]
+    headers = release_record.fetch(f"{folder}/{accession}-index-headers.html", release_record.USER_AGENT)
+    exhibits = declared_exhibits(headers.decode("utf-8", errors="replace"))
+    if not exhibits:
+        index = json.loads(release_record.fetch(f"{folder}/index.json", release_record.USER_AGENT))
+        exhibits = [item["name"] for item in index["directory"]["item"]
+                    if item["name"].lower().endswith((".htm", ".html")) and EXHIBIT.search(item["name"])]
     if len(exhibits) != 1:
         raise LookupError(f"expected one Exhibit 99.1 in {folder}, found {exhibits}")
     url = f"{folder}/{exhibits[0]}"
