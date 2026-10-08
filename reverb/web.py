@@ -121,11 +121,11 @@ def app_layout(*, title: str, page: str, body: str, static: bool = False, descri
         + "</div>"
         for label, items in APP_NAV
     )
-    headline = costco_headline(ROOT)
-    status = (f'<a class="rail-status" href="{route("report", static)}"><span class="rail-label">Latest run</span>'
-              f'<strong>COST · {html.escape(headline["decision"])}</strong>'
-              f'<small>{html.escape(headline["peak"])} peak · {html.escape(headline["scored"])} confirmed</small></a>'
-              if headline else "")
+    latest = latest_run()
+    status = (f'<a class="rail-status" href="{route(latest["href"], static)}"><span class="rail-label">Latest run</span>'
+              f'<strong>{html.escape(latest["ticker"])} · {html.escape(latest["decision"])}</strong>'
+              f'<small>{html.escape(latest["move"])} {latest["move_label"]} · {html.escape(latest["scored"])} confirmed</small></a>'
+              if latest else "")
     crumb = next((name for _, items in APP_NAV for key, name in items if key == page), html.escape(title))
     return f'''{_head(title, static, description)}{head_extra}
 <body data-page="{page}" class="app"><div class="app-shell"><aside class="app-rail">{_brand(static)}<nav class="rail-nav" aria-label="Desk">{groups}</nav>{status}</aside>
@@ -168,7 +168,32 @@ def embed_standalone(page_html: str, *, page: str, title: str, static: bool = Fa
                       head_extra=f"<style>{scoped}</style>")
 
 
-WALKTHROUGHS = {"costco-q4-fy26": "walkthrough", "stz-q2-fy27": "walkthrough/stz"}
+WALKTHROUGHS = {"costco-q4-fy26": "walkthrough", "stz-q2-fy27": "walkthrough/stz",
+                "apld-q1-fy27": "walkthrough/apld"}
+
+
+def latest_run() -> dict | None:
+    """Rail facts for the most recent completed forward run, read from its committed evidence."""
+    import json
+    completed = []
+    for directory in (ROOT / "evidence/events").iterdir() if (ROOT / "evidence/events").is_dir() else ():
+        capture, recon = directory / "capture_summary.json", directory / "post_event/reconciliation.json"
+        if capture.exists() and recon.exists():
+            summary = json.loads(capture.read_text(encoding="utf-8"))
+            tally = json.loads(recon.read_text(encoding="utf-8"))["reconciliation"]
+            completed.append((summary["reaction"]["baseline_at"], directory.name, summary, tally))
+    if not completed:
+        headline = costco_headline(ROOT)
+        return headline and {"ticker": "COST", "decision": headline["decision"], "move": headline["peak"],
+                             "move_label": "peak", "scored": headline["scored"], "href": "report"}
+    _, event_id, summary, tally = max(completed)
+    reaction = summary["reaction"]
+    move = max((reaction["max_pct"], reaction["min_pct"]), key=abs)
+    return {"ticker": summary["symbol"].removeprefix("R").removesuffix("USDT"),
+            "decision": "REVIEW" if reaction["trigger_crossed"] else "HOLD",
+            "move": f"{move:+.2f}%", "move_label": "peak" if move >= 0 else "low",
+            "scored": f"{tally['scored_confirmed']} of {tally['scored_total']}",
+            "href": WALKTHROUGHS.get(event_id, "runs")}
 
 
 def runs_section(static: bool) -> str:

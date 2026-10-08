@@ -58,7 +58,10 @@
       }).format(value);
     } catch { return "Timezone unavailable"; }
   };
-  const formatNewYork = (raw) => formatTime(raw, "America/New_York") + " ET";
+  const formatNewYork = (raw) => (!raw || raw === "unresolved") ? "" : formatTime(raw, "America/New_York") + " ET";
+  const tokenLabel = (status) => status === "verified_24_7" ? "24/7 trading verified" :
+    status === "online_reality_unverified_24_7" ? "online; 24/7 hours not verified" :
+    status === "missing" ? "not listed" : String(status || "unknown").replaceAll("_", " ");
   const request = async (url, options = {}) => {
     const response = await fetch(url, { cache: "no-store", ...options });
     let body;
@@ -89,6 +92,10 @@
       return "Time unresolved";
     };
 
+    const whenLabel = (event) => (!event.event_at_utc || event.event_at_utc === "unresolved")
+      ? `${event.event_date} · release time not yet published`
+      : `${formatTime(event.event_at_utc, timezonePreference())} · ${basisLabel(event)}`;
+
     const renderList = () => {
       if (!list) return;
       const needle = (search?.value || "").trim().toLowerCase();
@@ -107,7 +114,7 @@
         const strong = document.createElement("strong");
         strong.textContent = item.company_name || item.symbol;
         const meta = document.createElement("span");
-        meta.textContent = `${item.symbol} · ${item.event_date} · ${basisLabel(item)}`;
+        meta.textContent = `${item.symbol} · ${item.event_date}${item.event_at_utc && item.event_at_utc !== "unresolved" ? ` · ${basisLabel(item)}` : ""}`;
         name.append(strong, meta);
         const when = document.createElement("span");
         when.className = "result-time";
@@ -119,12 +126,12 @@
         const token = document.createElement("span");
         token.className = `verified-pill token-${String(item.token_status || "unknown").toLowerCase()}`;
         token.textContent = item.token_status === "verified_24_7" ? "TOKEN VERIFIED" :
-          item.token_status === "missing" ? "NO TOKEN" : "TOKEN UNVERIFIED";
+          item.token_status === "missing" ? "NO TOKEN" : "TOKEN ONLINE";
         card.append(avatar, name, when, token);
         card.addEventListener("click", () => {
           selected = item;
           safeWrite("reverb.selectedEvent", item);
-          selectedSummary.textContent = `${item.company_name || item.symbol} (${item.symbol}) · ${formatTime(item.event_at_utc, timezonePreference())} · ${basisLabel(item)}. Reality token: ${item.token_status.replaceAll("_", " ")}.`;
+          selectedSummary.textContent = `${item.company_name || item.symbol} (${item.symbol}) · ${whenLabel(item)}. Reality token: ${tokenLabel(item.token_status)}.`;
           submit.disabled = false;
           renderList();
         });
@@ -146,7 +153,7 @@
         events = rows;
         if (selected) selected = events.find((item) => item.calendar_event_id === selected.calendar_event_id) || null;
         if (selected) {
-          selectedSummary.textContent = `${selected.company_name || selected.symbol} (${selected.symbol}) · ${formatTime(selected.event_at_utc, timezonePreference())} · ${basisLabel(selected)}. Reality token: ${selected.token_status.replaceAll("_", " ")}.`;
+          selectedSummary.textContent = `${selected.company_name || selected.symbol} (${selected.symbol}) · ${whenLabel(selected)}. Reality token: ${tokenLabel(selected.token_status)}.`;
         }
         if (status) status.textContent = events.length
           ? `${events.length} calendar event${events.length === 1 ? "" : "s"} found. Times marked assumed are not issuer-confirmed.`

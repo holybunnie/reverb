@@ -23,6 +23,15 @@ class AppTests(unittest.TestCase):
         self.assertIn(".env", page)
         self.assertNotIn("name=\"api_key\"", page)
 
+    def test_rail_reports_the_most_recent_completed_run_from_evidence(self):
+        from reverb.web import latest_run
+        latest = latest_run()
+        self.assertEqual((latest["ticker"], latest["decision"], latest["move"], latest["scored"]),
+                         ("APLD", "REVIEW", "+4.75%", "2 of 3"))
+        self.assertEqual(latest["href"], "walkthrough/apld")
+        page = render_connection_html()
+        self.assertIn("<strong>APLD · REVIEW</strong>", page)
+
     def test_invalid_timezone_does_not_get_displayed_as_verified(self):
         snapshot = load_preview_snapshot(Path(__file__).resolve().parents[1])
         page = render_app_html(snapshot, timezone_name="not/a-timezone")
