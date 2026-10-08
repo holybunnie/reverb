@@ -6,7 +6,7 @@ Write down what you believe before the earnings report. Reverb checks it against
 
 ## Start here
 
-**[Walk through one complete research task](https://holybunnie.github.io/reverb/walkthrough/)**: a trader's Costco view, from the question to the actionable insight, in eight steps and under three minutes. **[Watch the narrated walkthrough video](https://x.com/holybunnie3/status/2106831716157718648)** (3:13, captions on screen). Second forward run: **[STZ walkthrough](https://holybunnie.github.io/reverb/walkthrough/stz/)**, the same eight steps on Constellation Brands.
+**[Walk through one complete research task](https://holybunnie.github.io/reverb/walkthrough/)**: a trader's Costco view, from the question to the actionable insight, in eight steps and under three minutes. **[Watch the narrated walkthrough video](https://x.com/holybunnie3/status/2106831716157718648)** (3:13, captions on screen). Second forward run: **[STZ walkthrough](https://holybunnie.github.io/reverb/walkthrough/stz/)**, the same eight steps on Constellation Brands. Third: **[APLD walkthrough](https://holybunnie.github.io/reverb/walkthrough/apld/)**, on Applied Digital.
 
 | Judging line | Where to look | What it proves |
 | --- | --- | --- |

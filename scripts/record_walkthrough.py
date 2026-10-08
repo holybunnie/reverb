@@ -27,11 +27,14 @@ sys.path.insert(0, str(ROOT))
 
 from reverb.walkthrough import walkthrough_data  # noqa: E402
 from reverb.walkthrough_stz import walkthrough_data as stz_walkthrough_data  # noqa: E402
+from reverb.walkthrough_apld import walkthrough_data as apld_walkthrough_data  # noqa: E402
 
 DEFAULT_URL = "https://holybunnie.github.io/reverb/walkthrough/"
 NAME = "research-task-costco"
 STZ_URL = "https://holybunnie.github.io/reverb/walkthrough/stz/"
 STZ_NAME = "research-task-stz"
+APLD_URL = "https://holybunnie.github.io/reverb/walkthrough/apld/"
+APLD_NAME = "research-task-apld"
 TAIL_SECONDS = 0.8  # pause after each spoken line before the next beat
 
 CAPTION_JS = """text => {
@@ -299,6 +302,114 @@ def stz_script(rec: Recorder, d: dict) -> None:
              say="Every number traces to a committed evidence file. Next up is the Applied Digital report, recording tonight.")
 
 
+def check_apld_spoken_numbers(d: dict) -> None:
+    """Same guard for the APLD narration: every spoken value must match the committed evidence."""
+    m, v, q = d["market"], {x["id"]: x for x in d["verdicts"]}, d["qwen_check"]
+    expected = {
+        "frozen hash prefix": (d["frozen"]["sha256"][:8], "3f707686"),
+        "push time": (d["frozen"]["push"]["pushed_at"], "2026-10-04T17:42:05Z"),
+        "release": (m["release_at"], "2026-10-07T20:27:00Z"),
+        "8-K": (next(c["at"] for c in d["clock"] if c["label"] == "SEC 8-K accepted"), "2026-10-07T20:43:31Z"),
+        "closes": (len(m["closes"]), 269),
+        "baseline": (m["baseline"], 23.81),
+        "trigger": (m["trigger_pct"], 3.0),
+        "peak": ((round(m["mark"]["pct"], 2), m["mark"]["at"]), (4.75, "2026-10-07T20:27:00Z")),
+        "held from": (m["held_from"], "2026-10-07T21:32:00Z"),
+        "last": (round(m["last_pct"], 2), 4.49),
+        "book": ((m["book"]["with_visible_levels"], m["book"]["snapshots"]), (270, 270)),
+        "revenue": (v["c1"]["values"], ["$341.9 million", "$258.7 million"]),
+        "ebitda": (v["c2"]["values"], ["$64.4 million", "$42.4 million"]),
+        "net loss": (v["c3"]["values"], ["$221.0 million", "$110.6 million"]),
+        "capacity": ((v["c4"]["evidence"]["match"].count("1.41 GW"), v["c4"]["reference"]), (1, "1,410")),
+        "statuses": ([v[c]["frozen_status"] for c in ("c1", "c2", "c3", "c4")],
+                     ["CONFIRMED", "CONFIRMED", "CONTRADICTED", "NOT_ADDRESSED"]),
+        "qwen": ((q["schema_valid"], q["runs"], q["matched_every_claim"], q["per_claim"]), (4, 5, 0, {"c2": 3})),
+        "decision": ((d["decision"]["action"], d["decision"]["orders"]), ("REVIEW", 0)),
+    }
+    wrong = {k: a for k, (a, b) in expected.items() if a != b}
+    if wrong:
+        raise SystemExit(f"narration would contradict the evidence: {wrong}")
+
+
+def apld_script(rec: Recorder, d: dict) -> None:
+    page = rec.page
+    if page is not None:
+        page.add_style_tag(content="body{padding-bottom:260px}")
+        smooth = lambda sel: lambda: page.evaluate(LIFT_JS, sel)  # noqa: E731
+        claim = lambda cid: lambda: (page.click(f'#cl button[data-id="{cid}"]'), page.wait_for_timeout(300),  # noqa: E731
+                                     page.evaluate(LIFT_JS, ".doc"))
+    else:
+        smooth = claim = lambda _: None  # noqa: E731
+
+    rec.beat("1 Question", "Reverb's third forward run: Applied Digital's Q1 report. Did the view survive, and what should I do with RAPLD tonight?", 8,
+             say="This is Ree-verb's third forward run: Applied Digital's first quarter report. Did the view survive? And what should I do with the Ar A P L D token tonight?")
+    rec.beat("1 Question", "A recorded run from 7 October 2026. Reverb has no way to place orders: it cannot make a trade.", 4,
+             say="This is a recorded run from October seventh, twenty twenty six. Ree-verb has no way to place orders. It cannot make a trade.")
+    rec.next()
+    rec.beat("2 Claims", "The view becomes four claims, each with a fixed, mechanical test against last quarter's numbers.", 6,
+             say="The view becomes four separate claims, each with a fixed, mechanical test against last quarter's numbers.")
+    rec.beat("2 Claims", "This thesis was drafted by Claude Code from Applied Digital's earlier filings and approved by the owner. It is not the owner's independent view.", 8,
+             smooth(".label"),
+             say="This thesis was drafted by Claude Code from Applied Digital's earlier filings, and approved by the owner. It is not the owner's independent view.")
+    rec.next()
+    rec.beat("3 Freeze", "Your browser checks the hash again, 3f707686…, and it matches the file pushed on 4 October, three days before the release.", 8,
+             smooth("#hashnote"),
+             say="Your browser checks the hash again, and it matches the file pushed on October fourth, three days before the release.")
+
+    def edit() -> None:
+        box = page.locator("#edits input").nth(3)
+        box.click()
+        box.press("End")
+        for _ in range(len("1,410 MW")):
+            box.press("Backspace")
+            page.wait_for_timeout(40)
+        box.type("500 MW", delay=90)
+
+    rec.beat("3 Freeze", "Now try to edit a claim after the fact…", 5, edit if page else None,
+             say="Now, try to edit a claim after the fact.")
+    rec.beat("3 Freeze", "…and the hash breaks. The view can't be rewritten after the result.", 6, smooth("#hashnote"),
+             say="And the hash breaks. The view cannot be rewritten after the result.")
+    rec.beat("3 Freeze", "Restore the frozen text, and the hash matches again.", 4,
+             (lambda: (page.click("#reset"), page.wait_for_timeout(300), page.evaluate(LIFT_JS, "#hashnote"))) if page else None,
+             say="Restore the frozen text, and the hash matches again.")
+    rec.next()
+    rec.beat("4 Event & market", "Event clock (ET): Applied Digital published results at 16:27; the SEC filing followed at 16:43.", 7,
+             say="The event clock. Applied Digital published results at four twenty seven p m Eastern, and the S E C filing followed at four forty three.")
+    rec.beat("4 Event & market", "269 recorded one-minute RAPLD closes. Baseline $23.81, with a 3% trigger line on either side.", 7, smooth("svg.chart"),
+             say="Two hundred sixty nine recorded one minute closes. The baseline is twenty three dollars eighty one, with a three percent trigger line on either side.")
+    rec.beat("4 Event & market", "A one-minute spike to +4.75% at the release, then straight back. It held above +3% from 17:32 ET and ended +4.49%. All 270 minutes had book depth.", 11,
+             smooth(".grid2"),
+             say="In the release minute the price spiked to plus four point seven five percent, then fell straight back. It held above plus three percent from five thirty two, and ended the window up four point four nine percent. Every one of the two hundred seventy minutes had visible depth on the public book.")
+    rec.next()
+    rec.beat("5 Evidence", "Revenue: Applied Digital's own Exhibit 99.1 reports $341.9M, above last quarter's frozen $258.7M. Confirmed.", 9,
+             claim("c1") if page else None,
+             say="First, revenue. Applied Digital's own exhibit ninety nine point one reports three hundred forty one point nine million, above last quarter's frozen two hundred fifty eight point seven million. That claim is confirmed.")
+    rec.beat("5 Evidence", "Adjusted EBITDA: $64.4M, above the frozen $42.4M. Confirmed.", 6, claim("c2") if page else None,
+             say="Second, adjusted EBITDA: sixty four point four million, above the frozen forty two point four. That claim is confirmed as well.")
+    rec.beat("5 Evidence", "Net loss: $221.0M. It widened from $110.6M instead of narrowing. Contradicted.", 7, claim("c3") if page else None,
+             say="Third, the net loss. It was two hundred twenty one million. It widened from one hundred ten point six million, instead of narrowing. That claim is contradicted.")
+    rec.beat("5 Evidence", "New lease: the release states 1.41 GW, the same as the frozen 1,410 MW, and names no new lease. The unit differs, so it is not scored.", 9,
+             claim("c4") if page else None,
+             say="Last, the new lease. The release states one point four one gigawatts, the same as the frozen one thousand four hundred ten megawatts, and names no new lease. Because the unit differs, it is not scored.")
+    rec.next()
+    rec.beat("6 Verdicts", "Two of three scored claims confirmed. The net loss widened; the lease claim was not scored.", 7,
+             say="Two of three scored claims were confirmed. The net loss widened, and the lease claim was not scored.")
+    rec.beat("6 Verdicts", "Out-of-sample model check: 4 of 5 Qwen runs valid, none matched every claim; only adjusted EBITDA matched, 3 times. Scores come only from hand-selected facts.", 10,
+             smooth("h2"),
+             say="The model cross check, on a report it had never seen. Four of five A I model runs returned valid output, but none matched every claim. Only adjusted EBITDA matched, three times. Scores come only from hand selected facts.")
+    rec.next()
+    rec.beat("7 Insight", "Right on growth, wrong on losses, and no new lease.", 6,
+             say="So: right on growth, wrong on losses, and no new lease.")
+    rec.beat("7 Insight", "REVIEW, 0 orders: the move crossed the trigger and this time the book had depth, but the run was registered read-only.", 10,
+             smooth(".big"),
+             say="The move crossed the trigger, so the rule says review, with zero orders. This time the book had depth to trade into, but the run was registered read only. This is not a claim that the strategy is profitable.")
+    rec.next()
+    rec.beat("8 You decide", "Reverb recommends. The human decides.", 5,
+             say="Ree-verb recommends. The human decides.")
+    rec.beat("8 You decide", "Three forward runs: Costco, Constellation and Applied Digital. Every number traces to a committed evidence file.", 7,
+             say="That is three forward runs: Costco, Constellation, and Applied Digital. Every number traces to a committed evidence file.")
+
+
 def synthesise(lines: list[str], voice: Path, directory: Path) -> list[tuple[Path, float]]:
     directory.mkdir(parents=True, exist_ok=True)
     clips = []
@@ -320,19 +431,21 @@ def main() -> None:
     parser.add_argument("--height", type=int, default=720)
     parser.add_argument("--voice", type=Path, help="Piper .onnx voice; adds a narration track")
     parser.add_argument("--smoke", action="store_true", help="record a 10-second clip only")
-    parser.add_argument("--event", choices=("costco", "stz"), default="costco")
+    parser.add_argument("--event", choices=("costco", "stz", "apld"), default="costco")
     args = parser.parse_args()
-    stz = args.event == "stz"
-    name_root, run_script = (STZ_NAME, stz_script) if stz else (NAME, script)
-    if stz and args.url == DEFAULT_URL:
-        args.url = STZ_URL
+    events = {"costco": (NAME, script, DEFAULT_URL, walkthrough_data, check_spoken_numbers),
+              "stz": (STZ_NAME, stz_script, STZ_URL, stz_walkthrough_data, check_stz_spoken_numbers),
+              "apld": (APLD_NAME, apld_script, APLD_URL, apld_walkthrough_data, check_apld_spoken_numbers)}
+    name_root, run_script, event_url, load_data, check_numbers = events[args.event]
+    if args.url == DEFAULT_URL:
+        args.url = event_url
     if not shutil.which("ffmpeg"):
         raise SystemExit("ffmpeg is required")
     args.out.mkdir(parents=True, exist_ok=True)
     tmp = args.out / "_video"
     shutil.rmtree(tmp, ignore_errors=True)
-    data = stz_walkthrough_data() if stz else walkthrough_data()
-    (check_stz_spoken_numbers if stz else check_spoken_numbers)(data)
+    data = load_data()
+    check_numbers(data)
     clips = None
     if args.voice and not args.smoke:
         planner = Recorder(None)
