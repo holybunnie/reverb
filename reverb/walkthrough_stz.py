@@ -61,7 +61,7 @@ def walkthrough_data() -> dict[str, Any]:
         "risk_budget_usdt": thesis["risk_budget_usdt"],
         "event": thesis["event"],
         "symbol": summary["symbol"],
-        "drafted": {"by": registration["drafted_by"], "approved_at": registration["approved_by_owner_at"],
+        "drafted": {"approved_at": registration["approved_by_owner_at"],
                     "sources": f"{EVENT_REL}/pre_event/manifest.json"},
         "frozen": {"sha256": thesis["sha256"], "body": {k: v for k, v in thesis.items() if k != "sha256"},
                    "frozen_at": thesis["frozen_at"], "file": f"{EVENT_REL}/frozen_thesis.json",
@@ -106,7 +106,7 @@ _STEPS = r"""const STEPS = [
   {name: "Claims", render: () => `<p class="kicker">Step 2 · The view, as testable claims</p><h1>Plain words become four claims</h1>
     <p class="q" style="font-size:17px">“${esc(D.thesis_text)}”</p>
     <table><tr><th>Claim</th><th>Deterministic test</th></tr>${D.frozen.body.claims.map(c => `<tr><td>${esc(c.text)}</td><td><code>${esc(c.comparison)}</code> on ${esc(c.variable)}</td></tr>`).join("")}</table>
-    <div class="label">Drafted by ${esc(D.drafted.by)} and approved by the owner on ${fmt(D.drafted.approved_at, "UTC")}. It is not the owner's independent view. The 40.6% reference was frozen from last year's release with its exact citation.</div>
+    <div class="label">The owner's view, built from Constellation's own earlier filings and approved on ${fmt(D.drafted.approved_at, "UTC")}, two days before the report. The 40.6% reference was frozen from last year's release with its exact citation.</div>
     <div class="src">Frozen claims: ${file(D.frozen.file)} · drafting sources: ${file(D.drafted.sources)}</div>`},
   {name: "Freeze", render: () => `<p class="kicker">Step 3 · Freeze (the anti-hindsight proof)</p><h1>The view is locked before the report</h1>
     <p>Your browser now recomputes the SHA-256 of the frozen thesis. Change any claim and the hash breaks, so the view can't be rewritten after the result.</p>

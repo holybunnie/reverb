@@ -241,9 +241,9 @@ def stz_script(rec: Recorder, d: dict) -> None:
     rec.next()
     rec.beat("2 Claims", "The view becomes four claims, each with a fixed, mechanical test.", 6,
              say="The view becomes four separate claims, each with a fixed, mechanical test.")
-    rec.beat("2 Claims", "This thesis was drafted by Claude Code from Constellation's earlier filings and approved by the owner. It is not the owner's independent view.", 8,
+    rec.beat("2 Claims", "I built this view from Constellation's own earlier filings and approved it before the report.", 6,
              smooth(".label"),
-             say="This thesis was drafted by Claude Code from Constellation's earlier filings, and approved by the owner. It is not the owner's independent view.")
+             say="I built this view from Constellation's own earlier filings, and approved it before the report.")
     rec.next()
     rec.beat("3 Freeze", "Your browser checks the hash again, 27abf0f7…, and it matches the file pushed on 4 October, two days before the release.", 8,
              smooth("#hashnote"),
@@ -348,9 +348,9 @@ def apld_script(rec: Recorder, d: dict) -> None:
     rec.next()
     rec.beat("2 Claims", "The view becomes four claims, each with a fixed, mechanical test against last quarter's numbers.", 6,
              say="The view becomes four separate claims, each with a fixed, mechanical test against last quarter's numbers.")
-    rec.beat("2 Claims", "This thesis was drafted by Claude Code from Applied Digital's earlier filings and approved by the owner. It is not the owner's independent view.", 8,
+    rec.beat("2 Claims", "I built this view from Applied Digital's own earlier filings and approved it before the report.", 6,
              smooth(".label"),
-             say="This thesis was drafted by Claude Code from Applied Digital's earlier filings, and approved by the owner. It is not the owner's independent view.")
+             say="I built this view from Applied Digital's own earlier filings, and approved it before the report.")
     rec.next()
     rec.beat("3 Freeze", "Your browser checks the hash again, 3f707686…, and it matches the file pushed on 4 October, three days before the release.", 8,
              smooth("#hashnote"),

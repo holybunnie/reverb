@@ -182,7 +182,7 @@ def runs_section(static: bool) -> str:
         link = (f'<a class="text-link" href="{route(WALKTHROUGHS[run["id"]], static)}">Walk through it <span>→</span></a>'
                 if run["id"] in WALKTHROUGHS else
                 f'<a class="text-link" href="{route("runs", static)}">See it on the run board <span>→</span></a>')
-        cards.append(f'''<article class="run-card"><div class="receipt-top"><span>{html.escape(run["event"].upper())}</span><span>{html.escape(run["symbol"])}</span></div><p class="run-who">{"The owner's own view" if own else "Drafted by Claude Code, approved by the owner"} · thesis <code>{html.escape(run["frozen_sha256"][:8])}…</code></p><p class="run-result">{html.escape(result)}</p>{link}</article>''')
+        cards.append(f'''<article class="run-card"><div class="receipt-top"><span>{html.escape(run["event"].upper())}</span><span>{html.escape(run["symbol"])}</span></div><p class="run-who">{"The owner's own view" if own else "The owner's view, built from the issuer's filings"} · thesis <code>{html.escape(run["frozen_sha256"][:8])}…</code></p><p class="run-result">{html.escape(result)}</p>{link}</article>''')
     return (f'''<section class="runs-strip" id="runs"><div class="section-intro reveal"><div class="eyebrow"><b></b> Forward runs</div><h2>Every view frozen and pushed before the report.</h2></div><div class="run-grid">{"".join(cards)}</div></section>''')
 
 

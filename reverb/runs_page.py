@@ -59,7 +59,7 @@ def runs_data() -> list[dict[str, Any]]:
             "id": registration["event_id"], "event": registration["event"], "symbol": registration["token_symbol"],
             "window": registration["window"], "frozen_sha256": thesis["sha256"], "pushed_at": proof["pushed_at"],
             "thesis": thesis["thesis_text"], "claims": [c["text"] for c in thesis["claims"]],
-            "drafted": f"Drafted by {registration['drafted_by'].split(' from ')[0]}, approved by the owner "
+            "drafted": "The owner's view, built from the issuer's earlier filings and approved "
                        f"({registration['approved_by_owner_at'][:16].replace('T', ' ')} UTC)",
             "files": {"frozen": registration["frozen_thesis_path"],
                       "sources": f"evidence/events/{directory.name}/pre_event/manifest.json",
