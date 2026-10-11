@@ -6,13 +6,15 @@ Write down what you believe before the earnings report. Reverb checks it against
 
 ## Start here
 
+**[Try the live thesis desk](https://reverb.13-62-181-128.sslip.io/events)**: pick a company reporting this week, see Bitget's own data for it, write your view in plain words and review the claims Qwen extracts. It is a public demo: up to 5 extractions per visitor per hour, drafts stay in your browser, and nothing is frozen, scored or ordered there.
+
 **[Walk through one complete research task](https://holybunnie.github.io/reverb/walkthrough/)**: a trader's Costco view, from the question to the actionable insight, in eight steps and under three minutes. **[Watch the narrated walkthrough video](https://x.com/holybunnie3/status/2106831716157718648)** (3:13, captions on screen). Second forward run: **[STZ walkthrough](https://holybunnie.github.io/reverb/walkthrough/stz/)**, the same eight steps on Constellation Brands. Third: **[APLD walkthrough](https://holybunnie.github.io/reverb/walkthrough/apld/)**, on Applied Digital.
 
 | Judging line | Where to look | What it proves |
 | --- | --- | --- |
 | Feature depth | [Data sources](#data-sources), [Evidence and known limits](#evidence-and-known-limits), [Run and verify](#run-and-verify) | Each source, how it is used, and how it failed when it did; Bitget's own data service cross-checks every run |
 | Research quality | [Costco forward run](#costco-forward-run) (the owner's own view), [STZ](#forward-runs) and [APLD](#forward-runs) forward runs (the owner's views, built from the issuers' filings), raw captures for [Costco](evidence/costco/raw/20260924T072322Z-1239ae49), [STZ](evidence/events/stz-q2-fy27/raw/20261006T192000Z-27d5f529) and [APLD](evidence/events/apld-q1-fy27/raw/20261007T192000Z-4c90a9d1) | Three forward runs with push-time proof, exact-offset citations and measured model error, rebuildable from committed raw data |
-| LUI fluency | [Walkthrough](https://holybunnie.github.io/reverb/walkthrough/) | Question to decision in plain language, with the source for every number |
+| LUI fluency | [Live thesis desk](https://reverb.13-62-181-128.sslip.io/events), [Walkthrough](https://holybunnie.github.io/reverb/walkthrough/) | Type a view in plain language and review Qwen's claims live; the walkthrough goes from question to decision with the source for every number |
 | Personalised thesis | [Walkthrough step 3](https://holybunnie.github.io/reverb/walkthrough/#3) | Your browser recomputes the frozen hash; edit a claim and it breaks, so the view can't be rewritten after the result |
 
 ### Forward runs
@@ -147,6 +149,8 @@ python3 -m venv .venv
 ```
 
 Open `/` for the landing page, `/events` for the local event search and thesis desk, `/demo` for the credential-free replay, `/report` for the morning brief, or `/preview` for public feasibility evidence.
+
+The [live thesis desk](https://reverb.13-62-181-128.sslip.io/events) is this same server in public mode (`REVERB_PUBLIC_ORIGIN` set, behind nginx). Visitors can use only what the desk needs: this week's events, the Bitget data box and Qwen claim extraction, capped at 5 per visitor per hour and 150 a day. Registering a thesis, the reaction monitor and the owner's ledger stay local-only, and the public process loads only the Qwen key, never the local `.env` ([tests](tests/test_public_mode.py)).
 
 ```sh
 ./.venv/bin/python scripts/replay_capture.py check
