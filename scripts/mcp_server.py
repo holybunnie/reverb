@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from reverb.bitget import BitgetClient, Credentials  # noqa: E402
+from reverb.bitget_data import SOURCE_NAME, BitgetDataClient, compare_release, normalize_symbol  # noqa: E402
 from reverb.config import EngineConfig, load_config  # noqa: E402
 from reverb.errors import ConfigurationError, ReverbError  # noqa: E402
 from reverb.env import load_local_env  # noqa: E402
@@ -174,6 +175,27 @@ def react(symbol: str, event_at: str, user_timezone: str = "America/New_York",
         decision = service.react(symbol=symbol, event_at=parsed_event_at,
                                  user_timezone=user_timezone, order_type=order_type).model_dump(mode="json")
     return _render(decision)
+
+
+@mcp.tool()
+def release_crosscheck(symbol: str, event_date: str) -> dict:
+    """Check an earnings date against Bitget's own earnings calendar (bitget-mcp-server).
+
+    Returns only the comparison: whether Bitget lists the release on that date, its session
+    and the reported period. No quote or estimate is returned.
+    """
+    try:
+        ticker = normalize_symbol(symbol)
+        expected = date.fromisoformat(event_date)
+    except (ConfigurationError, TypeError, ValueError) as exc:
+        return {"status": "invalid", "detail": f"symbol and an ISO event_date are required: {exc}"}
+    try:
+        with BitgetDataClient() as client:
+            comparison = compare_release(client.releases(ticker), expected_date=expected,
+                                         window_days=client.config.calendar_match_window_days)
+    except ReverbError as exc:
+        return {"status": "unavailable", "symbol": ticker, "source": SOURCE_NAME, "detail": str(exc)}
+    return {"symbol": ticker, "source": SOURCE_NAME, **comparison}
 
 
 @mcp.tool()

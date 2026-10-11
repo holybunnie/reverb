@@ -41,6 +41,17 @@ class CalendarConfig(BaseModel):
     default_event_time_et: str | None = None
 
 
+class BitgetDataConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    url: str = Field(min_length=1)
+    timeout_seconds: float = Field(gt=0)
+    # Analyst consensus older than this is reported as stale, never shown as current.
+    consensus_max_age_days: int = Field(gt=0)
+    # How far apart two calendars may place one release and still be compared.
+    calendar_match_window_days: int = Field(gt=0)
+
+
 T = TypeVar("T", bound=BaseModel)
 
 

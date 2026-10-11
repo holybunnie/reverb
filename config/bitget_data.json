@@ -1,0 +1,6 @@
+{
+  "url": "https://agent.bitget.com/mcp",
+  "timeout_seconds": 20,
+  "consensus_max_age_days": 7,
+  "calendar_match_window_days": 7
+}

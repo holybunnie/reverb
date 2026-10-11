@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,9 +19,10 @@ from reverb.app import (  # noqa: E402
     render_app_html, render_connection_html, render_events_html,
     render_landing_html, render_report_html,
 )
-from reverb.errors import DataUnavailable, LedgerError  # noqa: E402
+from reverb.errors import ConfigurationError, DataUnavailable, LedgerError  # noqa: E402
 from reverb.env import load_local_env  # noqa: E402
 from reverb.bitget import BitgetClient  # noqa: E402
+from reverb.bitget_data import BitgetDataClient, event_context, normalize_symbol  # noqa: E402
 from reverb.calendar import EarningsCalendar  # noqa: E402
 from reverb.config import EngineConfig, load_config  # noqa: E402
 from reverb.language import (extract_thesis_and_record, interpret_view_and_record,
@@ -144,6 +146,31 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, "application/json; charset=utf-8",
                                json.dumps({"status": "ok", "result": result}, sort_keys=True).encode())
+                return
+            if route == "/api/events/context":
+                if not self._local_request():
+                    self._send(403, "application/json; charset=utf-8", b'{"status":"local_only"}')
+                    return
+                query = parse_qs(urlsplit(self.path).query)
+                symbol = query.get("symbol", [""])[0]
+                try:
+                    event_date = date.fromisoformat(query.get("date", [""])[0])
+                    normalize_symbol(symbol)
+                except (ValueError, ConfigurationError) as exc:
+                    self._send(400, "application/json; charset=utf-8", json.dumps({
+                        "status": "invalid", "message": f"symbol and an ISO date are required: {exc}"}).encode())
+                    return
+                with BitgetDataClient() as client:
+                    context = event_context(client, symbol, event_date=event_date)
+                # Keep what the trader was shown next to the thesis they write from it.
+                Ledger(_ledger_path()).append("bitget_data_context", {
+                    "symbol": context["symbol"], "event_date": event_date.isoformat(),
+                    "fetched_at": context["fetched_at"], "source": context["source"],
+                    "statuses": {part: context[part]["status"] for part in ("calendar", "quote", "consensus")},
+                    "context_sha256": hashlib.sha256(json.dumps(context, sort_keys=True).encode()).hexdigest(),
+                })
+                self._send(200, "application/json; charset=utf-8",
+                           json.dumps({"status": "ok", "result": context}, sort_keys=True).encode())
                 return
             snapshot = load_preview_snapshot(ROOT)
             if route == "/preview":

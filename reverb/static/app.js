@@ -96,6 +96,76 @@
       ? `${event.event_date} · release time not yet published`
       : `${formatTime(event.event_at_utc, timezonePreference())} · ${basisLabel(event)}`;
 
+    const bitgetPanel = $("[data-bitget-context]");
+    let bitgetRequest = 0;
+    const SESSIONS = { after_close: "after the close", before_open: "before the open", during_market: "during market hours", unspecified: "session not given" };
+    const shortDate = (iso) => new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
+    const usd = (value) => {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return "—";
+      const size = Math.abs(number);
+      if (size >= 1e9) return `$${(number / 1e9).toFixed(2)}B`;
+      if (size >= 1e6) return `$${(number / 1e6).toFixed(1)}M`;
+      return `$${number.toFixed(2)}`;
+    };
+    const setPart = (selector, text, tone = "") => {
+      const node = $(selector, bitgetPanel);
+      node.textContent = text;
+      node.className = tone;
+    };
+    const renderBitgetContext = (context) => {
+      const calendar = context.calendar || {};
+      if (calendar.status === "agrees" || calendar.status === "differs") {
+        const when = `${shortDate(calendar.bitget_release_date)}, ${SESSIONS[calendar.bitget_session] || calendar.bitget_session}`;
+        setPart("[data-bitget-calendar]", calendar.status === "agrees"
+          ? `${when} · agrees with this week's calendar`
+          : `${when} · ${Math.abs(calendar.difference_days)} day(s) from this week's calendar; check the issuer's own site`,
+          calendar.status);
+      } else {
+        setPart("[data-bitget-calendar]", calendar.status === "not_listed" ? "Release not listed by Bitget" : `Unavailable: ${calendar.detail || "no answer"}`);
+      }
+      const quote = context.quote || {};
+      if (quote.status === "ok") {
+        const change = Number(quote.change_pct);
+        setPart("[data-bitget-quote]", `${usd(quote.last_price)} (${change >= 0 ? "+" : ""}${change.toFixed(2)}%)${quote.market_cap ? ` · market cap ${usd(quote.market_cap)}` : ""}`);
+      } else {
+        setPart("[data-bitget-quote]", `Unavailable: ${quote.detail || "no answer"}`);
+      }
+      const consensus = context.consensus || {};
+      if (consensus.status === "current" && consensus.estimates.length) {
+        const parts = consensus.estimates.map((item) => {
+          const value = item.indicator === "EPS" ? `$${Number(item.mean).toFixed(2)}` : usd(item.mean);
+          const range = item.low && item.high ? `, range ${item.indicator === "EPS" ? `$${Number(item.low).toFixed(2)}–$${Number(item.high).toFixed(2)}` : `${usd(item.low)}–${usd(item.high)}`}` : "";
+          return `${item.indicator} ${value}${item.analysts ? ` (${item.analysts} analysts${range})` : range ? ` (${range.slice(2)})` : ""}`;
+        });
+        const first = consensus.estimates[0];
+        setPart("[data-bitget-consensus]", `${parts.join(" · ")} · quarter ending ${consensus.quarter_end_month} · ${first.upstream_source || "upstream"} via Bitget, scraped ${shortDate(first.scraped_on)}`);
+      } else {
+        const reasons = {
+          stale: `Not shown: the newest estimate is from ${consensus.newest_scrape ? shortDate(consensus.newest_scrape) : "too long ago"}.`,
+          post_release_only: "Not shown: every estimate for this quarter was collected after the release.",
+          not_listed: "No consensus listed for this quarter.",
+        };
+        setPart("[data-bitget-consensus]", reasons[consensus.status] || `Unavailable: ${consensus.detail || "no answer"}`);
+      }
+      $("[data-bitget-fetched]", bitgetPanel).textContent = `Fetched ${formatTime(context.fetched_at, timezonePreference())}`;
+    };
+    const loadBitgetContext = async (item) => {
+      if (!bitgetPanel || !live || !item?.symbol || !item?.event_date) return;
+      const ticket = ++bitgetRequest;
+      bitgetPanel.hidden = false;
+      for (const selector of ["[data-bitget-calendar]", "[data-bitget-quote]", "[data-bitget-consensus]"]) setPart(selector, "Asking Bitget…");
+      $("[data-bitget-fetched]", bitgetPanel).textContent = "";
+      try {
+        const body = await request(`/api/events/context?symbol=${encodeURIComponent(item.symbol)}&date=${encodeURIComponent(item.event_date)}`);
+        if (ticket === bitgetRequest) renderBitgetContext(body.result);
+      } catch (error) {
+        if (ticket !== bitgetRequest) return;
+        for (const selector of ["[data-bitget-calendar]", "[data-bitget-quote]", "[data-bitget-consensus]"]) setPart(selector, "Unavailable");
+        $("[data-bitget-fetched]", bitgetPanel).textContent = `${error.message} Nothing was filled in.`;
+      }
+    };
+
     const renderList = () => {
       if (!list) return;
       const needle = (search?.value || "").trim().toLowerCase();
@@ -134,6 +204,7 @@
           selectedSummary.textContent = `${item.company_name || item.symbol} (${item.symbol}) · ${whenLabel(item)}. Reality token: ${tokenLabel(item.token_status)}.`;
           submit.disabled = false;
           renderList();
+          loadBitgetContext(item);
         });
         list.append(card);
       }
@@ -154,6 +225,7 @@
         if (selected) selected = events.find((item) => item.calendar_event_id === selected.calendar_event_id) || null;
         if (selected) {
           selectedSummary.textContent = `${selected.company_name || selected.symbol} (${selected.symbol}) · ${whenLabel(selected)}. Reality token: ${tokenLabel(selected.token_status)}.`;
+          loadBitgetContext(selected);
         }
         if (status) status.textContent = events.length
           ? `${events.length} calendar event${events.length === 1 ? "" : "s"} found. Times marked assumed are not issuer-confirmed.`
