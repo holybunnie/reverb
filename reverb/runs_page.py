@@ -69,6 +69,15 @@ def runs_data() -> list[dict[str, Any]]:
                       **({"result": str(reconciliation.relative_to(ROOT))} if reconciliation.exists() else {})},
             "result": result, "walkthrough": WALKTHROUGH_PATHS.get(registration["event_id"]),
         })
+    crosscheck_path = ROOT / "evidence/bitget-data/release_crosscheck.json"
+    if crosscheck_path.exists():
+        checks = {item["run"]: item for item in _load(crosscheck_path)["runs"]}
+        for run in runs:
+            check = checks.get(run["id"])
+            if check is not None:
+                run["bitget_check"] = {key: check.get(key) for key in (
+                    "status", "bitget_release_date", "bitget_session", "issuer_session", "session_status")}
+                run["files"]["bitget"] = "evidence/bitget-data/release_crosscheck.json"
     return sorted(runs, key=lambda run: run["window"][0])
 
 
@@ -117,6 +126,14 @@ function status(r) {
   if (now < end) return ["live", "Recording", "window closes in " + span(end - now)];
   return ["warn", "Awaiting scoring", "window closed " + when(r.window[1])];
 }
+const SESSION = {after_close: "after the close", before_open: "before the open", during_market: "during market hours", unspecified: "session not given"};
+function bitgetLine(c) {
+  const fmt = d => new Intl.DateTimeFormat(undefined, {day: "numeric", month: "short", timeZone: "UTC"}).format(new Date(d + "T00:00:00Z"));
+  if (c.status === "not_listed") return "Bitget earnings calendar: release not listed";
+  const agrees = c.status === "agrees" && c.session_status === "agrees";
+  return `Bitget earnings calendar: ${esc(fmt(c.bitget_release_date))}, ${esc(SESSION[c.bitget_session] || c.bitget_session)} · ` +
+    (agrees ? "agrees with the issuer's feed" : `<b>differs from the issuer's feed (${esc(c.status)}, session ${esc(c.session_status)})</b>`);
+}
 function render() {
   document.getElementById("grid").innerHTML = RUNS.map(r => {
     const [cls, label, sub] = status(r);
@@ -125,9 +142,10 @@ function render() {
     <div class="muted">Window ${when(r.window[0])} → ${when(r.window[1])}</div>
     <blockquote>${esc(r.thesis)}</blockquote><ul>${r.claims.map(c => `<li>${esc(c)}</li>`).join("")}</ul>
     ${r.result ? `<div><b>${esc(r.result)}</b></div>` : ""}
+    ${r.bitget_check ? `<div class="muted">${bitgetLine(r.bitget_check)}</div>` : ""}
     <div class="muted">${esc(r.drafted)}</div>
     <div class="muted">Frozen hash <code>${esc(r.frozen_sha256.slice(0, 16))}…</code> pushed ${when(r.pushed_at)}</div>
-    <div class="links"><a href="${BLOB}/${esc(r.files.frozen)}">Frozen thesis</a>${r.files.sources ? `<a href="${BLOB}/${esc(r.files.sources)}">Pre-event sources</a>` : ""}${r.files.result ? `<a href="${BLOB}/${esc(r.files.result)}">Scoring</a>` : ""}${r.walkthrough ? `<a href="__HOME__${esc(r.walkthrough)}">Walkthrough</a>` : ""}</div></article>`;
+    <div class="links"><a href="${BLOB}/${esc(r.files.frozen)}">Frozen thesis</a>${r.files.sources ? `<a href="${BLOB}/${esc(r.files.sources)}">Pre-event sources</a>` : ""}${r.files.result ? `<a href="${BLOB}/${esc(r.files.result)}">Scoring</a>` : ""}${r.files.bitget ? `<a href="${BLOB}/${esc(r.files.bitget)}">Bitget cross-check</a>` : ""}${r.walkthrough ? `<a href="__HOME__${esc(r.walkthrough)}">Walkthrough</a>` : ""}</div></article>`;
   }).join("");
 }
 render(); setInterval(render, 30000);

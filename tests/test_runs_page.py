@@ -59,3 +59,27 @@ class ApldWalkthroughTests(unittest.TestCase):
         self.assertEqual([c["at"] for c in data["clock"]], sorted(c["at"] for c in data["clock"]))
         page = render_apld_walkthrough_html()
         self.assertNotRegex(page, r"fetch\(|<script src=|Costco release</text>|RSTZ one-minute")
+
+
+class BitgetCrossCheckTests(unittest.TestCase):
+    def test_every_run_carries_the_committed_bitget_calendar_check(self):
+        crosscheck = json.loads((ROOT / "evidence/bitget-data/release_crosscheck.json").read_text())
+        committed = {item["run"]: item for item in crosscheck["runs"]}
+        for run in runs_data():
+            self.assertIn(run["id"], committed)
+            self.assertEqual(run["bitget_check"]["status"], committed[run["id"]]["status"])
+            self.assertEqual(run["files"]["bitget"], "evidence/bitget-data/release_crosscheck.json")
+
+    def test_committed_crosscheck_recomputes_from_its_raw_rows(self):
+        import hashlib
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("crosscheck", ROOT / "scripts/bitget_data_crosscheck.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        committed = json.loads(module.OUTPUT.read_text())
+        for item in committed["runs"]:
+            raw = ROOT / item["raw_path"]
+            self.assertEqual(hashlib.sha256(raw.read_bytes()).hexdigest(), item["raw_sha256"])
+            recomputed = module.compare_run(item["run"], json.loads(raw.read_text()),
+                                            committed["calendar_match_window_days"])
+            self.assertEqual(recomputed, {k: v for k, v in item.items() if k not in {"raw_path", "raw_sha256"}})
