@@ -106,3 +106,5 @@ body.app:before{mask-image:none;-webkit-mask-image:none;opacity:.5}
 .bitget-context-grid dd{margin:3px 0 0;font-size:12px;overflow-wrap:anywhere}.bitget-consensus{grid-column:1/-1}
 .bitget-context-grid .agrees{color:var(--mint)}.bitget-context-grid .differs{color:var(--amber)}
 .bitget-context-note{margin:10px 0 0;color:var(--muted);font-size:10px}
+.public-demo-note{margin:12px 0 0;padding:10px 12px;border:1px solid rgba(255,193,94,.25);border-radius:6px;background:rgba(255,193,94,.05);color:var(--muted);font-size:11px}
+.public-demo-note strong{color:var(--text)}

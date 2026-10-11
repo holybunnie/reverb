@@ -6,6 +6,9 @@ import hashlib
 import json
 import os
 import sys
+import threading
+import time
+from collections import deque
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -37,6 +40,54 @@ from reverb.service import DecisionService  # noqa: E402
 
 def _ledger_path() -> Path:
     return Path(os.getenv("REVERB_LEDGER_PATH", str(ROOT / "data" / "private" / "ledger.jsonl")))
+
+
+# Public demo mode. Set REVERB_PUBLIC_ORIGIN (for example https://reverb.example) to serve the
+# thesis desk to visitors behind a local reverse proxy. Only the routes the desk needs are
+# open: this week's events, the Bitget data box and capped Qwen claim extraction. Registering
+# a thesis, the reaction monitor and view classification stay local-only, and visitor drafts
+# stay in the visitor's browser.
+PUBLIC_ORIGIN = os.getenv("REVERB_PUBLIC_ORIGIN", "").rstrip("/") or None
+PUBLIC_ROUTES = {"/api/events", "/api/events/context", "/api/thesis/extract"}
+
+
+class RateLimiter:
+    """Sliding-window limits per visitor and in total; in memory, reset on restart."""
+
+    def __init__(self, *, per_visitor: int, visitor_window_s: int, total: int, total_window_s: int):
+        self.per_visitor, self.visitor_window_s = per_visitor, visitor_window_s
+        self.total, self.total_window_s = total, total_window_s
+        self._visitors: dict[str, deque] = {}
+        self._all: deque = deque()
+        self._lock = threading.Lock()
+
+    def allow(self, visitor: str) -> str | None:
+        """Record one use and return None, or return why it is refused."""
+        now = time.monotonic()
+        with self._lock:
+            while self._all and now - self._all[0] > self.total_window_s:
+                self._all.popleft()
+            hits = self._visitors.setdefault(visitor, deque())
+            while hits and now - hits[0] > self.visitor_window_s:
+                hits.popleft()
+            if len(self._all) >= self.total:
+                return "The public demo has reached its daily limit. Run Reverb locally to continue."
+            if len(hits) >= self.per_visitor:
+                return "You have reached this demo's per-visitor limit for now. Please try again later."
+            hits.append(now)
+            self._all.append(now)
+            if len(self._visitors) > 10000:
+                self._visitors = {key: value for key, value in self._visitors.items() if value}
+            return None
+
+
+LIMITS = {
+    "/api/thesis/extract": RateLimiter(per_visitor=5, visitor_window_s=3600, total=150, total_window_s=86400),
+    "/api/events/context": RateLimiter(per_visitor=60, visitor_window_s=3600, total=2000, total_window_s=86400),
+    "/api/events": RateLimiter(per_visitor=60, visitor_window_s=3600, total=2000, total_window_s=86400),
+}
+# One Qwen call at a time on a small host; a second caller is told to retry.
+QWEN_SLOT = threading.BoundedSemaphore(1)
 
 
 def _service(*, calendar: EarningsCalendar | None = None) -> DecisionService:
@@ -84,12 +135,45 @@ class Handler(BaseHTTPRequestHandler):
     def _local_request(self) -> bool:
         if self.client_address[0] not in {"127.0.0.1", "::1"}:
             return False
+        if PUBLIC_ORIGIN and self.headers.get("X-Real-IP"):
+            # Behind the public proxy every request arrives from loopback; a proxied
+            # visitor is never "local".
+            return False
         origin = self.headers.get("Origin")
         if origin:
             host = urlsplit(origin).hostname
             if host not in {"localhost", "127.0.0.1", "::1"}:
                 return False
         return True
+
+    def _visitor(self) -> str:
+        return self.headers.get("X-Real-IP") or self.client_address[0]
+
+    def _allowed(self, route: str) -> bool:
+        """Local callers may use every route; public visitors only the desk's routes, same-origin."""
+        if self._local_request():
+            return True
+        if not PUBLIC_ORIGIN or route not in PUBLIC_ROUTES or self.client_address[0] not in {"127.0.0.1", "::1"}:
+            return False
+        origin = self.headers.get("Origin")
+        return origin is None or origin.rstrip("/") == PUBLIC_ORIGIN
+
+    def _refused(self, route: str) -> bool:
+        """Send 403/429 and return True when a request may not proceed."""
+        if not self._allowed(route):
+            self._send(403, "application/json; charset=utf-8", json.dumps({
+                "status": "local_only" if not PUBLIC_ORIGIN or route not in PUBLIC_ROUTES else "forbidden",
+                "message": "This action is available only when Reverb runs on your own machine.",
+            }).encode())
+            return True
+        limiter = LIMITS.get(route)
+        if PUBLIC_ORIGIN and limiter is not None and not self._local_request():
+            reason = limiter.allow(self._visitor())
+            if reason:
+                self._send(429, "application/json; charset=utf-8",
+                           json.dumps({"status": "rate_limited", "message": reason}).encode())
+                return True
+        return False
 
     def _read_json(self, maximum: int = 8192) -> dict:
         if self.headers.get_content_type() != "application/json":
@@ -131,8 +215,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, "text/html; charset=utf-8", embed_standalone(render_replay_html(replay), page="demo", title="Verified replay").encode())
                 return
             if route == "/api/events":
-                if not self._local_request():
-                    self._send(403, "application/json; charset=utf-8", b'{"status":"local_only"}')
+                if self._refused(route):
                     return
                 query = parse_qs(urlsplit(self.path).query)
                 user_timezone = query.get("timezone", ["Africa/Lagos"])[0]
@@ -148,8 +231,7 @@ class Handler(BaseHTTPRequestHandler):
                                json.dumps({"status": "ok", "result": result}, sort_keys=True).encode())
                 return
             if route == "/api/events/context":
-                if not self._local_request():
-                    self._send(403, "application/json; charset=utf-8", b'{"status":"local_only"}')
+                if self._refused(route):
                     return
                 query = parse_qs(urlsplit(self.path).query)
                 symbol = query.get("symbol", [""])[0]
@@ -196,7 +278,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if route == "/events":
                 self._send(200, "text/html; charset=utf-8",
-                           render_events_html(snapshot, replay_snapshot=replay).encode())
+                           render_events_html(snapshot, replay_snapshot=replay,
+                                              public_demo=bool(PUBLIC_ORIGIN)).encode())
                 return
             if route == "/report":
                 report = _local_report_or_replay(replay)
@@ -228,8 +311,7 @@ class Handler(BaseHTTPRequestHandler):
         if route not in {"/api/language/view", "/api/thesis/extract", "/api/thesis", "/api/react"}:
             self._send(404, "text/plain; charset=utf-8", b"not found\n")
             return
-        if not self._local_request():
-            self._send(403, "application/json; charset=utf-8", b'{"status":"local_only"}')
+        if self._refused(route):
             return
         try:
             if route == "/api/language/view":
@@ -275,6 +357,12 @@ class Handler(BaseHTTPRequestHandler):
                 if document["symbol"].upper() == "COST":
                     config = json.loads((ROOT / "config" / "costco_run.json").read_text(encoding="utf-8"))
                     approved_rules = config["approved_comparison_rules"]
+                if not QWEN_SLOT.acquire(blocking=False):
+                    qwen.close()
+                    self._send(429, "application/json; charset=utf-8", json.dumps({
+                        "status": "busy", "message": "Qwen is answering another request. Try again in a few seconds."
+                    }).encode())
+                    return
                 ledger = Ledger(_ledger_path())
                 try:
                     extracted = extract_thesis_and_record(
@@ -282,6 +370,7 @@ class Handler(BaseHTTPRequestHandler):
                         ledger=ledger, qwen=qwen,
                     )
                 finally:
+                    QWEN_SLOT.release()
                     qwen.close()
                 result = {
                     "claims": [claim.model_dump(mode="json") for claim in extracted.extraction.claims],
@@ -402,7 +491,10 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
-    load_local_env(ROOT)
+    if not PUBLIC_ORIGIN:
+        # The public demo gets only the variables its service file passes; the owner's
+        # local .env (Bitget read key, Agent Hub) is never loaded into a public process.
+        load_local_env(ROOT)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)

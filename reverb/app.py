@@ -21,8 +21,8 @@ def render_app_html(snapshot: PreviewSnapshot, *, risk_budget: str | None = None
 
 
 def render_events_html(snapshot: PreviewSnapshot, *, replay_snapshot: Any | None = None,
-                       static_demo: bool = False) -> str:
-    return render_events(snapshot, replay_snapshot, static=static_demo)
+                       static_demo: bool = False, public_demo: bool = False) -> str:
+    return render_events(snapshot, replay_snapshot, static=static_demo, public=public_demo)
 
 
 def render_report_html(snapshot: PreviewSnapshot, *, replay_snapshot: Any | None = None,
