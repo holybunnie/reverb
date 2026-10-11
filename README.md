@@ -10,7 +10,7 @@ Write down what you believe before the earnings report. Reverb checks it against
 
 | Judging line | Where to look | What it proves |
 | --- | --- | --- |
-| Feature depth | [Evidence and known limits](#evidence-and-known-limits), [Run and verify](#run-and-verify) | Each source, how it is used, and how it failed when it did |
+| Feature depth | [Data sources](#data-sources), [Evidence and known limits](#evidence-and-known-limits), [Run and verify](#run-and-verify) | Each source, how it is used, and how it failed when it did; Bitget's own data service cross-checks every run |
 | Research quality | [Costco forward run](#costco-forward-run) (the owner's own view), [STZ](#forward-runs) and [APLD](#forward-runs) forward runs (the owner's views, built from the issuers' filings), raw captures for [Costco](evidence/costco/raw/20260924T072322Z-1239ae49), [STZ](evidence/events/stz-q2-fy27/raw/20261006T192000Z-27d5f529) and [APLD](evidence/events/apld-q1-fy27/raw/20261007T192000Z-4c90a9d1) | Three forward runs with push-time proof, exact-offset citations and measured model error, rebuildable from committed raw data |
 | LUI fluency | [Walkthrough](https://holybunnie.github.io/reverb/walkthrough/) | Question to decision in plain language, with the source for every number |
 | Personalised thesis | [Walkthrough step 3](https://holybunnie.github.io/reverb/walkthrough/#3) | Your browser recomputes the frozen hash; edit a claim and it breaks, so the view can't be rewritten after the result |
@@ -97,6 +97,23 @@ The NVIDIA result is one historical replay, not a strategy test or profitability
 
 Before a report, the user writes a thesis and reviews the claims Reverb extracts. The claims, knowledge snapshot, comparison rules, and capture plan are frozen with a timestamp and hash. After the report, source-grounded facts are reconciled by deterministic code; claims already public at freeze are excluded. Reverb measures the Reality-token reaction and presents a recommendation with its evidence. The user makes the decision, and no order is placed without explicit confirmation.
 
+## Data sources
+
+| Source | What Reverb uses it for | Credentials |
+| --- | --- | --- |
+| Issuer press-release feeds and SEC EDGAR | The release time of each run (bounded by the 8-K acceptance) and the facts every claim is scored against | None |
+| Bitget public market API | Reality-token candles, public order book and ticker bid/ask for the reaction capture | None |
+| [`bitget-mcp-server`](https://agent.bitget.com/mcp), Bitget's US-equity data service | In the thesis desk: Bitget's earnings date and session for the selected event, the last price, and analyst consensus for the quarter being reported. For the forward runs: an independent check of each release date | None |
+| Qwen through Bitget's hackathon gateway | Turns the trader's plain words into candidate claims for review; it never scores | `QWEN_API_KEY` |
+| Nasdaq earnings calendar | This week's reporting companies | None |
+| Bitget Agent Hub (`bgc`) | The one human-approved transport-proof order; trading from a brief is off | Agentic account |
+
+**Bitget data in the thesis desk.** When the trader picks an event, the desk asks `bitget-mcp-server` for three things and labels each one on its own, so one failure never hides the others: the release date and session Bitget lists (and whether it agrees with the calendar), the last price, and the EPS and revenue consensus for the reported quarter. The quarter is matched by its period-end month from Bitget's own calendar, not guessed from a relative label. Consensus is shown only if it was scraped within 7 days and before the release; otherwise the desk says it is stale or post-release instead of showing it. What the trader was shown is hashed into the local ledger. None of it is a scoring, sizing or order input ([adapter](reverb/bitget_data.py), [tests](tests/test_bitget_data.py)).
+
+**Bitget data on the forward runs.** For all three runs, Bitget's earnings calendar lists the release on the same date and in the same session (after the close) as the issuer's own feed: Costco 24 Sep, Constellation 6 Oct, Applied Digital 7 Oct. A second source agreeing is corroboration, not proof; a disagreement would be reported, never resolved in Bitget's favour. Bitget's raw rows are committed and the check recomputes offline ([cross-check](evidence/bitget-data/release_crosscheck.json), [raw rows](evidence/bitget-data/raw)). The same guard shows on these runs: every Costco consensus row for the quarter was scraped after the release, and Applied Digital's newest pre-release consensus dates from 4 July, so neither is used.
+
+Reverb's own MCP server ([`scripts/mcp_server.py`](scripts/mcp_server.py)) exposes its decision tools and `release_crosscheck`, which returns only the comparison, never a quote.
+
 ## Track and user
 
 **AI Trading Desk → Personalized research workstation.** Reverb analyzes; the human decides. If supported, execution is a separate human-confirmed Agent Hub handoff. The target user is a Bitget Reality-token trader who wants to record a view before an earnings report and review it honestly afterwards.
@@ -134,6 +151,7 @@ Open `/` for the landing page, `/events` for the local event search and thesis d
 ```sh
 ./.venv/bin/python scripts/replay_capture.py check
 ./.venv/bin/python scripts/probe.py report --check
+./.venv/bin/python scripts/bitget_data_crosscheck.py --check   # Bitget calendar cross-check, offline
 ./.venv/bin/python -m unittest discover -s tests -v
 ```
 
